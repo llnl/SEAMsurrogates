@@ -1,9 +1,9 @@
-matplotlib==3.10.3
+matplotlib==3.9.4
 torch==2.7.1
-botorch==0.14.0
-scikit-learn==1.7.0
-numpy==2.2.5
+botorch==0.10.0
+scikit-learn==1.6.1
+numpy==2.0.2
 seaborn==0.13.2
 salib==1.5.1
 pandas==2.3.0
-scipy==1.15.3
+scipy==1.13.1

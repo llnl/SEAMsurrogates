@@ -37,6 +37,8 @@ import argparse
 import time
 import datetime
 
+import matplotlib.pyplot as plt
+
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -208,6 +210,14 @@ def main():
             log_message,
             path_to_log="./output_log/JAG_Results.txt",
         )
+
+    plt.hist(y_train, bins=30, alpha=0.5, label='Train')
+    plt.hist(y_test, bins=30, alpha=0.5, label='Test')
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+    plt.title('Overlayed Histograms')
+    plt.savefig("train_vs_test.png")
 
     if plot:
         gp.plot_test_predictions(

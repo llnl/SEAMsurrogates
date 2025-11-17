@@ -61,7 +61,7 @@ def parse_arguments():
         "--objective_function",
         type=str,
         choices=["Ackley", "SixHumpCamel", "Griewank"],
-        default="Ackley",
+        default="Griewank",
         help="Choose objective function (Ackley, SixHumpCamel, or Griewank).",
     )
 
