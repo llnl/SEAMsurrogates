@@ -33,13 +33,9 @@ class Parabola(SyntheticTestFunction):
         self.categorical_inds = []
         super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
 
-    def _evaluate_true(
-        self, X: Union[torch.Tensor, np.ndarray]
-    ) -> torch.Tensor:
+    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         if isinstance(X, torch.Tensor):
-            result = (
-                -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
-            )
+            result = -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
         elif isinstance(X, np.ndarray):
             result = -np.sum(X**2, axis=1) if X.ndim > 1 else -np.sum(X**2)
             result = torch.from_numpy(result)

@@ -13,7 +13,7 @@ import numpy as np
 import seaborn as sns
 from sklearn.metrics import mean_squared_error as mse
 
-from surmod.sensitivity_functions import (
+from surmod.test_functions import (
     parabola,
     otlcircuit,
     wingweight,
@@ -108,9 +108,7 @@ def simulate_data(
     return x_train, x_test, y_train, y_test
 
 
-def plot_test_predictions(
-    x_test, y_test, gp_model, objective_function: str
-) -> None:
+def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> None:
     """
     Plot test set predictions vs. ground truth for a Gaussian Process model.
 
@@ -173,11 +171,11 @@ def plot_test_predictions(
     )
     plt.tight_layout()
 
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = (
-        f"./plots/test_predictions_{objective_function}_{timestamp}.png"
+    path_to_plot = os.path.join(
+        "plots", f"test_predictions_{objective_function}_{timestamp}.png"
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
@@ -230,9 +228,11 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = f"./plots/sensitivity_{objective_function}_{timestamp}.png"
+    path_to_plot = os.path.join(
+        "plots", f"sensitivity_{objective_function}_{timestamp}.png"
+    )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

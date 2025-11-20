@@ -47,14 +47,14 @@ def sample_parabola(
 
     while len(samples) < n_initial:
         # Generate a single point
-        X_point = np.random.uniform(bounds_low, bounds_high, size=input_size)
+        x_point = np.random.uniform(bounds_low, bounds_high, size=input_size)
 
         # Calculate the distance from the origin
-        distance = np.linalg.norm(X_point)
+        distance = np.linalg.norm(x_point)
 
         # Check if the point is outside the excluded radius
         if distance > radius:
-            samples.append(X_point)
+            samples.append(x_point)
 
     return np.array(samples)
 
@@ -86,29 +86,27 @@ def sample_data(
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: Tuple containing:
-            - X_sample: Array of shape (n_initial, input_size) with input sample
+            - x_sample: Array of shape (n_initial, input_size) with input sample
                 points.
-            - Y_sample: Array of shape (n_initial, ...) with corresponding
+            - y_sample: Array of shape (n_initial, ...) with corresponding
                 function outputs.
     """
     test_function = gp.load_test_function(objective_function)
 
     if objective_function == "Parabola":
-        X_data = sample_parabola(
-            n_initial, bounds_low, bounds_high, input_size
-        )
+        x_data = sample_parabola(n_initial, bounds_low, bounds_high, input_size)
     else:
-        X_data = np.random.uniform(
+        x_data = np.random.uniform(
             bounds_low, bounds_high, size=(n_initial, input_size)
         )
 
-    X_data = torch.Tensor(X_data)
-    y_data = test_function(X_data)
+    x_data = torch.Tensor(x_data)
+    y_data = test_function(x_data)
 
-    X_sample = X_data.clone().detach().numpy()
-    Y_sample = y_data.clone().detach().numpy()
+    x_sample = x_data.clone().detach().numpy()
+    y_sample = y_data.clone().detach().numpy()
 
-    return X_sample, Y_sample
+    return x_sample, y_sample
 
 
 def get_synth_global_optima(
@@ -193,7 +191,7 @@ def expected_improvement(
 
 
 def probability_of_improvement(
-    X_sample: np.ndarray,
+    x_sample: np.ndarray,
     model: GaussianProcessRegressor,
     y_max: float,
     xi: float = 0.0,
@@ -206,7 +204,7 @@ def probability_of_improvement(
     the current maximum observed value.
 
     Args:
-        X_sample (np.ndarray): Points at which the acquisition function should
+        x_sample (np.ndarray): Points at which the acquisition function should
             be evaluated, with shape (n_samples, n_features).
         model (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
@@ -215,10 +213,10 @@ def probability_of_improvement(
             Larger values encourage exploration. Default is 0.0 (standard PI).
 
     Returns:
-        np.ndarray: The probability of improvement at each point in `X_sample`
+        np.ndarray: The probability of improvement at each point in `x_sample`
             with shape (n_samples,).
     """
-    mu, sigma = model.predict(X_sample, return_std=True)  # type: ignore
+    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
     with np.errstate(divide="warn"):
         Z = (mu - (y_max + xi)) / sigma
         pi = norm.cdf(Z)
@@ -227,7 +225,7 @@ def probability_of_improvement(
 
 
 def upper_confidence_bound(
-    X_sample: np.ndarray, model: GaussianProcessRegressor, kappa: float
+    x_sample: np.ndarray, model: GaussianProcessRegressor, kappa: float
 ) -> np.ndarray:
     """
     Compute the Upper Confidence Bound (UCB) acquisition function.
@@ -237,17 +235,17 @@ def upper_confidence_bound(
     of a Gaussian process model.
 
     Args:
-        X_sample (np.ndarray): Points at which to evaluate the acquisition
+        x_sample (np.ndarray): Points at which to evaluate the acquisition
             function, with shape (n_samples, n_features).
         model (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
         kappa (float): Controls the balance between exploration and exploitation.
 
     Returns:
-        np.ndarray: The UCB value at each point in `X_sample`, with shape
+        np.ndarray: The UCB value at each point in `x_sample`, with shape
             (n_samples,).
     """
-    mu, sigma = model.predict(X_sample, return_std=True)  # type: ignore
+    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
     return mu + kappa * sigma
 
 
@@ -377,13 +375,15 @@ class BayesianOptimizer:
             ValueError: If an invalid acquisition function is specified.
         """
         synthetic_function = gp.load_test_function(self.objective_function)
+        epsilon = 1e-4
         bounds_low = [b[0] for b in synthetic_function._bounds]
         bounds_high = [b[1] for b in synthetic_function._bounds]
         input_size = len(bounds_low)
-        bounds = list(zip(bounds_low, bounds_high))
-        y_max = (
-            np.max(self.y_max_history) if len(self.y_max_history) > 0 else 0.0
-        )
+        bounds = [
+            (low + epsilon, high - epsilon)
+            for low, high in zip(bounds_low, bounds_high)
+        ]
+        y_max = np.max(self.y_max_history) if len(self.y_max_history) > 0 else 0.0
 
         if acquisition not in ACQUISITION_FUNCTIONS:
             raise ValueError(
@@ -408,13 +408,9 @@ class BayesianOptimizer:
 
             def acq_wrap(x):
                 if acquisition == "EI":
-                    return -acq_func(
-                        x.reshape(1, -1), y_max, self.gp_model
-                    ).item()
+                    return -acq_func(x.reshape(1, -1), y_max, self.gp_model).item()
                 elif acquisition == "PI":
-                    return -acq_func(
-                        x.reshape(1, -1), self.gp_model, y_max
-                    ).item()
+                    return -acq_func(x.reshape(1, -1), self.gp_model, y_max).item()
                 elif acquisition == "UCB":
                     return -acq_func(
                         x.reshape(1, -1), self.gp_model, **acq_kwargs
@@ -481,25 +477,23 @@ class BayesianOptimizer:
             gp_model = self.gp_model_fit()
 
             remaining_indices = set(range(len(data))) - set(initial_indices)
-            for i in range(n_iter):
-                X_remaining = x[list(remaining_indices)]
+            for _ in range(n_iter):
+                x_remaining = x[list(remaining_indices)]
                 # Compute acquisition values
                 if self.acquisition == "EI":
                     acquisition_values = expected_improvement(
-                        X_remaining, np.max(self.y_all_data), gp_model
+                        x_remaining, np.max(self.y_all_data), gp_model
                     )
                 elif self.acquisition == "PI":
                     acquisition_values = probability_of_improvement(
-                        X_remaining, gp_model, np.max(self.y_all_data)
+                        x_remaining, gp_model, np.max(self.y_all_data)
                     )
                 elif self.acquisition == "UCB":
                     acquisition_values = upper_confidence_bound(
-                        X_remaining, gp_model, kappa=2.0
+                        x_remaining, gp_model, kappa=2.0
                     )
                 elif self.acquisition == "random":
-                    acquisition_values = np.random.uniform(
-                        size=X_remaining.shape[0]
-                    )
+                    acquisition_values = np.random.uniform(size=x_remaining.shape[0])
                 else:
                     raise ValueError("Invalid acquisition function.")
 
@@ -511,9 +505,7 @@ class BayesianOptimizer:
 
                 self.x_all_data = np.vstack((self.x_all_data, next_point))
                 self.y_all_data = np.append(self.y_all_data, next_value)
-                self.x_acquired = np.append(
-                    self.x_acquired, next_point, axis=0
-                )
+                self.x_acquired = np.append(self.x_acquired, next_point, axis=0)
                 self.y_acquired = np.append(self.y_acquired, next_value)
 
                 gp_model = self.gp_model_fit()
@@ -526,7 +518,7 @@ class BayesianOptimizer:
         #    optimization on "full" input space)
         else:
             n_iter = self.n_acquire
-            for i in range(n_iter):
+            for _ in range(n_iter):
                 # Propose the next sampling point by maximizing the acquisition
                 #   function
                 x_next = self.propose_location(self.acquisition, n_restarts=10)
@@ -552,8 +544,8 @@ def plot_acquisition_comparison(
     max_output_UCB: np.ndarray,
     max_output_random: np.ndarray,
     kernel: str,
-    n_iter: str,
-    n_init: str,
+    n_iter: int,
+    n_init: int,
     objective_data: str = "___ data",
 ) -> None:
     """
@@ -615,9 +607,12 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    filepath = f"./plots/bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
+    filepath = os.path.join(
+        "plots",
+        f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png",
+    )
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")

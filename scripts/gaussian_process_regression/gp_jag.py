@@ -17,23 +17,24 @@ chmod +x ./gp_jag.py
 
 # Train a GP with 200 training points, 1000 total samples, and an isotropic RBF
 # kernel
-./gp_jag.py --n_samples=1000 --num_train=200 --kernel=rbf --isotropic
+./gp_jag.py --num_samples=1000 --num_train=200 --kernel=rbf --isotropic
 
 # Train a GP with 200 training points, 1000 total samples, and an anisotropic
 # RBF kernel
-./gp_jag.py --n_samples=1000 --num_train=200 --kernel=rbf
+./gp_jag.py --num_samples=1000 --num_train=200 --kernel=rbf
 
 # Train a GP with 200 training points, 1500 total samples, Matern kernel,
 # normalize y, and plot results
-./gp_jag.py --n_samples=1500 --num_train=200 --kernel=matern --normalize_y --plot
+./gp_jag.py --num_samples=1500 --num_train=200 --kernel=matern --normalize_y --plot
 
 # Train a GP with 300 training points, 2000 total samples, Matern kernel,
 # and save results to a log file
-./gp_jag.py --n_samples=2000 --num_train=300 --kernel=matern --log
+./gp_jag.py --num_samples=2000 --num_train=300 --kernel=matern --log
 
 """
 
 import argparse
+import os
 import time
 import datetime
 
@@ -190,7 +191,7 @@ def main():
         f"Number of training points: {num_train}",
         f"Number of testing points: {num_test}",
         f"Kernel: {gp_model.kernel_}",
-        f"Isotrpotic kernel: {isotropic}",
+        f"Isotropic kernel: {isotropic}",
         f"Normalize y values: {normalize_y}",
         f"Train MSE: {train_mse:.5e}",
         f"Test MSE: {test_mse:.5e}",
@@ -208,7 +209,7 @@ def main():
     if log:
         gp.log_results(
             log_message,
-            path_to_log="./output_log/JAG_Results.txt",
+            path_to_log=os.path.join("output_log", "JAG_Results.txt"),
         )
 
     plt.hist(y_train, bins=30, alpha=0.5, label='Train')
@@ -220,9 +221,7 @@ def main():
     plt.savefig("train_vs_test.png")
 
     if plot:
-        gp.plot_test_predictions(
-            x_test, y_test, gp_model, objective_data_name="JAG"
-        )
+        gp.plot_test_predictions(x_test, y_test, gp_model, objective_data_name="JAG")
 
 
 if __name__ == "__main__":

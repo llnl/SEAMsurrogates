@@ -7,3 +7,4 @@ seaborn==0.13.2
 salib==1.5.1
 pandas==2.3.0
 scipy==1.13.1
+imageio

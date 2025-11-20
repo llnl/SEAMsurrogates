@@ -214,7 +214,7 @@ def main():
     surface_plot = args.surface_plot
     verbose_plot = args.verbose_plot
 
-    # Weight initialization (defualt PyTorch)
+    # Weight initialization (default PyTorch)
     initialize_weights_normal = False
 
     # Generate random data from test function
@@ -246,7 +246,7 @@ def main():
     scaler_x_train = None
     scaler_y_train = None
 
-    if normalize_x | scale_x:
+    if normalize_x or scale_x:
 
         # Create the scaler and fit it on training data
         if normalize_x:
@@ -273,13 +273,11 @@ def main():
         x_train = torch.from_numpy(x_train).float()
         x_test = torch.from_numpy(x_test).float()
 
-    if normalize_y | scale_y:
+    if normalize_y or scale_y:
 
         # Create the scaler and fit it on training data
         if normalize_y:
-            print(
-                "Output data is being normalized to have mean 0, variance 1.\n"
-            )
+            print("Output data is being normalized to have mean 0, variance 1.\n")
             scaler_y_train = StandardScaler()
 
         if scale_y:
@@ -315,9 +313,7 @@ def main():
             len(multi_learning_rates),
             figsize=(15, 15),
         )
-        fig.suptitle(
-            f"Training and Testing Losses - {objective_function}", fontsize=16
-        )
+        fig.suptitle(f"Training and Testing Losses - {objective_function}", fontsize=16)
 
         # Train and test FFNN
         n = len(multi_hidden_sizes)
@@ -374,7 +370,7 @@ def main():
         )
 
         if verbose_plot:
-            # Plot train and test loss over eopchs with (hyper)parameters
+            # Plot train and test loss over epochs with (hyper)parameters
             #   included
             nn.plot_losses_verbose(
                 train_losses,
@@ -462,13 +458,9 @@ def main():
                     # Convert tensor to numpy if needed
                     grid_points_np = grid_points_tensor.numpy()
                     # Apply the scaler
-                    grid_points_scaled_np = input_scaler.transform(
-                        grid_points_np
-                    )
+                    grid_points_scaled_np = input_scaler.transform(grid_points_np)
                     # Convert back to tensor if you need to use it as a tensor
-                    grid_points_tensor = torch.from_numpy(
-                        grid_points_scaled_np
-                    ).float()
+                    grid_points_tensor = torch.from_numpy(grid_points_scaled_np).float()
 
                 # Compute model predictions
                 with torch.no_grad():

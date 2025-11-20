@@ -7,6 +7,11 @@ length scale adjustment, and exclusion of specific input columns.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
+Note:
+- For JAG data there are 5 input variables: x1, x2, x3, x4, x5.
+- Column exclusion uses zero-based indexing:
+    0 = x1, 1 = x2, 2 = x3, 3 = x4, 4 = x5.
+
 Usage:
 
 # Make script executable
@@ -15,11 +20,16 @@ chmod +x ./sa_jag.py
 # Get help
 ./sa_jag.py -h
 
-# Perform sensitivity analysis with 200 points and columns 1, 2, and 3
+# Perform sensitivity analysis with 200 training points, excluding columns 3 and 4
 ./sa_jag.py -n 200 --exclude 3 4
+
+# Perform sensitivity analysis with 150 training points, excluding columns 1 and 2,
+#  and save results to log file
+./sa_jag.py -n 150 -e 1 2 --log
 """
 
 import argparse
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,7 +69,8 @@ def parse_arguments():
         "--exclude",
         type=int,
         nargs="+",
-        help="Columns to exclude from fitting the surrogate model",
+        help="Zero-based column indices to exclude from fitting the surrogate model. "
+             "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5.",
     )
 
     parser.add_argument(
@@ -96,9 +107,7 @@ def main():
     exclude = args.exclude
 
     df = jag.load_data(n_samples=num_samples, random=False)
-    x_train, x_test, y_train, y_test = jag.split_data(
-        df, n_train=args.num_train
-    )
+    x_train, x_test, y_train, y_test = jag.split_data(df, n_train=args.num_train)
     dim = x_train.shape[0]
 
     if exclude is not None:
@@ -138,9 +147,7 @@ def main():
     train_max_abserr, train_max_input = gp.compute_max_error(
         pred_train, y_train, x_train
     )
-    test_max_abserr, test_max_input = gp.compute_max_error(
-        pred_test, y_test, x_test
-    )
+    test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)
 
     variable_names = ["x1", "x2", "x3", "x4", "x5"]
     __, k = x_train.shape
@@ -178,8 +185,7 @@ def main():
 
     if log:
         gp.log_results(
-            log_message,
-            path_to_log="./output_log/Jag_Results.txt",
+            log_message, path_to_log=os.path.join("output_log", "Jag_Results.txt")
         )
 
     sa.plot_test_predictions(x_test, y_test, gp_model, "JAG")

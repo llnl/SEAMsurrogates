@@ -6,6 +6,8 @@
 
 This repository contains materials for an introductory course on "Surrogate Modeling and Design Optimization," originally developed for the Shared Education in Artificial intelligence and Machine learning (SEAM) professional development program at Lawrence Livermore National Laboratory (LLNL). It features the `surmod` Python package, which implements core techniques including Feedforward Neural Networks (FFNNs) and Gaussian Processes (GPs) as surrogates, basic Bayesian Optimization (BO) for design optimization, and Sensitivity Analysis (SA). Weekly workflow scripts in the `scripts` directory demonstrate these methods in practice. Example datasets included in the `data` directory are used to support hands-on learning and experimentation.  
 
+For more detailed documentation on the modules in the `surmod` package, please view our [documentation](https://seamsurrogates.readthedocs.io/en/latest/index.html).
+
 Information about the SEAM program is available to employees of Lawrence Livermore National Laboratory at https://seam.llnl.gov  
 
 Please send correspondence about this code to seam@llnl.gov  

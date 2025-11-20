@@ -104,9 +104,7 @@ def load_test_function(objective_function: str):
             dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
         )
     elif objective_function == "Griewank":
-        test_function = Griewank(
-            dim=2, negate=True, bounds=[(-100, 45), (-100, 45)]
-        )
+        test_function = Griewank(dim=2, negate=True, bounds=[(-100, 45), (-100, 45)])
     elif objective_function == "Branin":
         test_function = Branin(negate=True)
     elif objective_function == "HolderTable":
@@ -163,9 +161,7 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
     return x_train, x_test, y_train, y_test
 
 
-def compute_max_error(
-    output: np.ndarray, target: np.ndarray, inputs: np.ndarray
-):
+def compute_max_error(output: np.ndarray, target: np.ndarray, inputs: np.ndarray):
     """
     Computes the maximum absolute error between prediction and target values.
 
@@ -201,8 +197,8 @@ def log_results(message: str, path_to_log: str):
         message (str): The message to be written to the log file.
         path_to_log (str): The path to the log file where the message will be appended.
     """
-    if not os.path.exists("./output_log"):
-        os.makedirs("./output_log")
+    if not os.path.exists("output_log"):
+        os.makedirs("output_log")
     with open(path_to_log, "a") as f:
         f.write("\n--------------------\n\n" + message)
     print(f"Output log saved to end of {path_to_log}.")
@@ -254,18 +250,18 @@ def plot_gp_mean_prediction(
     x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
     x2 = np.linspace(bounds_low[1], bounds_high[1], 100)
     x1_grid, x2_grid = np.meshgrid(x1, x2)
-    X_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
+    x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
 
     # Evaluate the test function on the original scale
-    Y_grid = np.array(
-        [test_function(torch.tensor(x)) for x in X_grid]
-    ).reshape(x1_grid.shape)
+    y_grid = np.array([test_function(torch.tensor(x)) for x in x_grid]).reshape(
+        x1_grid.shape
+    )
 
     # Evaluate GP model on test grid
     if input_scaler is not None:
-        X_grid = input_scaler.transform(X_grid)
+        x_grid = input_scaler.transform(x_grid)
 
-    mu = gp_model.predict(X_grid, return_std=False)
+    mu = gp_model.predict(x_grid, return_std=False)
     if isinstance(mu, tuple):
         mu = mu[0]  # take the mean
     mu = mu.reshape(x1_grid.shape)
@@ -279,7 +275,7 @@ def plot_gp_mean_prediction(
     ax.contour(
         x1_grid,
         x2_grid,
-        Y_grid,
+        y_grid,
         levels=20,
         cmap="inferno",
         linestyles="solid",
@@ -318,9 +314,11 @@ def plot_gp_mean_prediction(
 
     # Specify where to save plot of GP fit, create directory if it doesn't exist
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
-    path_to_plot = f"./plots/{objective_data_name}_gp_mean_{timestamp}.png"
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+    path_to_plot = os.path.join(
+        "plots", f"{objective_data_name}_gp_mean_{timestamp}.png"
+    )
     plt.tight_layout()
     plt.savefig(path_to_plot)
     print(f"Figure saved to {path_to_plot}")
@@ -368,13 +366,13 @@ def plot_gp_std_dev_prediction(
     x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
     x2 = np.linspace(bounds_low[1], bounds_high[1], 100)
     x1_grid, x2_grid = np.meshgrid(x1, x2)
-    X_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
+    x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
 
     # Evaluate GP model variance on test grid
     if input_scaler is not None:
-        X_grid = input_scaler.transform(X_grid)
+        x_grid = input_scaler.transform(x_grid)
 
-    __, std = gp_model.predict(X_grid, return_std=True)  # type: ignore
+    __, std = gp_model.predict(x_grid, return_std=True)  # type: ignore
     std_grid = std.reshape(x1_grid.shape)
 
     # Create a 2D heatmap plot
@@ -425,9 +423,11 @@ def plot_gp_std_dev_prediction(
 
     # Save plot
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
-    path_to_plot = f"./plots/{objective_data_name}_gp_std_dev_{timestamp}.png"
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+    path_to_plot = os.path.join(
+        "plots", f"{objective_data_name}_gp_std_dev_{timestamp}.png"
+    )
     plt.tight_layout()
     plt.savefig(path_to_plot)
     print(f"Figure saved to {path_to_plot}")
@@ -459,8 +459,7 @@ def plot_test_predictions(
     lower_bounds = prediction_mean.flatten() - 1.96 * std_dev.flatten()
     upper_bounds = prediction_mean.flatten() + 1.96 * std_dev.flatten()
     coverage = np.mean(
-        (observed.flatten() >= lower_bounds)
-        & (observed.flatten() <= upper_bounds)
+        (observed.flatten() >= lower_bounds) & (observed.flatten() <= upper_bounds)
     )
 
     # Calculate MSE
@@ -505,10 +504,10 @@ def plot_test_predictions(
 
     # Save the plot
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("./plots"):
-        os.makedirs("./plots")
-    path_to_plot = (
-        f"./plots/{objective_data_name}_test_predictions_{timestamp}.png"
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+    path_to_plot = os.path.join(
+        "plots", f"{objective_data_name}_test_predictions_{timestamp}.png"
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

@@ -13,13 +13,13 @@ chmod +x ./gp_sandbox.py
 ./gp_sandbox.py -h
 
 # Smooth parabola function with an isotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --isotropic --plot
+./gp_sandbox.py --objective_function=Parabola --kernels=matern --isotropic --plots
 
 # Smooth parabola function with an anisotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --plot
+./gp_sandbox.py --objective_function=Parabola --kernels=matern --plots
 
 # Smooth Branin test function with an RBF kernel.
-./gp_sandbox.py --objective_function=Branin --kernels=rbf --plot
+./gp_sandbox.py --objective_function=Branin --kernels=rbf --plots
 
 # Smooth Ackley function with an RBF kernel, save results in log, 200 training
 #   points, 3 values of alpha.
@@ -32,6 +32,7 @@ chmod +x ./gp_sandbox.py
 
 import argparse
 import itertools
+import os
 import time
 import datetime
 
@@ -243,7 +244,9 @@ def main():
         if log:
             gp.log_results(
                 log_message,
-                path_to_log=f"./output_log/{objective_function}_{kernel}_alpha-{alpha}.txt",
+                path_to_log=os.path.join(
+                    "output_log", f"{objective_function}_{kernel}_alpha-{alpha}.txt"
+                ),
             )
 
         if plots:

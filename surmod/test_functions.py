@@ -3,7 +3,7 @@ import numpy.typing as npt
 
 
 def parabola(
-    X: npt.NDArray,
+    x: npt.NDArray,
     beta1: float,
     beta2: float,
     beta12: float,
@@ -16,7 +16,7 @@ def parabola(
 
     Parameters
     ----------
-    X : np.ndarray
+    x : np.ndarray
         Array of shape (n_samples, 2), where each row is a 2D input point [x1, x2].
     beta1 : float
         Coefficient for the x1^2 term.
@@ -31,14 +31,14 @@ def parabola(
         Array of shape (n_samples,) containing the computed function values for each input.
     """
     return (
-        beta1 * X[:, 0] ** 2
-        + beta2 * X[:, 1] ** 2
-        + beta12 * np.sin((6 * X[:, 0] * X[:, 1]) - 3)
+        beta1 * x[:, 0] ** 2
+        + beta2 * x[:, 1] ** 2
+        + beta12 * np.sin((6 * x[:, 0] * x[:, 1]) - 3)
     )
 
 
 def scale_inputs(
-    X: npt.NDArray,
+    x: npt.NDArray,
     bounds: dict[str, tuple[float, float]],
 ) -> np.ndarray:
     """
@@ -46,38 +46,36 @@ def scale_inputs(
 
     Parameters
     ----------
-    X : np.ndarray
+    x : np.ndarray
         Array of shape (n_samples, n_variables) with normalized values in [0, 1].
         Each column corresponds to an input variable, scaled according to its bounds.
     bounds : dict
         Dictionary mapping variable names to (min, max) tuples.
-        The order of variables in X columns should match the order of keys in bounds.
+        The order of variables in x columns should match the order of keys in bounds.
 
     Raises
     ------
     ValueError
-        If any element in X is outside the [0, 1] interval.
+        If any element in x is outside the [0, 1] interval.
 
     Returns
     -------
     np.ndarray
         Array of shape (n_samples, n_variables) with values scaled to their respective bounds.
     """
-    if not ((0 <= X).all() and (X <= 1).all()):
-        raise ValueError(
-            "All elements in X must be within the [0, 1] interval."
-        )
+    if not ((0 <= x).all() and (x <= 1).all()):
+        raise ValueError("All elements in x must be within the [0, 1] interval.")
 
     min_vals = np.array([bounds[key][0] for key in bounds])
     max_vals = np.array([bounds[key][1] for key in bounds])
 
-    X_scaled = X * (max_vals - min_vals) + min_vals
+    x_scaled = x * (max_vals - min_vals) + min_vals
 
-    return X_scaled
+    return x_scaled
 
 
 def otlcircuit(
-    X: npt.NDArray,
+    x: npt.NDArray,
     *args,
 ) -> npt.NDArray:
     """
@@ -86,7 +84,7 @@ def otlcircuit(
 
     Parameters
     ----------
-    X : np.ndarray
+    x : np.ndarray
         Array of shape (n_samples, n_variables) with normalized values in [0, 1].
         Each column corresponds to an input variable, scaled according to its bounds.
 
@@ -114,10 +112,10 @@ def otlcircuit(
     }
 
     # Scale inputs from unit-cube to actual ranges
-    X_scaled = scale_inputs(X, bounds)
+    x_scaled = scale_inputs(x, bounds)
 
     # Unpack variables
-    Rb1, Rb2, Rf, Rc1, Rc2, beta = X_scaled.T
+    Rb1, Rb2, Rf, Rc1, Rc2, beta = x_scaled.T
 
     # Compute midpoint voltage
     Vb1 = 12 * Rb2 / (Rb1 + Rb2)
@@ -133,7 +131,7 @@ def otlcircuit(
 
 
 def piston(
-    X: npt.NDArray,
+    x: npt.NDArray,
     *args,
 ) -> npt.NDArray:
     """
@@ -141,7 +139,7 @@ def piston(
 
     Parameters
     ----------
-    X : np.ndarray
+    x : np.ndarray
         Array of shape (n_samples, n_variables) with normalized values in [0, 1].
         Each column corresponds to an input variable, scaled according to its bounds.
 
@@ -170,10 +168,10 @@ def piston(
     }
 
     # Scale inputs from unit-cube to actual ranges
-    X_scaled = scale_inputs(X, bounds)
+    x_scaled = scale_inputs(x, bounds)
 
     # Unpack variables
-    M, S, V0, k, P0, Ta, T0 = X_scaled.T
+    M, S, V0, k, P0, Ta, T0 = x_scaled.T
 
     # Compute cycle time
     A = P0 * S + 19.62 * M - (k * V0 / S)
@@ -186,7 +184,7 @@ def piston(
 
 
 def wingweight(
-    X: npt.NDArray,
+    x: npt.NDArray,
     *args,
 ) -> npt.NDArray:
     """
@@ -194,7 +192,7 @@ def wingweight(
 
     Parameters
     ----------
-    X : np.ndarray
+    x : np.ndarray
         Array of shape (n_samples, n_variables) with normalized values in [0, 1].
         Each column corresponds to an input variable, scaled according to its bounds.
 
@@ -226,10 +224,10 @@ def wingweight(
     }
 
     # Scale inputs from unit-cube to actual ranges
-    X_scaled = scale_inputs(X, bounds)
+    x_scaled = scale_inputs(x, bounds)
 
     # Unpack variables
-    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = X_scaled.T
+    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x_scaled.T
 
     # Calculate wing weight
     factors = [

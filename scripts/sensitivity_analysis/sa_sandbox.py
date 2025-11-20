@@ -4,6 +4,8 @@
 This script simulates data from a test function, fits a Gaussian process,
 and runs a sensitivity analysis with the fitted GP model.
 
+Note: Column exclusion uses zero-based indexing.
+
 Usage:
 
 # Make script executable
@@ -13,10 +15,15 @@ chmod +x ./sa_sandbox.py
 ./sa_sandbox.py -h
 
 # Perform sensitivity analysis on otlcircuit function with 200 training points
-./sa_sandbox.py -o otlcircuit -n 200
+./sa_sandbox.py -f otlcircuit -tr 200
+
+# Perform sensitivity analysis on wingweight function with 150 training points,
+# excluding columns 2 and 3 (zero-based indexing), and save results to log file
+./sa_sandbox.py -f wingweight -tr 150 -e 2 3 -l
 """
 
 import argparse
+import os
 import time
 import datetime
 
@@ -181,9 +188,7 @@ def main():
     train_max_abserr, train_max_input = gp.compute_max_error(
         pred_train, y_train, x_train
     )
-    test_max_abserr, test_max_input = gp.compute_max_error(
-        pred_test, y_test, x_test
-    )
+    test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)
 
     if objective_function == "wingweight":
         variable_names = [
@@ -239,7 +244,7 @@ def main():
     if log:
         gp.log_results(
             log_message,
-            path_to_log=f"./output_log/{objective_function}.txt",
+            path_to_log=os.path.join("output_log", f"{objective_function}.txt"),
         )
 
     sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
@@ -257,17 +262,19 @@ def main():
         input1 = np.linspace(0, 1, 100)
         input2 = np.linspace(0, 1, 100)
         grid_input1, grid_input2 = np.meshgrid(input1, input2)
-        Xtest = np.column_stack((grid_input1.flatten(), grid_input2.flatten()))
-        predictions = gp_model.predict(Xtest)
+        x_test = np.column_stack((grid_input1.flatten(), grid_input2.flatten()))
+        predictions = gp_model.predict(x_test)
 
         plt.figure()
         plt.tricontourf(
-            Xtest[:, 0], Xtest[:, 1], predictions, levels=50, cmap="viridis"
+            x_test[:, 0], x_test[:, 1], predictions, levels=50, cmap="viridis"
         )
         plt.title("GP Model Prediction for Parabola")
         timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
         plt.savefig(
-            f"./plots/{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
+            os.path.join(
+                "plots", f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
+            )
         )
 
 

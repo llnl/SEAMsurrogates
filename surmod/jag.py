@@ -53,17 +53,13 @@ def load_data(
         )
         df = df.sample(n=n_samples, random_state=seed)
     else:
-        print(
-            f"Selecting the first {n_samples} samples from the JAG_10k dataset.\n"
-        )
+        print(f"Selecting the first {n_samples} samples from the JAG_10k dataset.\n")
         df = df.iloc[:n_samples]
 
     return df
 
 
-def split_data(
-    df: pd.DataFrame, LHD: bool = False, n_train: int = 100, seed: int = 42
-):
+def split_data(df: pd.DataFrame, LHD: bool = False, n_train: int = 100, seed: int = 42):
     """
     Split data into train and test sets using either Latin Hypercube Design
     (LHD) or random split.
@@ -85,10 +81,10 @@ def split_data(
     Raises:
         ValueError: If n_train is greater than the total number of samples in df.
     """
-    # Split the data into features (X) and labels (y)
-    X = df.iloc[:, :-1].to_numpy()
+    # Split the data into features (x) and labels (y)
+    x = df.iloc[:, :-1].to_numpy()
     y = df.iloc[:, -1].to_numpy()
-    n_total, k = X.shape
+    n_total, k = x.shape
 
     # Ensure n_train is not greater than total_samples
     if n_train > n_total:
@@ -104,14 +100,14 @@ def split_data(
         )
         # Latin Hypercube Sampling for n_train points in k dimensions
         LHD_gen = qmc.LatinHypercube(d=k, seed=seed)  # type: ignore
-        X_LHD = LHD_gen.random(n=n_train)
-        # Scale LHD points to the range of X
+        x_lhd = LHD_gen.random(n=n_train)
+        # Scale LHD points to the range of x
         for i in range(k):
-            X_LHD[:, i] = X_LHD[:, i] * (
-                np.max(X[:, i]) - np.min(X[:, i])
-            ) + np.min(X[:, i])
+            x_lhd[:, i] = x_lhd[:, i] * (np.max(x[:, i]) - np.min(x[:, i])) + np.min(
+                x[:, i]
+            )
         # Build KDTree for nearest neighbor search
-        tree = cKDTree(X)
+        tree = cKDTree(x)
 
         def query_unique(tree, small_data):
             used_indices = set()
@@ -129,18 +125,18 @@ def split_data(
             return np.array(unique_distances), np.array(unique_indices)
 
         # Query for unique nearest neighbors
-        distances, index = query_unique(tree, X_LHD)
+        distances, index = query_unique(tree, x_lhd)
 
-        x_train = X[index, :]
+        x_train = x[index, :]
         y_train = y[index].reshape(-1, 1)
         mask = np.ones(n_total, dtype=bool)
         mask[index] = False
-        x_test = X[mask, :]
+        x_test = x[mask, :]
         y_test = y[mask].reshape(-1, 1)
     else:
         # Standard random split
         x_train, x_test, y_train, y_test = train_test_split(
-            X,
+            x,
             y,
             train_size=n_train,
             test_size=None,

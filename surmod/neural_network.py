@@ -161,9 +161,7 @@ def train_neural_net(
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # Initialize the neural network
-    model = NeuralNet(
-        input_size, hidden_sizes, output_size, initialize_weights_normal
-    )
+    model = NeuralNet(input_size, hidden_sizes, output_size, initialize_weights_normal)
 
     # Define the loss function and optimizer
     criterion = nn.MSELoss()
@@ -193,9 +191,7 @@ def train_neural_net(
 
             # Accumulate gradients and update parameters only after
             #   accumulation_steps batches
-            if (i + 1) % accumulation_steps == 0 or (i + 1) == len(
-                train_loader
-            ):
+            if (i + 1) % accumulation_steps == 0 or (i + 1) == len(train_loader):
                 optimizer.step()  # Update model parameters
                 optimizer.zero_grad()  # Reset gradients for the next cycle
 
@@ -254,9 +250,7 @@ def plot_losses(
 
     num_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(
-        range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)"
-    )
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
     plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     plt.title(
@@ -318,9 +312,7 @@ def plot_losses_verbose(
 
     num_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(
-        range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)"
-    )
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
     plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     title = (

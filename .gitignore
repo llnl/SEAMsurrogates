@@ -5,8 +5,6 @@ __pycache__/
 
 .vscode/
 
-**/**/*.png
-
 **/*.png
 **/*.txt
 !NOTICE.txt
