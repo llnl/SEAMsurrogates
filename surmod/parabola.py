@@ -43,3 +43,6 @@ class Parabola(SyntheticTestFunction):
             raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
 
         return -result if self.negate else result
+    
+    def evaluate_true(self, X):
+        return self._evaluate_true(X)

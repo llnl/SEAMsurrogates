@@ -1,5 +1,5 @@
 """
-Functions for JAG ICF data.
+Functions for LEO drag data.
 """
 
 from typing import Optional
@@ -37,7 +37,7 @@ def load_data(
     """
     df = pd.read_csv(path_to_csv)
     #df.columns = ["x0", "x1", "x2", "x3", "x4", "y"]
-
+    print(df)
     # Check and warn if n_samples is too large
     if n_samples > len(df):
         warnings.warn(
@@ -49,11 +49,11 @@ def load_data(
     # Select rows
     if random:
         print(
-            f"Selecting {n_samples} samples at random from the JAG_10k dataset (seed={seed}).\n"
+            f"Selecting {n_samples} samples at random from the LEO dataset (seed={seed}).\n"
         )
         df = df.sample(n=n_samples, random_state=seed)
     else:
-        print(f"Selecting the first {n_samples} samples from the JAG_10k dataset.\n")
+        print(f"Selecting the first {n_samples} samples from the LEO dataset.\n")
         df = df.iloc[:n_samples]
 
     return df
