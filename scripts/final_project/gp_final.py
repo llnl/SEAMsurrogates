@@ -55,15 +55,15 @@ def main():
     num_train = 100
     normalize_y = True
     choices=["matern", "rbf", "matern_dot"]
-    kernel = choices[0]
-    isotropic = False
+    kernel = choices[1]
+    isotropic = True
     log = False
     plot = True
-    seed = 42
+    seed = 49
 
     # Load and split data
     df = leo_drag.load_data(n_samples=num_samples, random=False)
-    x_train, x_test, y_train, y_test = jag.split_data(
+    x_train, x_test, y_train, y_test = leo_drag.split_data(
         df=df, LHD=False, n_train=num_train, seed=seed
     )
 
@@ -78,12 +78,17 @@ def main():
     # Train GP model
     start_time = time.perf_counter()
     gp_model.fit(x_train, y_train)
+    #print(x_train)
+    #print(y_train)
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
 
     # Evaluate GP model at train and test inputs
     pred_train = gp_model.predict(x_train)
     pred_test = gp_model.predict(x_test)
+    print("debugging")
+    print(gp_model.predict([[6.521328e+03, 4.27113e+02, 1.088285e+03,5.996811e-01,1.68e-01,-2.26E+00,-1.45E+00,50]]))
+    print(gp_model.predict([[7.55466e+03,2.103953e+02,1.609433e+03,2.648062e-01,8.17372e-01,-2.44E-01,9.677259e-01,20]]))
 
     # Evaluate Mean Absolute Error (MAE) with trained GP model
     train_mae = mean_absolute_error(y_train, pred_train)

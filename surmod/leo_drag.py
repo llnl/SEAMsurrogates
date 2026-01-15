@@ -37,7 +37,7 @@ def load_data(
     """
     df = pd.read_csv(path_to_csv)
     #df.columns = ["x0", "x1", "x2", "x3", "x4", "y"]
-    print(df)
+    #print(df)
     # Check and warn if n_samples is too large
     if n_samples > len(df):
         warnings.warn(

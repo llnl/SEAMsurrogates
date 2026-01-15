@@ -165,6 +165,8 @@ def main():
     # Evaluate GP model at train and test inputs
     pred_train = gp_model.predict(x_train)
     pred_test = gp_model.predict(x_test)
+    print(pred_train)
+    print(pred_test)
 
     # Evaluate Mean Absolute Error (MAE) with trained GP model
     train_mae = mean_absolute_error(y_train, pred_train)
