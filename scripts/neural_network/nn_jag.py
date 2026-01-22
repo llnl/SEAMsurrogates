@@ -29,7 +29,8 @@ import argparse
 
 import torch
 
-from surmod import jag, neural_network as nn
+from surmod import jag
+from surmod import neural_network as nn
 
 
 def parse_arguments():
@@ -61,6 +62,12 @@ def parse_arguments():
         type=int,
         default=42,
         help="Random number generator seed.",
+    )
+
+    parser.add_argument(
+        "--LHD",
+        action="store_true",
+        help="Use an LHD design.",
     )
 
     parser.add_argument(
@@ -118,6 +125,7 @@ def main():
     else:
         num_train = args.num_train
     seed = args.seed
+    use_lhd = args.LHD
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
@@ -131,7 +139,7 @@ def main():
     df = jag.load_data(n_samples=num_samples, random=False)
     print("Jag data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = jag.split_data(
-        df, LHD=False, n_train=num_train, seed=seed
+        df, LHD=use_lhd, n_train=num_train, seed=seed
     )
 
     # Convert training and test data to float32 tensors

@@ -102,10 +102,7 @@ def split_data(df: pd.DataFrame, LHD: bool = False, n_train: int = 100, seed: in
         LHD_gen = qmc.LatinHypercube(d=k, seed=seed)  # type: ignore
         x_lhd = LHD_gen.random(n=n_train)
         # Scale LHD points to the range of x
-        for i in range(k):
-            x_lhd[:, i] = x_lhd[:, i] * (np.max(x[:, i]) - np.min(x[:, i])) + np.min(
-                x[:, i]
-            )
+        x_lhd = x_lhd * (x.max(axis=0) - x.min(axis=0)) + x.min(axis=0)
         # Build KDTree for nearest neighbor search
         tree = cKDTree(x)
 

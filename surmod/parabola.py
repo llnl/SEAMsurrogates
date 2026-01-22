@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from botorch.test_functions.synthetic import SyntheticTestFunction
-from typing import Optional, List, Tuple, Union
 
 
 class Parabola(SyntheticTestFunction):
@@ -15,9 +14,9 @@ class Parabola(SyntheticTestFunction):
     def __init__(
         self,
         dim: int = 2,
-        noise_std: Optional[float] = None,
+        noise_std: float | None = None,
         negate: bool = True,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> None:
         """
         Args:
@@ -27,13 +26,14 @@ class Parabola(SyntheticTestFunction):
             bounds: Custom bounds for the function specified as (lower, upper) pairs.
         """
         self.dim = dim
-        bounds = [(-8, 8) for _ in range(self.dim)]
+        if bounds is None:
+            bounds = [(-8, 8) for _ in range(self.dim)]
         self.continuous_inds = list(range(dim))
         self.discrete_inds = []
         self.categorical_inds = []
         super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
 
-    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+    def _evaluate_true(self, X: torch.Tensor | np.ndarray) -> torch.Tensor:
         if isinstance(X, torch.Tensor):
             result = -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
         elif isinstance(X, np.ndarray):

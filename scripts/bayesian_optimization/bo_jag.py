@@ -27,7 +27,7 @@ chmod +x ./bo_jag.py
 ./bo_jag.py -in 5 -it 30 -k matern -xi 0 -kappa 0
 
 # Perform BO with 10 initial starting points, 30 iterations, and an RBF kernel
-./bo_jag.py -in 10 -it 30 -k rbf -xi 0.01 -kappa 0.01
+./bo_jag.py -in 10 -it 30 -k rbf -xi 0.01 -kappa 0.01 -s 3
 """
 
 import argparse
@@ -137,68 +137,36 @@ def main():
     x = df.iloc[:, :5].to_numpy()
     y = df.iloc[:, -1].to_numpy()
 
-    bayes_opt_EI = bo.BayesianOptimizer(
-        "JAG",
-        x,
-        y,
-        normalize_y,
-        kernel,
-        isotropic=False,
-        acquisition_function="EI",
-        n_acquire=n_iter,
-        seed=seed,
-        xi=xi,
-    )
+    # Configure acquisition functions with their specific parameters
+    acquisition_configs = {
+        "EI": {"xi": xi},
+        "PI": {"xi": xi},
+        "UCB": {"kappa": kappa},
+        "random": {},
+    }
 
-    bayes_opt_PI = bo.BayesianOptimizer(
-        "JAG",
-        x,
-        y,
-        normalize_y,
-        kernel,
-        isotropic=False,
-        acquisition_function="PI",
-        n_acquire=n_iter,
-        seed=seed,
-        xi=xi,
-    )
-
-    bayes_opt_UCB = bo.BayesianOptimizer(
-        "JAG",
-        x,
-        y,
-        normalize_y,
-        kernel,
-        isotropic=False,
-        acquisition_function="UCB",
-        n_acquire=n_iter,
-        seed=seed,
-        kappa=kappa,
-    )
-
-    bayes_opt_rand = bo.BayesianOptimizer(
-        "JAG",
-        x,
-        y,
-        normalize_y,
-        kernel,
-        isotropic=False,
-        acquisition_function="random",
-        n_acquire=n_iter,
-        seed=seed,
-    )
-
-    # Run Bayesian Optimization for different acquisition functions
-    max_yield_history_EI = bayes_opt_EI.bayes_opt(df, n_init)[2]
-    max_yield_history_PI = bayes_opt_PI.bayes_opt(df, n_init)[2]
-    max_yield_history_UCB = bayes_opt_UCB.bayes_opt(df, n_init)[2]
-    max_yield_history_random = bayes_opt_rand.bayes_opt(df, n_init)[2]
+    # Create optimizers and run Bayesian Optimization for each acquisition function
+    max_yield_histories = {}
+    for acq_func, params in acquisition_configs.items():
+        optimizer = bo.BayesianOptimizer(
+            "JAG",
+            x,
+            y,
+            normalize_y,
+            kernel,
+            isotropic=False,
+            acquisition_function=acq_func,
+            n_acquire=n_iter,
+            seed=seed,
+            **params,
+        )
+        max_yield_histories[acq_func] = optimizer.bayes_opt(df, n_init)[2]
 
     bo.plot_acquisition_comparison(
-        max_yield_history_EI,
-        max_yield_history_PI,
-        max_yield_history_UCB,
-        max_yield_history_random,
+        max_yield_histories["EI"],
+        max_yield_histories["PI"],
+        max_yield_histories["UCB"],
+        max_yield_histories["random"],
         kernel,
         n_iter,
         n_init,

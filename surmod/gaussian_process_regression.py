@@ -96,9 +96,7 @@ def load_test_function(objective_function: str):
         ValueError: If the specified objective function name is not recognized.
     """
     if objective_function == "Parabola":
-        test_function = parabola.Parabola(
-            dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
-        )
+        test_function = parabola.Parabola(dim=2, negate=True, bounds=[(-8, 8), (-8, 8)])
     elif objective_function == "Ackley":
         test_function = Ackley(
             dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
