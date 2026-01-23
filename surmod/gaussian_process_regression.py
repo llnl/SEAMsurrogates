@@ -26,7 +26,7 @@ from sklearn.gaussian_process.kernels import (
     DotProduct,
 )
 
-from surmod import parabola
+from surmod import test_functions
 
 
 def get_kernel(
@@ -96,7 +96,7 @@ def load_test_function(objective_function: str):
         ValueError: If the specified objective function name is not recognized.
     """
     if objective_function == "Parabola":
-        test_function = parabola.Parabola(
+        test_function = test_functions.Parabola_synth_test_func(
             dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
         )
     elif objective_function == "Ackley":

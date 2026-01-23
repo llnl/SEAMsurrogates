@@ -1,5 +1,179 @@
 import numpy as np
 import numpy.typing as npt
+import torch
+from botorch.test_functions.synthetic import SyntheticTestFunction
+from typing import Optional, List, Tuple, Union
+
+class Parabola_synth_test_func(SyntheticTestFunction):
+    """Parabola test function.
+
+    Default is bivariate parabola evaluated on [-8,8]x[-8,8].
+    """
+
+    _check_grad_at_opt: bool = False
+
+    def __init__(
+        self,
+        dim: int = 2,
+        noise_std: Optional[float] = None,
+        negate: bool = True,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> None:
+        """
+        Args:
+            dim: Dimensionality of the parabola.
+            noise_std: Standard deviation of the observation noise.
+            negate: If True, negate the function.
+            bounds: Custom bounds for the function specified as (lower, upper) pairs.
+        """
+        self.dim = dim
+        bounds = [(-8, 8) for _ in range(self.dim)]
+        self.continuous_inds = list(range(dim))
+        self.discrete_inds = []
+        self.categorical_inds = []
+        super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
+
+    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+        if isinstance(X, torch.Tensor):
+            result = -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
+        elif isinstance(X, np.ndarray):
+            result = -np.sum(X**2, axis=1) if X.ndim > 1 else -np.sum(X**2)
+            result = torch.from_numpy(result)
+        else:
+            raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
+
+        return -result if self.negate else result
+    
+class Borehole_synth_test_func(SyntheticTestFunction):
+    """
+    Borehole test function.
+
+    This is the 8 dimensional borehole function used as a test case
+    in computer experiments. Implementation follows the definition from
+    Sonja Surjanovic and Derek Bingham (SFU).
+
+    Inputs (in order):
+        rw  : radius of borehole (m)
+        r   : radius of influence (m)
+        Tu  : transmissivity upper aquifer (m^2/yr)
+        Hu  : potentiometric head upper aquifer (m)
+        Tl  : transmissivity lower aquifer (m^2/yr)
+        Hl  : potentiometric head lower aquifer (m)
+        L   : length of borehole (m)
+        Kw  : hydraulic conductivity of borehole (m/yr)
+
+    Vector form:
+        x = [rw, r, Tu, Hu, Tl, Hl, L, Kw]
+
+    Output:
+        y = water flow rate (m^3/yr)
+
+    Reference:
+        https://www.sfu.ca/~ssurjano/borehole.html
+    """
+
+    _check_grad_at_opt: bool = False
+
+    def __init__(
+        self,
+        noise_std: Optional[float] = None,
+        negate: bool = False,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> None:
+        """
+        Initialize the Borehole synthetic test function.
+
+        Args:
+            noise_std (float or None): Standard deviation of observation noise.
+                If None, the function is noise free.
+            negate (bool): If True, returns the negative of the standard
+                Borehole output, so that the function is maximized at the
+                original minimum.
+            bounds (list[tuple[float, float]] or None): Optional custom bounds
+                as a list of (lower, upper) tuples, one per input dimension,
+                in the order documented in the class docstring. If None, uses
+                the standard SFU Borehole bounds.
+        """
+
+        # Borehole has fixed dimension 8
+        self.dim = 8
+
+        # Default bounds from SFU (Surjanovic & Bingham) matching the input order
+        if bounds is None:
+            bounds = [
+                (0.05, 0.15),  # rw
+                (100.0, 50000.0),  # r
+                (63070.0, 115600.0),  # Tu
+                (990.0, 1110.0),  # Hu
+                (63.1, 116.0),  # Tl
+                (700.0, 820.0),  # Hl
+                (1120.0, 1680.0),  # L
+                (9855.0, 12045.0),  # Kw
+            ]
+
+        self.continuous_inds = list(range(self.dim))
+        self.discrete_inds = []
+        self.categorical_inds = []
+
+        super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
+
+    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+        """
+        Evaluate the Borehole test function at given inputs.
+
+        Args:
+            X (torch.Tensor or np.ndarray): Input locations, either:
+                - 1D tensor/array of shape [8] for a single point, or
+                - 2D tensor/array of shape [n, 8] for a batch of n points.
+
+        Returns:
+            torch.Tensor: 1D tensor of shape [n] with Borehole function values
+            (or shape [1] for a single 1D input). If `self.negate` is True,
+            returns the negative of the original Borehole function values.
+
+        Raises:
+            TypeError: If `X` is not a `torch.Tensor` or `np.ndarray`.
+            ValueError: If the last dimension of `X` is not 8.
+        """
+
+        # Convert numpy to torch if needed
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X.astype(np.float32))
+
+        if not isinstance(X, torch.Tensor):
+            raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
+
+        # Ensure 2D: [batch, dim]
+        if X.ndim == 1:
+            X = X.unsqueeze(0)
+
+        if X.shape[-1] != 8:
+            raise ValueError(f"Borehole expects input dimension 8, got {X.shape[-1]}")
+
+        # xx = [rw, r, Tu, Hu, Tl, Hl, L, Kw]
+        rw = X[..., 0]
+        r = X[..., 1]
+        Tu = X[..., 2]
+        Hu = X[..., 3]
+        Tl = X[..., 4]
+        Hl = X[..., 5]
+        L = X[..., 6]
+        Kw = X[..., 7]
+
+        # SFU implementation
+        log_term = torch.log(r / rw)
+
+        frac1 = 2.0 * np.pi * Tu * (Hu - Hl)
+        frac2a = 2.0 * L * Tu / (log_term * rw.pow(2) * Kw)
+        frac2b = Tu / Tl
+        frac2 = log_term * (1.0 + frac2a + frac2b)
+
+        y = frac1 / frac2
+
+        if self.negate:
+            y = -y
+
+        return y
 
 
 def parabola(
