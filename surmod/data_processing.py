@@ -42,9 +42,9 @@ DATASET_CONFIG = {
 
 def load_data(
     dataset: str = "JAG",
-    path_to_csv: Optional[str] = None,
     n_samples: int = 10000,
     random: bool = True,
+    path_to_csv: Optional[str] = None,
     seed: Optional[int] = None
 ) -> pd.DataFrame:
     """
