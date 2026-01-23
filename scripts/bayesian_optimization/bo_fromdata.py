@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """
-This script demonstrates a Bayesian Optimization (BO) routine on the JAG
-data and plots performance based on max yield obtained of various acquisition
+This script demonstrates a Bayesian Optimization (BO) routine on a chosen
+dataset and plots performance based on max yield obtained of various acquisition
 function choices: Expected Improvement (EI), Probability of Improvement (PI),
 Upper Confidence Bound (UCB), random.
 
 The approach is:
-1. Obtain an initial set of training data from JAG dataset
+1. Obtain an initial set of training data from chosen dataset
 2. Train a GP model on the training data
 3. Compute the acquisition function at the remaining data points
 4. Add the point with the highest value based on the acquisition function of
@@ -18,21 +18,21 @@ The approach is:
 Usage:
 
 # Make script executable
-chmod +x ./bo_jag.py
+chmod +x ./bo_fromdata.py
 
 # See help.
-./bo_jag.py -h
+./bo_fromdata.py -h
 
 # Perform BO with 5 initial starting points, 30 iterations, and a Matern kernel
-./bo_jag.py -in 5 -it 30 -k matern
+./bo_fromdata.py -in 5 -it 30 -k matern
 
 # Perform BO with 10 initial starting points, 30 iterations, and an RBF kernel
-./bo_jag.py -in 10 -it 30 -k rbf
+./bo_fromdata.py -in 10 -it 30 -k rbf
 """
 
 import argparse
 
-from surmod import bayesian_optimization as bo, jag
+from surmod import bayesian_optimization as bo, jag, data_processing
 
 
 def parse_arguments():
@@ -41,6 +41,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on JAG data.",
+    )
+
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        choices=["JAG", "borehole"],
+        default = "JAG",
+        help="Which dataset to use (defualt: JAG)."
     )
 
     parser.add_argument(
@@ -92,6 +101,7 @@ def parse_arguments():
 def main():
     # Parse command-line arguments
     args = parse_arguments()
+    data = args.data
     normalize_y = args.normalize_y
     kernel = args.kernel
     num_init = args.num_init
@@ -102,16 +112,16 @@ def main():
     num_samples = num_init + num_iter
     if num_samples > 10000:
         raise ValueError(
-            f"Total samples ({num_samples}) exceed JAG_10k dataset size "
+            f"Total samples ({num_samples}) exceed existing dataset(s) size "
             "limit (10000)."
         )
 
-    df = jag.load_data(n_samples=num_samples, random=False)
-    x = df.iloc[:, :5].to_numpy()
+    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    x = df.iloc[:, :-1].to_numpy()
     y = df.iloc[:, -1].to_numpy()
 
     bayes_opt_EI = bo.BayesianOptimizer(
-        "JAG",
+        data,
         x,
         y,
         normalize_y,
@@ -123,7 +133,7 @@ def main():
     )
 
     bayes_opt_PI = bo.BayesianOptimizer(
-        "JAG",
+        data,
         x,
         y,
         normalize_y,
@@ -135,7 +145,7 @@ def main():
     )
 
     bayes_opt_UCB = bo.BayesianOptimizer(
-        "JAG",
+        data,
         x,
         y,
         normalize_y,
@@ -147,7 +157,7 @@ def main():
     )
 
     bayes_opt_rand = bo.BayesianOptimizer(
-        "JAG",
+        data,
         x,
         y,
         normalize_y,
@@ -172,7 +182,7 @@ def main():
         kernel,
         num_iter,
         num_init,
-        "JAG",
+        data,
     )
 
 
