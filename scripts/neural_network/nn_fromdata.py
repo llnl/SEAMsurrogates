@@ -29,7 +29,7 @@ import argparse
 
 import torch
 
-from surmod import jag, neural_network as nn, data_processing
+from surmod import neural_network as nn, data_processing
 
 
 def parse_arguments():

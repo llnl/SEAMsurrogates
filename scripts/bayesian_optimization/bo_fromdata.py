@@ -32,7 +32,7 @@ chmod +x ./bo_fromdata.py
 
 import argparse
 
-from surmod import bayesian_optimization as bo, jag, data_processing
+from surmod import bayesian_optimization as bo, data_processing
 
 
 def parse_arguments():

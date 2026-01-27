@@ -39,7 +39,7 @@ import datetime
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from surmod import gaussian_process_regression as gp, jag, data_processing
+from surmod import gaussian_process_regression as gp, data_processing
 
 
 def parse_arguments():
