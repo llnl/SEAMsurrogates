@@ -1,35 +1,34 @@
 #!/usr/bin/env python3
 
 """
-This script trains a Gaussian Process (GP) surrogate model on the JAG ICF dataset.
+This script trains a Gaussian Process (GP) surrogate model on a chosen dataset.
 It provides options for different kernel types, isotropic/anisotropic kernels,
 normalization, plotting, and logging results.
 
 Usage:
 
 # Make script executable
-chmod +x ./gp_jag.py
+chmod +x ./gp_fromdata.py
 
 # See help for all options
-./gp_jag.py -h
+./gp_fromdata.py -h
 
 # Example usages:
 
-# Train a GP with 200 training points, 1000 total samples, and an isotropic RBF
-# kernel
-./gp_jag.py --num_train=200 --num_test=1000 --kernel=rbf --isotropic
+# Train a GP with 200 training points and an isotropic RBF kernel
+./gp_fromdata.py --num_train=200 --kernel=rbf --isotropic
 
-# Train a GP with 200 training points, 1000 total samples, and an anisotropic
-# RBF kernel
-./gp_jag.py --num_train=200 --num_test=1000 --kernel=rbf
+# Train a GP with 200 training points and an anisotropic RBF kernel
+./gp_fromdata.py --num_train=200 --kernel=rbf
 
-# Train a GP with 200 training points, 1500 total samples, Matern kernel,
+# Train a GP with 200 training points, Matern kernel,
 # normalize y, and plot results
-./gp_jag.py --num_train=200 --num_test=1500 --kernel=matern --normalize_y --plot
+./gp_fromdata.py --num_train=200 --kernel=matern --normalize_y --plot
 
-# Train a GP with 300 training points, 2000 total samples, Matern kernel,
+# Train a GP with 300 training points, 300 train samples, Matern kernel,
 # and save results to a log file
-./gp_jag.py --num_train=300 --num_test=2000 --kernel=matern --log
+./gp_fromdata.py --num_train=300 --kernel=matern --log
+
 """
 
 import argparse
@@ -40,7 +39,7 @@ import datetime
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from surmod import gaussian_process_regression as gp, jag
+from surmod import gaussian_process_regression as gp, data_processing
 
 
 def parse_arguments():
@@ -52,27 +51,36 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        choices=["JAG", "borehole"],
+        default = "JAG",
+        help="Which dataset to use (defualt: JAG)."
+    )
+
+    parser.add_argument(
         "-tr",
         "--num_train",
         type=int,
-        default=100,
-        help="Number of points in training data set.",
+        default=400,
+        help="Number of train samples (default: 400).",
     )
 
     parser.add_argument(
         "-te",
         "--num_test",
         type=int,
-        default=1_000,
-        help="Number of points in test data set.",
+        default=100,
+        help="Number of test samples (default: 100).",
     )
 
     parser.add_argument(
         "-ny",
         "--normalize_y",
         action="store_true",
-        help="Whether or not to normalize the target y values by removing the"
-        " mean and scaling to unit-variance.",
+        help="Whether or not to normalize the output values in the"
+        " GaussianProcessRegressor.",
     )
 
     parser.add_argument(
@@ -134,7 +142,9 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
+    data = args.data
     num_train = args.num_train
+    num_test = args.num_test
     num_test = args.num_test
     normalize_y = args.normalize_y
     kernel = args.kernel
@@ -143,16 +153,18 @@ def main():
     plot = args.plot
     seed = args.seed
 
-    if num_train + num_test > 10_000:
-        raise ValueError("num_train plus num_test must be less than 10_000.")
+    # Check data availability
+    num_samples = num_test + num_train
+    if num_samples > 10000:
+        raise ValueError(
+            f"Requested samples ({num_samples}) exceed existing dataset(s) size "
+            "limit (10000)."
+        )
 
     # Load and split data
-    df = jag.load_data(n_samples=num_train + num_test, random=False)
-    x_train, x_test, y_train, y_test = jag.split_data(
-        df=df,
-        LHD=args.LHD,
-        n_train=num_train,
-        seed=seed,
+    df = data_processing.load_data(dataset= data, n_samples=num_samples, random=False)
+    x_train, x_test, y_train, y_test = data_processing.split_data(
+        df=df, LHD=False, n_train=num_train, seed=seed
     )
 
     # Instantiate GP model
@@ -192,7 +204,7 @@ def main():
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
-        "Test Function: JAG",
+        f"Test Function: {data} ",
         f"Number of training points: {num_train}",
         f"Number of testing points: {num_test}",
         f"Kernel: {gp_model.kernel_}",
@@ -214,11 +226,11 @@ def main():
     if log:
         gp.log_results(
             log_message,
-            path_to_log=os.path.join("output_log", "JAG_Results.txt"),
+            path_to_log=os.path.join("output_log", f"{data}_Results.txt"),
         )
 
     if plot:
-        gp.plot_test_predictions(x_test, y_test, gp_model, objective_data_name="JAG")
+        gp.plot_test_predictions(x_test, y_test, gp_model, objective_data_name=data)
 
 
 if __name__ == "__main__":

@@ -81,7 +81,7 @@ def parse_arguments():
         "-f",
         "--objective_function",
         type=str,
-        choices=["parabola", "otlcircuit", "piston", "wingweight"],
+        choices=["parabola", "otlcircuit", "piston", "wingweight", "borehole"],
         default="parabola",
         help="Choose objective function.",
     )
@@ -203,6 +203,8 @@ def main():
             "W_dg",
             "W_p",
         ]
+    elif objective_function == "borehole":
+        variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
     elif objective_function == "otlcircuit":
         variable_names = ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"]
     elif objective_function == "piston":
