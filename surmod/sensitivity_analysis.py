@@ -18,6 +18,7 @@ from surmod.test_functions import (
     otlcircuit,
     wingweight,
     piston,
+    borehole,
 )
 
 
@@ -54,10 +55,13 @@ def load_test_settings(
     elif objective_function == "piston":
         out_dim = 7
         test_function = copy.deepcopy(piston)
+    elif objective_function == "borehole":
+        out_dim = 8
+        test_function = copy.deepcopy(borehole)
     else:
         raise ValueError(
             f"Test function '{objective_function}' not found. "
-            "Choose from 'parabola', 'otlcircuit', 'wingweight', or 'piston'."
+            "Choose from 'parabola', 'otlcircuit', 'wingweight', 'piston', or 'borehole'."
         )
     return out_dim, test_function
 

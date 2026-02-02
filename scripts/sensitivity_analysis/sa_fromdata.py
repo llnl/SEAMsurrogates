@@ -1,31 +1,32 @@
 #!/usr/bin/env python3
 
 """
-This script performs a sensitivity analysis on the JAG dataset by training a
+This script performs a sensitivity analysis on a chosen dataset by training a
 Gaussian Process (GP) surrogate model. It allows for flexible kernel selection,
 length scale adjustment, and exclusion of specific input columns.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
 Note:
-- For JAG data there are 5 input variables: x1, x2, x3, x4, x5.
-- Column exclusion uses zero-based indexing:
-    0 = x1, 1 = x2, 2 = x3, 3 = x4, 4 = x5.
+- For JAG data there are 5 input variables
+- For borehole data there are 8 input variables
+- Column exclusion uses zero-based indexing
 
 Usage:
 
 # Make script executable
-chmod +x ./sa_jag.py
+chmod +x ./sa_fromdata.py
 
 # Get help
-./sa_jag.py -h
+./sa_fromdata.py -h
 
-# Perform sensitivity analysis with 200 training points, excluding columns 3 and 4
-./sa_jag.py -n 200 --exclude 3 4
+# Perform sensitivity analysis with 200 training points, 150 testing points,
+# excluding columns 3 and 4
+./sa_fromdata.py -tr 200 -te 150 --exclude 3 4
 
-# Perform sensitivity analysis with 150 training points, excluding columns 1 and 2,
-#  and save results to log file
-./sa_jag.py -n 150 -e 1 2 --log
+# Perform sensitivity analysis with 150 training points, 100 testing points,
+#  excluding columns 1 and 2, and save results to log file
+./sa_fromdata.py -tr 150 -e 1 2 --log
 """
 
 import argparse
@@ -36,15 +37,16 @@ import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     mean_absolute_error,
     mean_squared_error as mse,
 )
 
 from surmod import (
-    jag,
     gaussian_process_regression as gp,
     sensitivity_analysis as sa,
+    data_processing
 )
 
 
@@ -57,11 +59,21 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-ns",
-        "--num_samples",
-        type=int,
-        default=10000,
-        help="Number of sample points to have for initial and acquisition points.",
+        "-d",
+        "--data",
+        type=str,
+        choices=["JAG", "borehole"],
+        default = "JAG",
+        help="Which dataset to use (defualt: JAG)."
+    )
+
+    parser.add_argument(
+        "-nx",
+        "--normalize_x",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the input values by removing the "
+        "mean and scaling to unit-variance per dimension.",
     )
 
     parser.add_argument(
@@ -70,15 +82,24 @@ def parse_arguments():
         type=int,
         nargs="+",
         help="Zero-based column indices to exclude from fitting the surrogate model. "
-             "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5.",
+        "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5." \
+        "Valid values for borehole dataset: 0=rw, 1=r, 2=Tu, 3=Hu, 4=Tl, 5=Hl, 6=L, 7=Kw.",
     )
 
     parser.add_argument(
-        "-n",
+        "-tr",
         "--num_train",
         type=int,
+        default=400,
+        help="Number of train samples (default: 400).",
+    )
+
+    parser.add_argument(
+        "-te",
+        "--num_test",
+        type=int,
         default=100,
-        help="Number of points to have in training data set.",
+        help="Number of test samples (default: 100).",
     )
 
     parser.add_argument(
@@ -100,21 +121,47 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-    num_samples = args.num_samples
+    data = args.data
+    normalize_x = args.normalize_x
     alpha = 1e-8
     num_train = args.num_train
+    num_test = args.num_test
     log = args.log
     exclude = args.exclude
 
-    df = jag.load_data(n_samples=num_samples, random=False)
-    x_train, x_test, y_train, y_test = jag.split_data(df, n_train=args.num_train)
-    dim = x_train.shape[0]
+    # Check data availability
+    num_samples = num_test + num_train
+    if num_samples > 10000:
+        raise ValueError(
+            f"Requested samples ({num_samples}) exceed existing dataset(s) size "
+            "limit (10000)."
+        )
 
+    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=num_train)
+
+    # Initial variable names per dataset
+    if data == "JAG":
+        variable_names = np.array(["x1", "x2", "x3", "x4", "x5"])
+    elif data == "borehole":
+        variable_names = np.array(["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"])
+
+    # Apply exclusions consistently to x and variable_names
     if exclude is not None:
-        x_train = np.copy(np.delete(x_train, exclude, axis=1))
-        x_test = np.copy(np.delete(x_test, exclude, axis=1))
+        x_train = np.delete(x_train, exclude, axis=1)
+        x_test  = np.delete(x_test,  exclude, axis=1)
+        variable_names = np.delete(variable_names, exclude) # type: ignore
 
-    # Train the Gaussian process surrogate model
+    # Now get correct dimension AFTER exclusion
+    _, dim = x_train.shape
+
+    if normalize_x:
+        # Feature scaling: mean 0, std 1 using training data only
+        x_scaler = StandardScaler()
+        x_train = x_scaler.fit_transform(x_train)
+        x_test = x_scaler.transform(x_test)
+
+    # Train the Gaussian process surrogate model with correct dim
     gp_model = GaussianProcessRegressor(
         kernel=gp.get_kernel("matern", dim, isotropic=True),
         alpha=alpha,
@@ -149,16 +196,17 @@ def main():
     )
     test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)
 
-    variable_names = ["x1", "x2", "x3", "x4", "x5"]
-    __, k = x_train.shape
+    # Build bounds from the modified x_train
     bounds = []
-    for i in range(k):
-        bounds += [[np.min(x_train[:, i]), np.max(x_train[:, i])]]
+    for i in range(dim):
+        bounds.append([np.min(x_train[:, i]), np.max(x_train[:, i])])
 
-    if exclude is not None:
-        variable_names = np.copy(np.delete(variable_names, exclude))
-
-    problem = {"num_vars": k, "names": variable_names, "bounds": bounds}
+    # SALib problem definition, all dimensions must match
+    problem = {
+        "num_vars": dim,
+        "names": list(variable_names), # type: ignore
+        "bounds": bounds,
+    }
 
     param_values = saltelli.sample(problem, 2**13, calc_second_order=False)
 
@@ -185,10 +233,10 @@ def main():
 
     if log:
         gp.log_results(
-            log_message, path_to_log=os.path.join("output_log", "Jag_Results.txt")
+            log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt")
         )
 
-    sa.plot_test_predictions(x_test, y_test, gp_model, "JAG")
+    sa.plot_test_predictions(x_test, y_test, gp_model, data)
     plt.figure()
     sa.sobol_plot(
         Si["S1"],
@@ -196,7 +244,7 @@ def main():
         problem["names"],
         Si["S1_conf"],
         Si["ST_conf"],
-        "JAG",
+        data,
     )
 
 

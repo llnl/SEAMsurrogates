@@ -5,7 +5,7 @@ This script trains a feedforward neural network (FFNN) surrogate model on
 synthetic test functions (Ackley, SixHumpCamel, or Griewank). It provides
 options for customizing the network architecture, learning rate, batch size,
 and for running multiple training configurations. Results are plotted and saved
-using month/day_hour/min/sec format within working directory.
+within working directory.
 
 Usage:
 
@@ -67,8 +67,8 @@ def parse_arguments():
         "--normalize_x",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the input x values by removing the "
-        "mean and scaling to unit-variance.",
+        help="Whether or not to normalize the input values by removing the "
+        "mean and scaling to unit-variance per dimension.",
     )
 
     parser.add_argument(
@@ -76,7 +76,8 @@ def parse_arguments():
         "--scale_x",
         action="store_true",
         default=False,
-        help="Whether or not to scale the input x values using min max scaling.",
+        help="Whether or not to scale the input values to [0,1] using min-max "
+        "scaling per dimension.",
     )
 
     parser.add_argument(
@@ -84,7 +85,7 @@ def parse_arguments():
         "--normalize_y",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the output y values by removing the "
+        help="Whether or not to normalize the output values by removing the "
         "mean and scaling to unit-variance.",
     )
 
@@ -93,7 +94,8 @@ def parse_arguments():
         "--scale_y",
         action="store_true",
         default=False,
-        help="Whether or not to scale the output y values using min max scaling.",
+        help="Whether or not to scale the output values to [0,1] using min-max"
+        " scaling.",
     )
 
     parser.add_argument(
@@ -243,20 +245,23 @@ def main():
     scaler_x_train = None
     scaler_y_train = None
 
+    if normalize_x and scale_x:
+        raise ValueError("Choose either normalize_x or scale_x, not both.")
+
     if normalize_x or scale_x:
 
         # Create the scaler and fit it on training data
         if normalize_x:
             print(
                 "Input data is being normalized to have mean 0, variance 1, in "
-                "each dimension.\n"
+                "each dimension based on training data.\n"
             )
             scaler_x_train = StandardScaler()
 
         if scale_x:
             print(
                 "Input data is being scaled using min max scaling in each "
-                "dimension.\n"
+                "dimension based on training data.\n"
             )
             scaler_x_train = MinMaxScaler()
 
@@ -270,15 +275,31 @@ def main():
         x_train = torch.from_numpy(x_train).float()
         x_test = torch.from_numpy(x_test).float()
 
+    if normalize_y and scale_y:
+        raise ValueError("Choose either normalize_y or scale_y, not both.")
+
     if normalize_y or scale_y:
+        # Note: if y is normalized or scaled, all losses and metrics during
+        # training and testing are computed in this transformed space, not in
+        # the original output units of the objective function.
 
         # Create the scaler and fit it on training data
         if normalize_y:
-            print("Output data is being normalized to have mean 0, variance 1.\n")
+            print(
+                "Output data is being normalized to have mean 0, variance 1 "
+                "based on training data.\n"
+                "Note: training and testing losses will be in normalized units, "
+                "not in the original objective function units.\n"
+            )
             scaler_y_train = StandardScaler()
 
         if scale_y:
-            print("Output data is being scaled using min max scaling.\n")
+            print(
+                "Output data is being scaled using min-max scaling based on "
+                "training data.\n"
+                "Note: training and testing losses will be in scaled units, "
+                "not in the original objective function units.\n"
+            )
             scaler_y_train = MinMaxScaler()
 
         y_train = y_train.reshape(-1, 1)

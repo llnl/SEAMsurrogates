@@ -27,7 +27,7 @@ chmod +x ./gp_sandbox.py
 
 # Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
 #   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a0.002 0.04 0.08
+./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
 """
 
 import argparse
@@ -36,7 +36,7 @@ import os
 import time
 import datetime
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -78,11 +78,21 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-nx",
+        "--normalize_x",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the input values by removing the "
+        "mean and scaling to unit-variance per dimension.",
+    )
+
+    parser.add_argument(
         "-sx",
         "--scale_x",
         action="store_true",
         default=False,
-        help="Whether or not to scale the input x values using min max scaling.",
+        help="Whether or not to scale the input values to [0,1] using min-max "
+        "scaling per dimension.",
     )
 
     parser.add_argument(
@@ -90,7 +100,7 @@ def parse_arguments():
         "--normalize_y",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the output y values in the"
+        help="Whether or not to normalize the output values in the"
         " GaussianProcessRegressor.",
     )
 
@@ -155,6 +165,7 @@ def main():
     alphas = args.alphas
     num_train = args.num_train
     num_test = args.num_test
+    normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     plots = args.plots
@@ -168,16 +179,33 @@ def main():
         num_test,
     )
 
-    # Initialize for plotting purposes
     scaler_x_train = None
-    if scale_x:
+
+    if normalize_x and scale_x:
+        raise ValueError("Choose either normalize_x or scale_x, not both.")
+
+    if normalize_x or scale_x:
+
         # Create the scaler and fit it on training data
-        scaler_x_train = MinMaxScaler()
-        scaler_x_train.fit(x_train)
+        if normalize_x:
+            print(
+                "Input data is being normalized to have mean 0, variance 1, in "
+                "each dimension based on training data.\n"
+            )
+            scaler_x_train = StandardScaler()
+
+        if scale_x:
+            print(
+                "Input data is being scaled using min-max scaling in each "
+                "dimension based on training data.\n"
+            )
+            scaler_x_train = MinMaxScaler()
+
+        scaler_x_train.fit(x_train)  # type: ignore
 
         # Transform both train and test sets
-        x_train = scaler_x_train.transform(x_train)
-        x_test = scaler_x_train.transform(x_test)
+        x_train = scaler_x_train.transform(x_train)  # type: ignore
+        x_test = scaler_x_train.transform(x_test)  # type: ignore
 
     for kernel, alpha in itertools.product(kernels, alphas):
         # Instantiate GP model
@@ -224,6 +252,7 @@ def main():
             f"Number of testing points: {num_test}",
             f"Kernel: {gp_model.kernel_}",
             f"Regularization value alpha: {alpha}",
+            f"Normalize x values: {normalize_x}",
             f"Scale x values: {scale_x}",
             f"Normalize y values: {normalize_y}",
             f"Train MSE: {train_mse:.5e}",
@@ -259,6 +288,7 @@ def main():
                 kernel,
                 objective_function,
                 alpha,
+                normalize_x,
                 scale_x,
                 normalize_y,
                 input_scaler=scaler_x_train,
@@ -271,6 +301,7 @@ def main():
                 kernel,
                 objective_function,
                 alpha,
+                normalize_x,
                 scale_x,
                 normalize_y,
                 input_scaler=scaler_x_train,
