@@ -27,7 +27,7 @@ chmod +x ./gp_sandbox.py
 
 # Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
 #   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a0.002 0.04 0.08
+./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
 """
 
 import argparse
