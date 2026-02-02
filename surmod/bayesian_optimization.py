@@ -250,10 +250,10 @@ def upper_confidence_bound(
 
 
 ACQUISITION_FUNCTIONS = {
-    "EI": {"func": expected_improvement, "extra_kwargs": {}},
-    "PI": {"func": probability_of_improvement, "extra_kwargs": {}},
-    "UCB": {"func": upper_confidence_bound, "extra_kwargs": {"kappa": 2.0}},
-    "random": {"func": None, "extra_kwargs": {}},
+    "EI": expected_improvement,
+    "PI": probability_of_improvement,
+    "UCB": upper_confidence_bound,
+    "random": None,
 }
 
 
@@ -286,6 +286,7 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
+        **acquisition_kwargs,
     ):
         self.objective_function = objective_function
         self.x_all_data = x_init
@@ -300,6 +301,7 @@ class BayesianOptimizer:
         self.acquisition = acquisition_function
         self.n_acquire = n_acquire
         self.seed = seed
+        self.acquisition_kwargs = acquisition_kwargs
         self.gp_model = None
         self.y_max_history = np.empty((0,))
 
@@ -374,6 +376,7 @@ class BayesianOptimizer:
         Raises:
             ValueError: If an invalid acquisition function is specified.
         """
+        rng = np.random.RandomState(self.seed)
         synthetic_function = gp.load_test_function(self.objective_function)
         epsilon = 1e-4
         bounds_low = [b[0] for b in synthetic_function._bounds]
@@ -390,17 +393,15 @@ class BayesianOptimizer:
                 "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', or 'random'."
             )
 
-        acq_info = ACQUISITION_FUNCTIONS[acquisition]
-        acq_func = acq_info["func"]
-        acq_kwargs = acq_info["extra_kwargs"]
+        acq_func = ACQUISITION_FUNCTIONS[acquisition]
 
         if acquisition == "random":
             # Just pick a random point in the domain
-            return np.random.uniform(bounds_low, bounds_high)
+            return rng.uniform(bounds_low, bounds_high)
 
         max_val = -np.inf
         max_x = np.asarray([np.inf] * input_size)
-        starting_points = np.random.uniform(
+        starting_points = rng.uniform(
             bounds_low, bounds_high, size=(n_restarts, input_size)
         )
 
@@ -408,12 +409,19 @@ class BayesianOptimizer:
 
             def acq_wrap(x):
                 if acquisition == "EI":
-                    return -acq_func(x.reshape(1, -1), y_max, self.gp_model).item()
-                elif acquisition == "PI":
-                    return -acq_func(x.reshape(1, -1), self.gp_model, y_max).item()
-                elif acquisition == "UCB":
+                    xi = self.acquisition_kwargs.get("xi", 0.0)
                     return -acq_func(
-                        x.reshape(1, -1), self.gp_model, **acq_kwargs
+                        x.reshape(1, -1), y_max, self.gp_model, xi=xi
+                    ).item()
+                elif acquisition == "PI":
+                    xi = self.acquisition_kwargs.get("xi", 0.0)
+                    return -acq_func(
+                        x.reshape(1, -1), self.gp_model, y_max, xi=xi
+                    ).item()
+                elif acquisition == "UCB":
+                    kappa = self.acquisition_kwargs.get("kappa", 2.0)
+                    return -acq_func(
+                        x.reshape(1, -1), self.gp_model, kappa=kappa
                     ).item()
                 else:
                     raise ValueError("Invalid acquisition function.")
@@ -432,17 +440,17 @@ class BayesianOptimizer:
         return x_next
 
     def bayes_opt(
-        self, data: Optional[pd.DataFrame] = None, n_init: int = 10
+        self, df: Optional[pd.DataFrame] = None, n_init: int = 10
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Unified Bayesian Optimization method for both dataset and synthetic function.
 
-        If all `data` is provided (a DataFrame), runs dataset-based ("discrete") BO.
+        If data is provided (as a DataFrame), runs dataset-based ("discrete") BO.
         Otherwise, runs synthetic function ("continuous") BO using the class's
         objective_function.
 
         Args:
-            data: pd.DataFrame or None
+            df: pd.DataFrame or None
                 If provided, DataFrame with columns x0...xn and 'y'
             n_init: int or None
                 Number of initial points (dataset mode)
@@ -453,16 +461,18 @@ class BayesianOptimizer:
         Returns:
             x_all_data, y_all_data, y_max_history: Tuple[np.ndarray, np.ndarray, np.ndarray]
         """
+        # Ensure reproducibility with initial points
+        rng = np.random.RandomState(self.seed)
+
         # Dataset mode (acquiring from precollected data, "discrete" optimization
         #   on "limited" data)
-        if data is not None:
-            x = data.iloc[:, :-1].to_numpy(dtype=float)
-            y = data.iloc[:, -1].to_numpy(dtype=float)
+        if df is not None:
+            df = (df - df.min()) / (df.max() - df.min())
+            x = df.iloc[:, :-1].to_numpy(dtype=float)
+            y = df.iloc[:, -1].to_numpy(dtype=float)
             n_iter = self.n_acquire
 
-            initial_indices = np.random.choice(
-                np.arange(len(data)), size=n_init, replace=False
-            )
+            initial_indices = rng.choice(np.arange(len(df)), size=n_init, replace=False)
             x_init = x[initial_indices]
             y_init = y[initial_indices]
 
@@ -476,24 +486,35 @@ class BayesianOptimizer:
 
             gp_model = self.gp_model_fit()
 
-            remaining_indices = set(range(len(data))) - set(initial_indices)
+            remaining_indices = set(range(len(df))) - set(initial_indices)
             for _ in range(n_iter):
                 x_remaining = x[list(remaining_indices)]
                 # Compute acquisition values
                 if self.acquisition == "EI":
+                    xi = self.acquisition_kwargs.get("xi", 0.0)
                     acquisition_values = expected_improvement(
-                        x_remaining, np.max(self.y_all_data), gp_model
+                        x_remaining,
+                        np.max(self.y_all_data),
+                        gp_model,
+                        xi=xi,
                     )
                 elif self.acquisition == "PI":
+                    xi = self.acquisition_kwargs.get("xi", 0.0)
                     acquisition_values = probability_of_improvement(
-                        x_remaining, gp_model, np.max(self.y_all_data)
+                        x_remaining,
+                        gp_model,
+                        np.max(self.y_all_data),
+                        xi=xi,
                     )
                 elif self.acquisition == "UCB":
+                    kappa = self.acquisition_kwargs.get("kappa", 2.0)
                     acquisition_values = upper_confidence_bound(
-                        x_remaining, gp_model, kappa=2.0
+                        x_remaining,
+                        gp_model,
+                        kappa=kappa,
                     )
                 elif self.acquisition == "random":
-                    acquisition_values = np.random.uniform(size=x_remaining.shape[0])
+                    acquisition_values = rng.uniform(size=x_remaining.shape[0])
                 else:
                     raise ValueError("Invalid acquisition function.")
 
@@ -518,6 +539,8 @@ class BayesianOptimizer:
         #    optimization on "full" input space)
         else:
             n_iter = self.n_acquire
+            # Initialize y_max_history with the best initial value
+            self.y_max_history = np.array([np.max(self.y_init)], dtype=float)
             for _ in range(n_iter):
                 # Propose the next sampling point by maximizing the acquisition
                 #   function
@@ -547,6 +570,8 @@ def plot_acquisition_comparison(
     n_iter: int,
     n_init: int,
     objective_data: str = "___ data",
+    xi: float = 0.0,
+    kappa: float = 2.0,
 ) -> None:
     """
     Plot the maximum observed output versus iteration for different acquisition
@@ -581,29 +606,39 @@ def plot_acquisition_comparison(
         max_output_EI,
         marker="o",
         c="blue",
-        label="EI",
+        label=f"EI (xi = {xi})",
     )
     plt.plot(
         max_output_PI,
         marker="o",
         c="orange",
-        label="PI",
+        label=f"PI (xi = {xi})",
     )
     plt.plot(
         max_output_UCB,
         marker="o",
         c="green",
-        label="UCB",
+        label=f"UCB (kappa = {kappa})",
     )
     plt.plot(
         max_output_random,
         marker="o",
         c="purple",
-        label="rand",
+        label="Uniform Random",
     )
     plt.title("Maximum Observed Output vs Iteration")
     plt.xlabel("Iteration")
     plt.ylabel("Maximum Output")
+
+    # Set y-axis limits
+    y_min = min(
+        max_output_EI.min(),
+        max_output_PI.min(),
+        max_output_UCB.min(),
+        max_output_random.min(),
+    )
+    plt.ylim(0.9 * y_min, 1.025)
+
     plt.legend()
     plt.grid()
 

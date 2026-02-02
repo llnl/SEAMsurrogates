@@ -2,26 +2,23 @@
 Functions for neural network surrogates.
 """
 
-from typing import List, Tuple, Sequence
-import os
 import datetime
+import os
+from typing import List, Sequence, Tuple
 
-import numpy as np
-
-import matplotlib.pyplot as plt
 import matplotlib.axes
-
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-
 from botorch.test_functions.synthetic import (
-    SyntheticTestFunction,
     Ackley,
-    SixHumpCamel,
     Griewank,
+    SixHumpCamel,
+    SyntheticTestFunction,
 )
+from torch.utils.data import DataLoader, TensorDataset
 
 
 class NeuralNet(nn.Module):
@@ -391,7 +388,7 @@ def plot_losses_multiplot(
             ax.plot(range(1, num_epochs + 1), test_losses, label="Test Loss")
             ax.set_yscale("log")
             ax.set_title(
-                f"hid_dim={hid_sz}, lr={lr}\nFinal Test Loss (RMSE): ,"
+                f"hid_dim={hid_sz}, lr={lr}\nFinal Test Loss (RMSE): "
                 f"{final_test_rmse:.5f}"
             )
             ax.set_xlabel("Epochs")

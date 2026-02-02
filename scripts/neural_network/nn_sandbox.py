@@ -26,23 +26,20 @@ chmod +x ./nn_sandbox.py
 
 # Train and compare multiple NNs with different hidden layer sizes and learning rates.
 ./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
-
 """
-from typing import Tuple
-import os
-import datetime
 
-import numpy as np
 import argparse
+import datetime
+import os
+from typing import Tuple
 
 import matplotlib
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from botorch.test_functions.synthetic import SyntheticTestFunction
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
 

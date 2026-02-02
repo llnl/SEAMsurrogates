@@ -73,6 +73,12 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--LHD",
+        action="store_true",
+        help="Use an LHD design.",
+    )
+
+    parser.add_argument(
         "-n",
         "--num_epochs",
         type=int,
@@ -125,6 +131,7 @@ def main():
     num_train = args.num_train
     num_test = args.num_test
     seed = args.seed
+    use_lhd = args.LHD
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes

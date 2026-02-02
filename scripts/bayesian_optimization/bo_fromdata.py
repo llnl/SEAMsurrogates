@@ -93,6 +93,22 @@ def parse_arguments():
         help="Set random seed for reproducibility.",
     )
 
+    parser.add_argument(
+        "-xi",
+        "--xi",
+        type=float,
+        default=0.0,
+        help="Exploration-exploitation trade-off parameter for EI and PI acquisition functions (non-negative float).",
+    )
+
+    parser.add_argument(
+        "-kappa",
+        "--kappa",
+        type=float,
+        default=2.0,
+        help="Exploration-exploitation trade-off parameter for UCB acquisition function (non-negative float).",
+    )
+
     args = parser.parse_args()
 
     return args

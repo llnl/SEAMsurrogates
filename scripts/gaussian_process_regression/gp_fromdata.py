@@ -117,6 +117,12 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--LHD",
+        action="store_true",
+        help="Use an LHD design.",
+    )
+
+    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -138,6 +144,7 @@ def main():
     args = parse_arguments()
     data = args.data
     num_train = args.num_train
+    num_test = args.num_test
     num_test = args.num_test
     normalize_y = args.normalize_y
     kernel = args.kernel
@@ -194,8 +201,6 @@ def main():
     test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)  # type: ignore
 
     # Prepare the log message
-    num_test = num_samples - num_train
-
     timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
