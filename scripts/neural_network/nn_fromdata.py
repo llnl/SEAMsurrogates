@@ -131,7 +131,7 @@ def main():
     num_train = args.num_train
     num_test = args.num_test
     seed = args.seed
-    use_lhd = args.LHD
+    LHD = args.LHD
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
@@ -153,7 +153,7 @@ def main():
     df = data_processing.load_data(dataset= data, n_samples=num_samples, random=False)
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
-        df, LHD=False, n_train=num_train, seed=seed
+        df, LHD=LHD, n_train=num_train, seed=seed
     )
 
     # Convert training and test data to float32 tensors
