@@ -51,7 +51,7 @@ Please send correspondence about this code to seam@llnl.gov
 | 5    | Exploring GP Surrogates for Example Data                 | [`gp_fromdata.py`](scripts/gaussian_process_regression/gp_fromdata.py)                                                         |
 | 6    | Basic Bayesian Optimization (BO) for Design Optimization | [`bo_sandbox.py`](scripts/bayesian_optimization/bo_sandbox.py)                                                                 |
 | 7    | Exploring BO for Design Optimization on Example Data     | [`bo_fromdata.py`](scripts/bayesian_optimization/bo_fromdata.py)                                                               |
-| 8    | Intro to Sensitivity Analysis                            | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_fromdata.py`](scripts/sensitivity_analysis/sa_fromdata.py) |
+| 8    | Intro to Sensitivity Analysis (SA)                       | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_fromdata.py`](scripts/sensitivity_analysis/sa_fromdata.py) |
 | 9    | Discuss Problem Statement Ideas for Final Project        |                                                                                                                                |
 | 10   | Work on Final Project                                    |                                                                                                                                |
 | 11   | Work on Final Project                                    |                                                                                                                                |
