@@ -199,6 +199,8 @@ def main():
         num_iter,
         num_init,
         data,
+        xi=args.xi,
+        kappa=args.kappa,
     )
 
 
