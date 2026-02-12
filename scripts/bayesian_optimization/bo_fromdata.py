@@ -4,7 +4,7 @@
 This script demonstrates a Bayesian Optimization (BO) routine on a chosen
 dataset and plots performance based on max yield obtained of various acquisition
 function choices: Expected Improvement (EI), Probability of Improvement (PI),
-Upper Confidence Bound (UCB), random.
+Upper Confidence Bound (UCB), Predictive Variance (PV), random.
 
 The approach is:
 1. Obtain an initial set of training data from chosen dataset
@@ -48,8 +48,8 @@ def parse_arguments():
         "--data",
         type=str,
         choices=["JAG", "borehole"],
-        default = "JAG",
-        help="Which dataset to use (defualt: JAG)."
+        default="JAG",
+        help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
@@ -172,6 +172,18 @@ def main():
         seed=seed,
     )
 
+    bayes_opt_PV = bo.BayesianOptimizer(
+        data,
+        x,
+        y,
+        normalize_y,
+        kernel,
+        isotropic=False,
+        acquisition_function="PV",
+        n_acquire=num_iter,
+        seed=seed,
+    )
+
     bayes_opt_rand = bo.BayesianOptimizer(
         data,
         x,
@@ -188,17 +200,21 @@ def main():
     max_yield_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
     max_yield_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
     max_yield_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
+    max_yield_history_PV = bayes_opt_PV.bayes_opt(df, num_init)[2]
     max_yield_history_random = bayes_opt_rand.bayes_opt(df, num_init)[2]
 
     bo.plot_acquisition_comparison(
         max_yield_history_EI,
         max_yield_history_PI,
         max_yield_history_UCB,
+        max_yield_history_PV,
         max_yield_history_random,
         kernel,
         num_iter,
         num_init,
         data,
+        xi=args.xi,
+        kappa=args.kappa,
     )
 
 
