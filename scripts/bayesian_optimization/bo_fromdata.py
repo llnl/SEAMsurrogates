@@ -48,8 +48,8 @@ def parse_arguments():
         "--data",
         type=str,
         choices=["JAG", "borehole"],
-        default = "JAG",
-        help="Which dataset to use (defualt: JAG)."
+        default="JAG",
+        help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
