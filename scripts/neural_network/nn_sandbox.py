@@ -24,6 +24,9 @@ chmod +x ./nn_sandbox.py
 # Train a NN with custom hidden layer sizes and batch size.
 ./nn_sandbox.py --hidden_sizes 16 8 -b 10
 
+# Train with custom number of training and test points
+./nn_sandbox.py --n_train 200 --n_test 50
+
 # Train and compare multiple NNs with different hidden layer sizes and learning rates.
 ./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
 """
@@ -123,6 +126,20 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--n_train",
+        type=int,
+        default=90,
+        help="Number of training points.",
+    )
+
+    parser.add_argument(
+        "--n_test",
+        type=int,
+        default=10,
+        help="Number of testing points.",
+    )
+
+    parser.add_argument(
         "-hs",
         "--hidden_sizes",
         type=int,
@@ -212,6 +229,8 @@ def main():
     multi_learning_rates = args.multi_learning_rates
     surface_plot = args.surface_plot
     verbose_plot = args.verbose_plot
+    n_train = args.n_train
+    n_test = args.n_test
 
     # Weight initialization (default PyTorch)
     initialize_weights_normal = False
@@ -224,23 +243,21 @@ def main():
     bounds_low = [b[0] for b in synthetic_function._bounds]
     bounds_high = [b[1] for b in synthetic_function._bounds]
 
-    x_data = rng.uniform(bounds_low, bounds_high, size=(100, input_size))
+    # Generate data based on command line arguments
+    total_points = n_train + n_test
+    x_data = rng.uniform(bounds_low, bounds_high, size=(total_points, input_size))
     x_data = torch.Tensor(x_data)
     y_data = synthetic_function(x_data)
 
-    # Split data into training and testing sets (90% train, 10% test)
-    split_idx = int(0.9 * len(x_data))
+    # Split data into training and testing sets based on n_train parameter
     x_train, x_test = (
-        x_data[:split_idx].clone().detach().float(),
-        x_data[split_idx:].clone().detach().float(),
+        x_data[:n_train].clone().detach().float(),
+        x_data[n_train:].clone().detach().float(),
     )
     y_train, y_test = (
-        y_data[:split_idx].clone().detach().float(),
-        y_data[split_idx:].clone().detach().float(),
+        y_data[:n_train].clone().detach().float(),
+        y_data[n_train:].clone().detach().float(),
     )
-
-    n_train = x_train.shape[0]
-    n_test = x_test.shape[0]
 
     scaler_x_train = None
     scaler_y_train = None
