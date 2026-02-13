@@ -6,7 +6,7 @@ sensitivity analysis experiments using benchmark engineering test problems.
 import copy
 import os
 from typing import Tuple, Callable, List, Sequence
-import datetime
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -177,7 +177,7 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
 
     if not os.path.exists("plots"):
         os.makedirs("plots")
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"test_predictions_{objective_function}_{timestamp}.png"
     )
@@ -234,7 +234,7 @@ def sobol_plot(
 
     if not os.path.exists("plots"):
         os.makedirs("plots")
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"sensitivity_{objective_function}_{timestamp}.png"
     )

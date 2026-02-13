@@ -3,7 +3,7 @@ Functions for Gaussian process surrogates.
 """
 
 import os
-import datetime
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -316,7 +316,7 @@ def plot_gp_mean_prediction(
     ax.legend()
 
     # Specify where to save plot of GP fit, create directory if it doesn't exist
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     if not os.path.exists("plots"):
         os.makedirs("plots")
     path_to_plot = os.path.join(
@@ -428,7 +428,7 @@ def plot_gp_std_dev_prediction(
     fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
     # Save plot
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     if not os.path.exists("plots"):
         os.makedirs("plots")
     path_to_plot = os.path.join(
@@ -509,7 +509,7 @@ def plot_test_predictions(
     plt.tight_layout()
 
     # Save the plot
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     if not os.path.exists("plots"):
         os.makedirs("plots")
     path_to_plot = os.path.join(
