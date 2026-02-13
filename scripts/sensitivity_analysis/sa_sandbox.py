@@ -25,7 +25,7 @@ chmod +x ./sa_sandbox.py
 import argparse
 import os
 import time
-import datetime
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -224,7 +224,7 @@ def main():
     Y = gp_model.predict(param_values)
     Si = sobol.analyze(problem, Y, calc_second_order=False)
 
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     # Prepare the log message
     log_message = (
         f"Run timestamp (%m%d_%H%M%S): {timestamp}\n"
@@ -272,7 +272,7 @@ def main():
             x_test[:, 0], x_test[:, 1], predictions, levels=50, cmap="viridis"
         )
         plt.title("GP Model Prediction for Parabola")
-        timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plt.savefig(
             os.path.join(
                 "plots", f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"

@@ -29,7 +29,7 @@ chmod +x ./nn_sandbox.py
 """
 
 import argparse
-import datetime
+from datetime import datetime
 import os
 from typing import Tuple
 
@@ -548,7 +548,7 @@ def main():
                 # Create plots directory if it doesn't exist and save plot
                 plots_dir = "plots"
                 os.makedirs(plots_dir, exist_ok=True)
-                timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+                timestamp = datetime.now().strftime("%m%d_%H%M%S")
                 filename = f"surface_plot_{title}_{timestamp}.png"
                 filepath = os.path.join(plots_dir, filename)
                 plt.savefig(filepath)

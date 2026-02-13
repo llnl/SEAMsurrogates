@@ -22,7 +22,7 @@ chmod +x ./bo_sandbox.py
 
 import argparse
 import os
-import datetime
+from datetime import datetime
 import io
 
 import numpy as np
@@ -460,7 +460,7 @@ def main():
         plots_folder = "plots"
         if not os.path.exists(plots_folder):
             os.makedirs(plots_folder)
-        timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
         save_path = os.path.join(
             plots_folder,
             f"bayes_opt_animation_{objective_function}_{timestamp}.gif",
@@ -503,7 +503,7 @@ def main():
     if save_animation:
         if not os.path.exists("plots"):
             os.makedirs("plots")
-        timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
         filepath = os.path.join(
             "plots", f"track_max_{objective_function}_{timestamp}.png"
         )

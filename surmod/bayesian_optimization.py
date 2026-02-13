@@ -1,6 +1,6 @@
 import os
 from typing import Sequence, Union, List, Tuple, Optional
-import datetime
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -685,7 +685,7 @@ def plot_acquisition_comparison(
 
     if not os.path.exists("plots"):
         os.makedirs("plots")
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = os.path.join(
         "plots",
         f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png",
