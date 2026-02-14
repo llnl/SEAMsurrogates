@@ -69,7 +69,7 @@ Please send correspondence about this code to seam@llnl.gov
 
 This software is distributed under the terms of the BSD-Commercial license. 
 
-See Link to LICENSE and NOTICE for details.
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
 
 ## Release
 
