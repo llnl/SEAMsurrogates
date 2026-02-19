@@ -219,7 +219,7 @@ def main():
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     scale_y = args.scale_y
-    seed_int = args.seed
+    seed = args.seed
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
@@ -238,7 +238,7 @@ def main():
     # Generate random data from test function
     synthetic_function = nn.load_test_function(objective_function)
     input_size = synthetic_function.dim
-    rng = np.random.default_rng(seed=seed_int)
+    rng = np.random.default_rng(seed=seed)
 
     bounds_low = [b[0] for b in synthetic_function._bounds]
     bounds_high = [b[1] for b in synthetic_function._bounds]
@@ -364,7 +364,7 @@ def main():
                     num_epochs,
                     lr,
                     batch_size,
-                    seed_int,
+                    seed,
                     initialize_weights_normal,
                 )
 
@@ -396,7 +396,7 @@ def main():
             num_epochs,
             learning_rate,
             batch_size,
-            seed_int,
+            seed,
             initialize_weights_normal,
         )
 
