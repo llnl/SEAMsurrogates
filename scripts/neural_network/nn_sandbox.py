@@ -238,16 +238,14 @@ def main():
     # Generate random data from test function
     synthetic_function = nn.load_test_function(objective_function)
     input_size = synthetic_function.dim
-    rng = np.random.default_rng(seed=seed)
     torch.manual_seed(seed)
 
-    bounds_low = [b[0] for b in synthetic_function._bounds]
-    bounds_high = [b[1] for b in synthetic_function._bounds]
+    bounds_low = torch.tensor([b[0] for b in synthetic_function._bounds])
+    bounds_high = torch.tensor([b[1] for b in synthetic_function._bounds])
 
     # Generate data based on command line arguments
-    total_points = n_train + n_test
-    x_data = rng.uniform(bounds_low, bounds_high, size=(total_points, input_size))
-    x_data = torch.Tensor(x_data)
+    n_total = n_train + n_test
+    x_data = torch.rand(n_total, input_size) * (bounds_high - bounds_low) + bounds_low
     y_data = synthetic_function(x_data)
 
     # Split data into training and testing sets based on n_train parameter
