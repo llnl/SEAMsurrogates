@@ -239,6 +239,7 @@ def main():
     synthetic_function = nn.load_test_function(objective_function)
     input_size = synthetic_function.dim
     rng = np.random.default_rng(seed=seed)
+    torch.manual_seed(seed)
 
     bounds_low = [b[0] for b in synthetic_function._bounds]
     bounds_high = [b[1] for b in synthetic_function._bounds]
