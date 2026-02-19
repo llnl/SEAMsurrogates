@@ -249,10 +249,10 @@ def main():
     y_data = synthetic_function(x_data)
 
     # Split data into training and testing sets based on n_train parameter
-    x_train = x_data[:n_train].float()
-    x_test = x_data[n_train:].float()
-    y_train = y_data[:n_train].float()
-    y_test = y_data[n_train:].float()
+    x_train = x_data[:n_train]
+    x_test = x_data[n_train:]
+    y_train = y_data[:n_train]
+    y_test = y_data[n_train:]
 
     scaler_x_train = None
     scaler_y_train = None
