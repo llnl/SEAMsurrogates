@@ -329,14 +329,6 @@ def main():
     # Do multiple train/test runs with various learning rates & hidden layers
     #   size and plot loss over epochs results
     if multi_train:
-        # Initialize storage for train test loss results
-        train_losses_grid = [
-            [None for _ in multi_learning_rates] for _ in multi_hidden_sizes
-        ]
-        test_losses_grid = [
-            [None for _ in multi_learning_rates] for _ in multi_hidden_sizes
-        ]
-
         # Create subplots for each learning rate and hidden layers size
         fig, axs = plt.subplots(
             len(multi_hidden_sizes),
