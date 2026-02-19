@@ -205,6 +205,139 @@ def parse_arguments():
     return args
 
 
+def plot_surface_3d(
+    synthetic_function: SyntheticTestFunction,
+    model,
+    title: str,
+    resolution: int = 50,
+    angle: Tuple[float, float] = (30, 120),
+    input_scaler=None,
+    output_scaler=None,
+):
+    """
+    Plots the true surface of a synthetic function and the
+    predictions of a model in 3D.
+
+    This function generates a grid of input points within the bounds
+    of the synthetic function, computes the true values and model
+    predictions (optionally applying input/output scalers), and
+    visualizes both surfaces in a 3D plot. The plot is saved to the
+    'plots' directory.
+
+    Args:
+        synthetic_function (Any): A callable object representing the
+            test function. Must have a 'bounds'
+            attribute(tuple of (low, high) for each input dimension)
+            and be callable on a torch.Tensor.
+        model: The PyTorch neural net model to make predictions from.
+        title (str): Title for the plot and output file, usually
+            the objective data/function name.
+        resolution (int, optional): Number of points per dimension
+            for the surface grid. Default is 50.
+        angle (Tuple[float, float], optional):
+            The (elevation, azimuth) viewing angles for the 3D plot.
+            Default is (30, 120).
+        input_scaler: Optional sklearn.preprocessing scaler with a
+            .transform method to apply to input grid points.
+        output_scaler: Optional sklearn.preprocessing scaler with an
+            .inverse_transform method to apply to model predictions.
+    """
+
+    # Generate a grid of points within the bounds of the test function
+    bounds_low = [b[0] for b in synthetic_function._bounds]
+    bounds_high = [b[1] for b in synthetic_function._bounds]
+    margin = 1e-6  # Small margin to avoid floating-point precision issues
+    x1 = np.linspace(bounds_low[0] + margin, bounds_high[0] - margin, resolution)
+    x2 = np.linspace(bounds_low[1] + margin, bounds_high[1] - margin, resolution)
+    X1, X2 = np.meshgrid(x1, x2)
+    grid_points = np.stack([X1.ravel(), X2.ravel()], axis=1)
+
+    grid_points_tensor = torch.Tensor(grid_points).float()
+
+    # Compute true surface values
+    true_surface = (
+        synthetic_function(grid_points_tensor)
+        .detach()
+        .numpy()
+        .reshape(resolution, resolution)
+    )
+
+    if input_scaler is not None:
+        # Convert tensor to numpy if needed
+        grid_points_np = grid_points_tensor.numpy()
+        # Apply the scaler
+        grid_points_scaled_np = input_scaler.transform(grid_points_np)
+        # Convert back to tensor if you need to use it as a tensor
+        grid_points_tensor = torch.from_numpy(grid_points_scaled_np).float()
+
+    # Compute model predictions
+    with torch.no_grad():
+        predicted_surface = (
+            model(grid_points_tensor).detach().numpy().reshape(resolution, resolution)
+        )
+
+    if output_scaler is not None:
+        # Inverse transform to get predictions back to original scale
+        predicted_surface = output_scaler.inverse_transform(predicted_surface)
+        predicted_surface = predicted_surface.reshape(resolution, resolution)
+
+    # Create a new figure and 3D axis
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Plot true surface in 3D
+    ax.plot_surface(  # type: ignore
+        X1,
+        X2,
+        true_surface,
+        cmap="viridis",
+        alpha=0.7,
+        edgecolor="none",
+    )
+    # Overlay model predictions in 3D
+    ax.plot_surface(  # type: ignore
+        X1,
+        X2,
+        predicted_surface,
+        cmap="coolwarm",
+        alpha=0.5,
+        edgecolor="none",
+    )
+
+    ax.set_title(f"{title} - True & Model Surfaces")
+    ax.set_xlabel("X1")
+    ax.set_ylabel("X2")
+    ax.set_zlabel("Value")  # type: ignore
+
+    # Set the viewing angle
+    ax.view_init(angle[0], angle[1])  # type: ignore
+
+    # Create proxy artists for the legend
+    # Get the colormap object
+    viridis_cmap = matplotlib.colormaps["viridis"]
+    coolwarm_cmap = matplotlib.colormaps["coolwarm"]
+
+    true_patch = mpatches.Patch(
+        color=viridis_cmap(0.6), label="True Surface", alpha=0.7
+    )
+    model_patch = mpatches.Patch(
+        color=coolwarm_cmap(0.6),
+        label="Model Prediction",
+        alpha=0.5,
+    )
+
+    ax.legend(handles=[true_patch, model_patch], loc="upper left")
+
+    # Create plots directory if it doesn't exist and save plot
+    plots_dir = "plots"
+    os.makedirs(plots_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    filename = f"surface_plot_{title}_{timestamp}.png"
+    filepath = os.path.join(plots_dir, filename)
+    plt.savefig(filepath)
+    print(f"Figure saved to {filepath}")
+
+
 def main():
     """
     Parses command-line arguments, generates synthetic data, trains a
@@ -414,150 +547,6 @@ def main():
             nn.plot_losses(train_losses, test_losses, objective_function)
 
         if surface_plot:
-
-            def plot_surface_3d(
-                synthetic_function: SyntheticTestFunction,
-                model,
-                title: str,
-                resolution: int = 50,
-                angle: Tuple[float, float] = (30, 120),
-                input_scaler=None,
-                output_scaler=None,
-            ):
-                """
-                Plots the true surface of a synthetic function and the
-                predictions of a model in 3D.
-
-                This function generates a grid of input points within the bounds
-                of the synthetic function, computes the true values and model
-                predictions (optionally applying input/output scalers), and
-                visualizes both surfaces in a 3D plot. The plot is saved to the
-                'plots' directory.
-
-                Args:
-                    synthetic_function (Any): A callable object representing the
-                        test function. Must have a 'bounds'
-                        attribute(tuple of (low, high) for each input dimension)
-                        and be callable on a torch.Tensor.
-                    model: The PyTorch neural net model to make predictions from.
-                    title (str): Title for the plot and output file, usually
-                        the objective data/function name.
-                    resolution (int, optional): Number of points per dimension
-                        for the surface grid. Default is 50.
-                    angle (Tuple[float, float], optional):
-                        The (elevation, azimuth) viewing angles for the 3D plot.
-                        Default is (30, 120).
-                    input_scaler: Optional sklearn.preprocessing scaler with a
-                        .transform method to apply to input grid points.
-                    output_scaler: Optional sklearn.preprocessing scaler with an
-                        .inverse_transform method to apply to model predictions.
-                """
-
-                # Generate a grid of points within the bounds of the test function
-                bounds_low = [b[0] for b in synthetic_function._bounds]
-                bounds_high = [b[1] for b in synthetic_function._bounds]
-                margin = 1e-6  # Small margin to avoid floating-point precision issues
-                x1 = np.linspace(
-                    bounds_low[0] + margin, bounds_high[0] - margin, resolution
-                )
-                x2 = np.linspace(
-                    bounds_low[1] + margin, bounds_high[1] - margin, resolution
-                )
-                X1, X2 = np.meshgrid(x1, x2)
-                grid_points = np.stack([X1.ravel(), X2.ravel()], axis=1)
-
-                grid_points_tensor = torch.Tensor(grid_points).float()
-
-                # Compute true surface values
-                true_surface = (
-                    synthetic_function(grid_points_tensor)
-                    .detach()
-                    .numpy()
-                    .reshape(resolution, resolution)
-                )
-
-                if input_scaler is not None:
-                    # Convert tensor to numpy if needed
-                    grid_points_np = grid_points_tensor.numpy()
-                    # Apply the scaler
-                    grid_points_scaled_np = input_scaler.transform(grid_points_np)
-                    # Convert back to tensor if you need to use it as a tensor
-                    grid_points_tensor = torch.from_numpy(grid_points_scaled_np).float()
-
-                # Compute model predictions
-                with torch.no_grad():
-                    predicted_surface = (
-                        model(grid_points_tensor)
-                        .detach()
-                        .numpy()
-                        .reshape(resolution, resolution)
-                    )
-
-                if output_scaler is not None:
-                    # Inverse transform to get predictions back to original scale
-                    predicted_surface = output_scaler.inverse_transform(
-                        predicted_surface
-                    )
-                    predicted_surface = predicted_surface.reshape(
-                        resolution, resolution
-                    )
-
-                # Create a new figure and 3D axis
-                fig = plt.figure(figsize=(10, 7))
-                ax = fig.add_subplot(111, projection="3d")
-
-                # Plot true surface in 3D
-                ax.plot_surface(  # type: ignore
-                    X1,
-                    X2,
-                    true_surface,
-                    cmap="viridis",
-                    alpha=0.7,
-                    edgecolor="none",
-                )
-                # Overlay model predictions in 3D
-                ax.plot_surface(  # type: ignore
-                    X1,
-                    X2,
-                    predicted_surface,
-                    cmap="coolwarm",
-                    alpha=0.5,
-                    edgecolor="none",
-                )
-
-                ax.set_title(f"{title} - True & Model Surfaces")
-                ax.set_xlabel("X1")
-                ax.set_ylabel("X2")
-                ax.set_zlabel("Value")  # type: ignore
-
-                # Set the viewing angle
-                ax.view_init(angle[0], angle[1])  # type: ignore
-
-                # Create proxy artists for the legend
-                # Get the colormap object
-                viridis_cmap = matplotlib.colormaps["viridis"]
-                coolwarm_cmap = matplotlib.colormaps["coolwarm"]
-
-                true_patch = mpatches.Patch(
-                    color=viridis_cmap(0.6), label="True Surface", alpha=0.7
-                )
-                model_patch = mpatches.Patch(
-                    color=coolwarm_cmap(0.6),
-                    label="Model Prediction",
-                    alpha=0.5,
-                )
-
-                ax.legend(handles=[true_patch, model_patch], loc="upper left")
-
-                # Create plots directory if it doesn't exist and save plot
-                plots_dir = "plots"
-                os.makedirs(plots_dir, exist_ok=True)
-                timestamp = datetime.now().strftime("%m%d_%H%M%S")
-                filename = f"surface_plot_{title}_{timestamp}.png"
-                filepath = os.path.join(plots_dir, filename)
-                plt.savefig(filepath)
-                print(f"Figure saved to {filepath}")
-
             plot_surface_3d(
                 synthetic_function,
                 model,
