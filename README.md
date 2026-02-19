@@ -40,6 +40,14 @@ Please send correspondence about this code to seam@llnl.gov
     pip install -e .
 ```
 
+## Datasets
+
+The datasets in the `data` directory are from different sources:
+
+- The JAG ICF dataset is from this [repo](https://github.com/llnl/macc/tree/master).
+- The borehole dataset was simulated from the [borehole function](https://www.sfu.ca/~ssurjano/borehole.html).
+- The datasets that start with `hst` are from simulations of the Hubble Space Telescope (HST), and are sampled from larger datasets available [here](https://bitbucket.org/gramacylab/tpm/src/master/).
+
 ## Course Outline
 
 | Week | Topic                                                    | Driver Scripts                                                                                                                 |
@@ -63,7 +71,6 @@ Please send correspondence about this code to seam@llnl.gov
 - Emily Bogle ([bogle4@llnl.gov](mailto:bogle4@llnl.gov))
 - Andrew Gillette ([gillette7@llnl.gov](mailto:gillette7@llnl.gov))
 - Kevin Quinlan ([quinlan5@llnl.gov](mailto:quinlan5@llnl.gov))
-
 
 ## License
 
