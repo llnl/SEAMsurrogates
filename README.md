@@ -35,22 +35,30 @@ Please send correspondence about this code to seam@llnl.gov
     pip install -e .
 ```
 
+## Datasets
+
+The datasets in the `data` directory are from different sources:
+
+- The JAG ICF dataset is from this [repo](https://github.com/llnl/macc/tree/master).
+- The borehole dataset was simulated from the [borehole function](https://www.sfu.ca/~ssurjano/borehole.html).
+- The datasets that start with `hst` are from simulations of the Hubble Space Telescope (HST), and are sampled from larger datasets available [here](https://bitbucket.org/gramacylab/tpm/src/master/).
+
 ## Course Outline
 
-| Week | Topic                                                    | Driver Scripts                                                                                                       |
-| ---- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 1    | Intro to Deep Learning, PyTorch, and Surrogate Modeling  |                                                                                                                      |
-| 2    | Intro to Neural Networks (NNs) as Surrogates             | [`nn_sandbox.py`](scripts/neural_network/nn_sandbox.py)                                                              |
-| 3    | Exploring NN Surrogates for Example Data                 | [`nn_jag.py`](scripts/neural_network/nn_jag.py)                                                                      |
-| 4    | Intro to Gaussian Processes (GPs) as Surrogates          | [`gp_sandbox.py`](scripts/gaussian_process_regression/gp_sandbox.py)                                                 |
-| 5    | Exploring GP Surrogates for Example Data                 | [`gp_jag.py`](scripts/gaussian_process_regression/gp_jag.py)                                                         |
-| 6    | Basic Bayesian Optimization (BO) for Design Optimization | [`bo_sandbox.py`](scripts/bayesian_optimization/bo_sandbox.py)                                                       |
-| 7    | Exploring BO for Design Optimization on Example Data     | [`bo_jag.py`](scripts/bayesian_optimization/bo_jag.py)                                                               |
-| 8    | Intro to Sensitivity Analysis                            | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_jag.py`](scripts/sensitivity_analysis/sa_jag.py) |
-| 9    | Discuss Problem Statement Ideas for Final Project        |                                                                                                                      |
-| 10   | Work on Final Project                                    |                                                                                                                      |
-| 11   | Work on Final Project                                    |                                                                                                                      |
-| 12   | Final Project Review & Presentation                      |                                                                                                                      |
+| Week | Topic                                                    | Driver Scripts                                                                                                                 |
+| ---- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Intro to Deep Learning, PyTorch, and Surrogate Modeling  |                                                                                                                                |
+| 2    | Intro to Neural Networks (NNs) as Surrogates             | [`nn_sandbox.py`](scripts/neural_network/nn_sandbox.py)                                                                        |
+| 3    | Exploring NN Surrogates for Example Data                 | [`nn_fromdata.py`](scripts/neural_network/nn_fromdata.py)                                                                      |
+| 4    | Intro to Gaussian Processes (GPs) as Surrogates          | [`gp_sandbox.py`](scripts/gaussian_process_regression/gp_sandbox.py)                                                           |
+| 5    | Exploring GP Surrogates for Example Data                 | [`gp_fromdata.py`](scripts/gaussian_process_regression/gp_fromdata.py)                                                         |
+| 6    | Basic Bayesian Optimization (BO) for Design Optimization | [`bo_sandbox.py`](scripts/bayesian_optimization/bo_sandbox.py)                                                                 |
+| 7    | Exploring BO for Design Optimization on Example Data     | [`bo_fromdata.py`](scripts/bayesian_optimization/bo_fromdata.py)                                                               |
+| 8    | Intro to Sensitivity Analysis (SA)                       | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_fromdata.py`](scripts/sensitivity_analysis/sa_fromdata.py) |
+| 9    | Discuss Problem Statement Ideas for Final Project        |                                                                                                                                |
+| 10   | Work on Final Project                                    |                                                                                                                                |
+| 11   | Work on Final Project                                    |                                                                                                                                |
+| 12   | Final Project Review & Presentation                      |                                                                                                                                |
 
 ## Contributors and Contact Information
 
@@ -59,12 +67,11 @@ Please send correspondence about this code to seam@llnl.gov
 - Andrew Gillette ([gillette7@llnl.gov](mailto:gillette7@llnl.gov))
 - Kevin Quinlan ([quinlan5@llnl.gov](mailto:quinlan5@llnl.gov))
 
-
 ## License
 
 This software is distributed under the terms of the BSD-Commercial license. 
 
-See Link to LICENSE and NOTICE for details.
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
 
 ## Release
 

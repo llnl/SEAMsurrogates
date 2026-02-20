@@ -1,6 +1,6 @@
 import os
 from typing import Sequence, Union, List, Tuple, Optional
-import datetime
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -249,10 +249,35 @@ def upper_confidence_bound(
     return mu + kappa * sigma
 
 
+def predictive_variance(
+    x_sample: np.ndarray, model: GaussianProcessRegressor
+) -> np.ndarray:
+    """
+    Compute the Predictive Variance acquisition function.
+
+    The Predictive Variance acquisition function focuses purely on exploration
+    by selecting points with the highest prediction uncertainty. It helps
+    explore regions where the model is most uncertain about the function values.
+
+    Args:
+        x_sample (np.ndarray): Points at which to evaluate the acquisition
+            function, with shape (n_samples, n_features).
+        model (GaussianProcessRegressor): A fitted Gaussian process model used
+            to predict the standard deviation at the sample points.
+
+    Returns:
+        np.ndarray: The predictive variance at each point in `x_sample`, with shape
+            (n_samples,).
+    """
+    _, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    return sigma**2
+
+
 ACQUISITION_FUNCTIONS = {
     "EI": expected_improvement,
     "PI": probability_of_improvement,
     "UCB": upper_confidence_bound,
+    "PV": predictive_variance,
     "random": None,
 }
 
@@ -423,6 +448,8 @@ class BayesianOptimizer:
                     return -acq_func(
                         x.reshape(1, -1), self.gp_model, kappa=kappa
                     ).item()
+                elif acquisition == "PV":
+                    return -acq_func(x.reshape(1, -1), self.gp_model).item()
                 else:
                     raise ValueError("Invalid acquisition function.")
 
@@ -513,6 +540,11 @@ class BayesianOptimizer:
                         gp_model,
                         kappa=kappa,
                     )
+                elif self.acquisition == "PV":
+                    acquisition_values = predictive_variance(
+                        x_remaining,
+                        gp_model,
+                    )
                 elif self.acquisition == "random":
                     acquisition_values = rng.uniform(size=x_remaining.shape[0])
                 else:
@@ -565,10 +597,11 @@ def plot_acquisition_comparison(
     max_output_EI: np.ndarray,
     max_output_PI: np.ndarray,
     max_output_UCB: np.ndarray,
+    max_output_PV: np.ndarray,
     max_output_random: np.ndarray,
-    kernel: str,
-    n_iter: int,
-    n_init: int,
+    kernel: str = "rbf",
+    n_iter: int = 10,
+    n_init: int = 5,
     objective_data: str = "___ data",
     xi: float = 0.0,
     kappa: float = 2.0,
@@ -621,11 +654,18 @@ def plot_acquisition_comparison(
         label=f"UCB (kappa = {kappa})",
     )
     plt.plot(
+        max_output_PV,
+        marker="o",
+        c="red",
+        label="PV",
+    )
+    plt.plot(
         max_output_random,
         marker="o",
         c="purple",
         label="Uniform Random",
     )
+
     plt.title("Maximum Observed Output vs Iteration")
     plt.xlabel("Iteration")
     plt.ylabel("Maximum Output")
@@ -635,6 +675,7 @@ def plot_acquisition_comparison(
         max_output_EI.min(),
         max_output_PI.min(),
         max_output_UCB.min(),
+        max_output_PV.min(),
         max_output_random.min(),
     )
     plt.ylim(0.9 * y_min, 1.025)
@@ -644,7 +685,7 @@ def plot_acquisition_comparison(
 
     if not os.path.exists("plots"):
         os.makedirs("plots")
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = os.path.join(
         "plots",
         f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png",

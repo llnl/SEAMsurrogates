@@ -24,12 +24,15 @@ chmod +x ./nn_sandbox.py
 # Train a NN with custom hidden layer sizes and batch size.
 ./nn_sandbox.py --hidden_sizes 16 8 -b 10
 
+# Train with custom number of training and test points
+./nn_sandbox.py --n_train 200 --n_test 50
+
 # Train and compare multiple NNs with different hidden layer sizes and learning rates.
 ./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
 """
 
 import argparse
-import datetime
+from datetime import datetime
 import os
 from typing import Tuple
 
@@ -123,6 +126,20 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--n_train",
+        type=int,
+        default=90,
+        help="Number of training points.",
+    )
+
+    parser.add_argument(
+        "--n_test",
+        type=int,
+        default=10,
+        help="Number of testing points.",
+    )
+
+    parser.add_argument(
         "-hs",
         "--hidden_sizes",
         type=int,
@@ -188,6 +205,139 @@ def parse_arguments():
     return args
 
 
+def plot_surface_3d(
+    synthetic_function: SyntheticTestFunction,
+    model,
+    title: str,
+    resolution: int = 50,
+    angle: Tuple[float, float] = (30, 120),
+    input_scaler=None,
+    output_scaler=None,
+):
+    """
+    Plots the true surface of a synthetic function and the
+    predictions of a model in 3D.
+
+    This function generates a grid of input points within the bounds
+    of the synthetic function, computes the true values and model
+    predictions (optionally applying input/output scalers), and
+    visualizes both surfaces in a 3D plot. The plot is saved to the
+    'plots' directory.
+
+    Args:
+        synthetic_function (Any): A callable object representing the
+            test function. Must have a 'bounds'
+            attribute(tuple of (low, high) for each input dimension)
+            and be callable on a torch.Tensor.
+        model: The PyTorch neural net model to make predictions from.
+        title (str): Title for the plot and output file, usually
+            the objective data/function name.
+        resolution (int, optional): Number of points per dimension
+            for the surface grid. Default is 50.
+        angle (Tuple[float, float], optional):
+            The (elevation, azimuth) viewing angles for the 3D plot.
+            Default is (30, 120).
+        input_scaler: Optional sklearn.preprocessing scaler with a
+            .transform method to apply to input grid points.
+        output_scaler: Optional sklearn.preprocessing scaler with an
+            .inverse_transform method to apply to model predictions.
+    """
+
+    # Generate a grid of points within the bounds of the test function
+    bounds_low = [b[0] for b in synthetic_function._bounds]
+    bounds_high = [b[1] for b in synthetic_function._bounds]
+    margin = 1e-6  # Small margin to avoid floating-point precision issues
+    x1 = np.linspace(bounds_low[0] + margin, bounds_high[0] - margin, resolution)
+    x2 = np.linspace(bounds_low[1] + margin, bounds_high[1] - margin, resolution)
+    X1, X2 = np.meshgrid(x1, x2)
+    grid_points = np.stack([X1.ravel(), X2.ravel()], axis=1)
+
+    grid_points_tensor = torch.Tensor(grid_points).float()
+
+    # Compute true surface values
+    true_surface = (
+        synthetic_function(grid_points_tensor)
+        .detach()
+        .numpy()
+        .reshape(resolution, resolution)
+    )
+
+    if input_scaler is not None:
+        # Convert tensor to numpy if needed
+        grid_points_np = grid_points_tensor.numpy()
+        # Apply the scaler
+        grid_points_scaled_np = input_scaler.transform(grid_points_np)
+        # Convert back to tensor if you need to use it as a tensor
+        grid_points_tensor = torch.from_numpy(grid_points_scaled_np).float()
+
+    # Compute model predictions
+    with torch.no_grad():
+        predicted_surface = (
+            model(grid_points_tensor).detach().numpy().reshape(resolution, resolution)
+        )
+
+    if output_scaler is not None:
+        # Inverse transform to get predictions back to original scale
+        predicted_surface = output_scaler.inverse_transform(predicted_surface)
+        predicted_surface = predicted_surface.reshape(resolution, resolution)
+
+    # Create a new figure and 3D axis
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Plot true surface in 3D
+    ax.plot_surface(  # type: ignore
+        X1,
+        X2,
+        true_surface,
+        cmap="viridis",
+        alpha=0.7,
+        edgecolor="none",
+    )
+    # Overlay model predictions in 3D
+    ax.plot_surface(  # type: ignore
+        X1,
+        X2,
+        predicted_surface,
+        cmap="coolwarm",
+        alpha=0.5,
+        edgecolor="none",
+    )
+
+    ax.set_title(f"{title} - True & Model Surfaces")
+    ax.set_xlabel("X1")
+    ax.set_ylabel("X2")
+    ax.set_zlabel("Value")  # type: ignore
+
+    # Set the viewing angle
+    ax.view_init(angle[0], angle[1])  # type: ignore
+
+    # Create proxy artists for the legend
+    # Get the colormap object
+    viridis_cmap = matplotlib.colormaps["viridis"]
+    coolwarm_cmap = matplotlib.colormaps["coolwarm"]
+
+    true_patch = mpatches.Patch(
+        color=viridis_cmap(0.6), label="True Surface", alpha=0.7
+    )
+    model_patch = mpatches.Patch(
+        color=coolwarm_cmap(0.6),
+        label="Model Prediction",
+        alpha=0.5,
+    )
+
+    ax.legend(handles=[true_patch, model_patch], loc="upper left")
+
+    # Create plots directory if it doesn't exist and save plot
+    plots_dir = "plots"
+    os.makedirs(plots_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    filename = f"surface_plot_{title}_{timestamp}.png"
+    filepath = os.path.join(plots_dir, filename)
+    plt.savefig(filepath)
+    print(f"Figure saved to {filepath}")
+
+
 def main():
     """
     Parses command-line arguments, generates synthetic data, trains a
@@ -202,7 +352,7 @@ def main():
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     scale_y = args.scale_y
-    seed_int = args.seed
+    seed = args.seed
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
@@ -212,6 +362,8 @@ def main():
     multi_learning_rates = args.multi_learning_rates
     surface_plot = args.surface_plot
     verbose_plot = args.verbose_plot
+    n_train = args.n_train
+    n_test = args.n_test
 
     # Weight initialization (default PyTorch)
     initialize_weights_normal = False
@@ -219,28 +371,21 @@ def main():
     # Generate random data from test function
     synthetic_function = nn.load_test_function(objective_function)
     input_size = synthetic_function.dim
-    rng = np.random.default_rng(seed=seed_int)
+    torch.manual_seed(seed)
 
-    bounds_low = [b[0] for b in synthetic_function._bounds]
-    bounds_high = [b[1] for b in synthetic_function._bounds]
+    bounds_low = torch.tensor([b[0] for b in synthetic_function._bounds])
+    bounds_high = torch.tensor([b[1] for b in synthetic_function._bounds])
 
-    x_data = rng.uniform(bounds_low, bounds_high, size=(100, input_size))
-    x_data = torch.Tensor(x_data)
+    # Generate data based on command line arguments
+    n_total = n_train + n_test
+    x_data = torch.rand(n_total, input_size) * (bounds_high - bounds_low) + bounds_low
     y_data = synthetic_function(x_data)
 
-    # Split data into training and testing sets (90% train, 10% test)
-    split_idx = int(0.9 * len(x_data))
-    x_train, x_test = (
-        x_data[:split_idx].clone().detach().float(),
-        x_data[split_idx:].clone().detach().float(),
-    )
-    y_train, y_test = (
-        y_data[:split_idx].clone().detach().float(),
-        y_data[split_idx:].clone().detach().float(),
-    )
-
-    n_train = x_train.shape[0]
-    n_test = x_test.shape[0]
+    # Split data into training and testing sets based on n_train parameter
+    x_train = x_data[:n_train]
+    x_test = x_data[n_train:]
+    y_train = y_data[:n_train]
+    y_test = y_data[n_train:]
 
     scaler_x_train = None
     scaler_y_train = None
@@ -317,14 +462,6 @@ def main():
     # Do multiple train/test runs with various learning rates & hidden layers
     #   size and plot loss over epochs results
     if multi_train:
-        # Initialize storage for train test loss results
-        train_losses_grid = [
-            [None for _ in multi_learning_rates] for _ in multi_hidden_sizes
-        ]
-        test_losses_grid = [
-            [None for _ in multi_learning_rates] for _ in multi_hidden_sizes
-        ]
-
         # Create subplots for each learning rate and hidden layers size
         fig, axs = plt.subplots(
             len(multi_hidden_sizes),
@@ -351,7 +488,7 @@ def main():
                     num_epochs,
                     lr,
                     batch_size,
-                    seed_int,
+                    seed,
                     initialize_weights_normal,
                 )
 
@@ -383,7 +520,7 @@ def main():
             num_epochs,
             learning_rate,
             batch_size,
-            seed_int,
+            seed,
             initialize_weights_normal,
         )
 
@@ -410,150 +547,6 @@ def main():
             nn.plot_losses(train_losses, test_losses, objective_function)
 
         if surface_plot:
-
-            def plot_surface_3d(
-                synthetic_function: SyntheticTestFunction,
-                model,
-                title: str,
-                resolution: int = 50,
-                angle: Tuple[float, float] = (30, 120),
-                input_scaler=None,
-                output_scaler=None,
-            ):
-                """
-                Plots the true surface of a synthetic function and the
-                predictions of a model in 3D.
-
-                This function generates a grid of input points within the bounds
-                of the synthetic function, computes the true values and model
-                predictions (optionally applying input/output scalers), and
-                visualizes both surfaces in a 3D plot. The plot is saved to the
-                'plots' directory.
-
-                Args:
-                    synthetic_function (Any): A callable object representing the
-                        test function. Must have a 'bounds'
-                        attribute(tuple of (low, high) for each input dimension)
-                        and be callable on a torch.Tensor.
-                    model: The PyTorch neural net model to make predictions from.
-                    title (str): Title for the plot and output file, usually
-                        the objective data/function name.
-                    resolution (int, optional): Number of points per dimension
-                        for the surface grid. Default is 50.
-                    angle (Tuple[float, float], optional):
-                        The (elevation, azimuth) viewing angles for the 3D plot.
-                        Default is (30, 120).
-                    input_scaler: Optional sklearn.preprocessing scaler with a
-                        .transform method to apply to input grid points.
-                    output_scaler: Optional sklearn.preprocessing scaler with an
-                        .inverse_transform method to apply to model predictions.
-                """
-
-                # Generate a grid of points within the bounds of the test function
-                bounds_low = [b[0] for b in synthetic_function._bounds]
-                bounds_high = [b[1] for b in synthetic_function._bounds]
-                margin = 1e-6  # Small margin to avoid floating-point precision issues
-                x1 = np.linspace(
-                    bounds_low[0] + margin, bounds_high[0] - margin, resolution
-                )
-                x2 = np.linspace(
-                    bounds_low[1] + margin, bounds_high[1] - margin, resolution
-                )
-                X1, X2 = np.meshgrid(x1, x2)
-                grid_points = np.stack([X1.ravel(), X2.ravel()], axis=1)
-
-                grid_points_tensor = torch.Tensor(grid_points).float()
-
-                # Compute true surface values
-                true_surface = (
-                    synthetic_function(grid_points_tensor)
-                    .detach()
-                    .numpy()
-                    .reshape(resolution, resolution)
-                )
-
-                if input_scaler is not None:
-                    # Convert tensor to numpy if needed
-                    grid_points_np = grid_points_tensor.numpy()
-                    # Apply the scaler
-                    grid_points_scaled_np = input_scaler.transform(grid_points_np)
-                    # Convert back to tensor if you need to use it as a tensor
-                    grid_points_tensor = torch.from_numpy(grid_points_scaled_np).float()
-
-                # Compute model predictions
-                with torch.no_grad():
-                    predicted_surface = (
-                        model(grid_points_tensor)
-                        .detach()
-                        .numpy()
-                        .reshape(resolution, resolution)
-                    )
-
-                if output_scaler is not None:
-                    # Inverse transform to get predictions back to original scale
-                    predicted_surface = output_scaler.inverse_transform(
-                        predicted_surface
-                    )
-                    predicted_surface = predicted_surface.reshape(
-                        resolution, resolution
-                    )
-
-                # Create a new figure and 3D axis
-                fig = plt.figure(figsize=(10, 7))
-                ax = fig.add_subplot(111, projection="3d")
-
-                # Plot true surface in 3D
-                ax.plot_surface(  # type: ignore
-                    X1,
-                    X2,
-                    true_surface,
-                    cmap="viridis",
-                    alpha=0.7,
-                    edgecolor="none",
-                )
-                # Overlay model predictions in 3D
-                ax.plot_surface(  # type: ignore
-                    X1,
-                    X2,
-                    predicted_surface,
-                    cmap="coolwarm",
-                    alpha=0.5,
-                    edgecolor="none",
-                )
-
-                ax.set_title(f"{title} - True & Model Surfaces")
-                ax.set_xlabel("X1")
-                ax.set_ylabel("X2")
-                ax.set_zlabel("Value")  # type: ignore
-
-                # Set the viewing angle
-                ax.view_init(angle[0], angle[1])  # type: ignore
-
-                # Create proxy artists for the legend
-                # Get the colormap object
-                viridis_cmap = matplotlib.colormaps["viridis"]
-                coolwarm_cmap = matplotlib.colormaps["coolwarm"]
-
-                true_patch = mpatches.Patch(
-                    color=viridis_cmap(0.6), label="True Surface", alpha=0.7
-                )
-                model_patch = mpatches.Patch(
-                    color=coolwarm_cmap(0.6),
-                    label="Model Prediction",
-                    alpha=0.5,
-                )
-
-                ax.legend(handles=[true_patch, model_patch], loc="upper left")
-
-                # Create plots directory if it doesn't exist and save plot
-                plots_dir = "plots"
-                os.makedirs(plots_dir, exist_ok=True)
-                timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
-                filename = f"surface_plot_{title}_{timestamp}.png"
-                filepath = os.path.join(plots_dir, filename)
-                plt.savefig(filepath)
-                print(f"Figure saved to {filepath}")
-
             plot_surface_3d(
                 synthetic_function,
                 model,

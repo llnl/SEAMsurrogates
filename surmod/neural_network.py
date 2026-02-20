@@ -2,7 +2,7 @@
 Functions for neural network surrogates.
 """
 
-import datetime
+from datetime import datetime
 import os
 from typing import List, Sequence, Tuple
 
@@ -238,7 +238,7 @@ def plot_losses(
     plots_dir = "plots"
     os.makedirs(plots_dir, exist_ok=True)
     # objective_name = objective_data
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"loss_vs_epoch_{objective_data}_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
 
@@ -300,7 +300,7 @@ def plot_losses_verbose(
     """
     plots_dir = "plots"
     os.makedirs(plots_dir, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
 
@@ -399,7 +399,7 @@ def plot_losses_multiplot(
     # Save the multiplot figure
     plots_dir = "plots"
     os.makedirs(plots_dir, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
     plt.tight_layout()
@@ -464,7 +464,7 @@ def plot_predictions(
 
     plots_dir = "plots"
     os.makedirs(plots_dir, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"prediction_vs_test_{objective_data}_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
     plt.tight_layout()

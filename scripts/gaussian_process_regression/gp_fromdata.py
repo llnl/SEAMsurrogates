@@ -34,7 +34,7 @@ chmod +x ./gp_fromdata.py
 import argparse
 import os
 import time
-import datetime
+from datetime import datetime
 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -201,7 +201,7 @@ def main():
     test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)  # type: ignore
 
     # Prepare the log message
-    timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
         f"Test Function: {data} ",

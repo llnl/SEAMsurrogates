@@ -34,7 +34,7 @@ import argparse
 import itertools
 import os
 import time
-import datetime
+from datetime import datetime
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -244,7 +244,7 @@ def main():
         )
 
         # Prepare the log message
-        timestamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [
             f"Run timestamp (%m%d_%H%M%S): {timestamp}",
             f"Test Function: {objective_function}",
