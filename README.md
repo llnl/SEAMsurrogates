@@ -30,12 +30,7 @@ Please send correspondence about this code to seam@llnl.gov
     source .venv/bin/activate
 ```
 
-4. **Install dependencies**
-```bash
-    pip install -r requirements.txt
-```
-
-5. **Install the `surmod` package locally**
+5. **Install the `surmod` package and dependencies locally**
 ```bash
     pip install -e .
 ```

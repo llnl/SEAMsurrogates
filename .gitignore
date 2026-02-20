@@ -171,6 +171,5 @@ cython_debug/
 
 ### Individually Added
 *.DS_Store
-pyproject.toml
 !SEAM_Logo_2025-01.png
 *.gif

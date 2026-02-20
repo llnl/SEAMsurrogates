@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "surmod"
+version = "0.1.0"
+description =  "Package used in LLNL's SEAM professional development course on Surrogate Modeling and Design Optimization."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }   
+
+authors = [
+  { name = "Jason Bernstein", email = "bernstein8@llnl.gov" },
+  { name = "Emily Bogle", email = "bogle4@llnl.gov" },
+  { name = "Andrew Gillette", email = "gillette7@llnl.gov" },
+  { name = "Kevin Quinlan", email = "quinlan5@llnl.gov" }
+]
+
+keywords = ["surrogates", "optimization", "bayesian-optimization"]
+
+# Dependencies taken from your requirements.txt
+dependencies = [
+  "matplotlib==3.10.3",
+  "torch==2.9.1",
+  "botorch==0.14.0",
+  "scikit-learn==1.7.0",
+  "numpy==2.2.5",
+  "seaborn==0.13.2",
+  "salib==1.5.1",
+  "pandas==2.3.0",
+  "scipy==1.15.3",
+  "imageio"
+]
+
+[project.urls]
+Homepage = "https://github.com/LLNL/SEAMsurrogates"
+Source = "https://github.com/llnl/SEAMsurrogates/tree/main/surmod"
+Issues = "https://github.com/LLNL/SEAMsurrogates/issues"
+
+[tool.setuptools]
+packages = ["surmod"]
