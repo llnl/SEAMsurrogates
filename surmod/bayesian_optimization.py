@@ -195,7 +195,7 @@ def expected_improvement(
 
 def probability_of_improvement(
     x_sample: np.ndarray,
-    model: GaussianProcessRegressor,
+    gp: GaussianProcessRegressor,
     y_max: float,
     xi: float = 0.0,
 ) -> np.ndarray:
@@ -209,7 +209,7 @@ def probability_of_improvement(
     Args:
         x_sample (np.ndarray): Points at which the acquisition function should
             be evaluated, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
         y_max (float): The current maximum known value of the target function.
         xi (float, optional): Exploration-exploitation trade-off hyperparameter.
@@ -219,7 +219,7 @@ def probability_of_improvement(
         np.ndarray: The probability of improvement at each point in `x_sample`
             with shape (n_samples,).
     """
-    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     with np.errstate(divide="warn"):
         Z = (mu - (y_max + xi)) / sigma
         pi = norm.cdf(Z)
@@ -229,7 +229,7 @@ def probability_of_improvement(
 
 def upper_confidence_bound(
     x_sample: np.ndarray,
-    model: GaussianProcessRegressor,
+    gp: GaussianProcessRegressor,
     kappa: float,
 ) -> np.ndarray:
     """
@@ -242,7 +242,7 @@ def upper_confidence_bound(
     Args:
         x_sample (np.ndarray): Points at which to evaluate the acquisition
             function, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
         kappa (float): Controls the balance between exploration and exploitation.
 
@@ -250,13 +250,13 @@ def upper_confidence_bound(
         np.ndarray: The UCB value at each point in `x_sample`, with shape
             (n_samples,).
     """
-    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return mu + kappa * sigma
 
 
 def predictive_variance(
     x_sample: np.ndarray,
-    model: GaussianProcessRegressor,
+    gp: GaussianProcessRegressor,
 ) -> np.ndarray:
     """
     Compute the Predictive Variance acquisition function.
@@ -268,14 +268,14 @@ def predictive_variance(
     Args:
         x_sample (np.ndarray): Points at which to evaluate the acquisition
             function, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the standard deviation at the sample points.
 
     Returns:
         np.ndarray: The predictive variance at each point in `x_sample`, with shape
             (n_samples,).
     """
-    _, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    _, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return sigma**2
 
 
