@@ -155,7 +155,10 @@ def get_synth_global_optima(
 
 
 def expected_improvement(
-    X: np.ndarray, y_max: float, gp: GaussianProcessRegressor, xi: float = 0.0
+    X: np.ndarray,
+    y_max: float,
+    gp: GaussianProcessRegressor,
+    xi: float = 0.0,
 ) -> np.ndarray:
     """
     Compute the Expected Improvement (EI) acquisition values for a set of input
@@ -225,7 +228,9 @@ def probability_of_improvement(
 
 
 def upper_confidence_bound(
-    x_sample: np.ndarray, model: GaussianProcessRegressor, kappa: float
+    x_sample: np.ndarray,
+    model: GaussianProcessRegressor,
+    kappa: float,
 ) -> np.ndarray:
     """
     Compute the Upper Confidence Bound (UCB) acquisition function.
@@ -250,7 +255,8 @@ def upper_confidence_bound(
 
 
 def predictive_variance(
-    x_sample: np.ndarray, model: GaussianProcessRegressor
+    x_sample: np.ndarray,
+    model: GaussianProcessRegressor,
 ) -> np.ndarray:
     """
     Compute the Predictive Variance acquisition function.
