@@ -156,8 +156,8 @@ def get_synth_global_optima(
 
 def expected_improvement(
     X: np.ndarray,
-    y_max: float,
     gp: GaussianProcessRegressor,
+    y_max: float,
     xi: float = 0.0,
 ) -> np.ndarray:
     """
@@ -172,10 +172,10 @@ def expected_improvement(
     Args:
         X (np.ndarray): 2D array of shape (n_points, n_features) representing
             the input points where EI is evaluated.
-        y_max (float): The current maximum observed value of the objective
-            function.
         gp (GaussianProcessRegressor): A fitted Gaussian process regressor used
             to predict mean and standard deviation.
+        y_max (float): The current maximum observed value of the objective
+            function.
         xi (float, optional): Exploration-exploitation trade-off hyperparameter.
             Larger values encourage exploration. Default is 0.0 (standard EI).
 
@@ -440,7 +440,7 @@ class BayesianOptimizer:
             x = x.reshape(1, -1)
             if acquisition == "EI":
                 xi = self.acquisition_kwargs.get("xi", 0.0)
-                return -acq_func(x, y_max, self.gp_model, xi=xi).item()
+                return -acq_func(x, self.gp_model, y_max, xi=xi).item()
             elif acquisition == "PI":
                 xi = self.acquisition_kwargs.get("xi", 0.0)
                 return -acq_func(x, self.gp_model, y_max, xi=xi).item()
@@ -521,8 +521,8 @@ class BayesianOptimizer:
                     xi = self.acquisition_kwargs.get("xi", 0.0)
                     acquisition_values = expected_improvement(
                         x_remaining,
-                        np.max(self.y_all_data),
                         gp_model,
+                        np.max(self.y_all_data),
                         xi=xi,
                     )
                 elif self.acquisition == "PI":

@@ -251,8 +251,8 @@ def main():
     if acquisition == "EI":
         acquisition_values = bo.expected_improvement(
             x_grid,
-            np.max(y_sample),
             model,
+            np.max(y_sample),
             xi=xi,
         )
     elif acquisition == "PI":
@@ -371,7 +371,7 @@ def main():
 
         # Update the acquisition function surface with the new sample
         if acquisition == "EI":
-            acquisition_values = bo.expected_improvement(x_grid, y_max, model, xi=xi)
+            acquisition_values = bo.expected_improvement(x_grid, model, y_max, xi=xi)
         elif acquisition == "PI":
             acquisition_values = bo.probability_of_improvement(
                 x_grid, model, y_max, xi=xi
