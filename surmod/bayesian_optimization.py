@@ -430,23 +430,23 @@ class BayesianOptimizer:
             bounds_low, bounds_high, size=(n_restarts, input_size)
         )
 
-        for x0 in starting_points:
+        def acq_wrap(x):
+            x = x.reshape(1, -1)
+            if acquisition == "EI":
+                xi = self.acquisition_kwargs.get("xi", 0.0)
+                return -acq_func(x, y_max, self.gp_model, xi=xi).item()
+            elif acquisition == "PI":
+                xi = self.acquisition_kwargs.get("xi", 0.0)
+                return -acq_func(x, self.gp_model, y_max, xi=xi).item()
+            elif acquisition == "UCB":
+                kappa = self.acquisition_kwargs.get("kappa", 2.0)
+                return -acq_func(x, self.gp_model, kappa=kappa).item()
+            elif acquisition == "PV":
+                return -acq_func(x, self.gp_model).item()
+            else:
+                raise ValueError("Invalid acquisition function.")
 
-            def acq_wrap(x):
-                x = x.reshape(1, -1)
-                if acquisition == "EI":
-                    xi = self.acquisition_kwargs.get("xi", 0.0)
-                    return -acq_func(x, y_max, self.gp_model, xi=xi).item()
-                elif acquisition == "PI":
-                    xi = self.acquisition_kwargs.get("xi", 0.0)
-                    return -acq_func(x, self.gp_model, y_max, xi=xi).item()
-                elif acquisition == "UCB":
-                    kappa = self.acquisition_kwargs.get("kappa", 2.0)
-                    return -acq_func(x, self.gp_model, kappa=kappa).item()
-                elif acquisition == "PV":
-                    return -acq_func(x, self.gp_model).item()
-                else:
-                    raise ValueError("Invalid acquisition function.")
+        for x0 in starting_points:
 
             res = minimize(
                 fun=acq_wrap,
