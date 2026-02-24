@@ -31,7 +31,7 @@ import imageio.v2 as imageio
 import torch
 
 from surmod import bayesian_optimization as bo
-from surmod import gaussian_process_regression as gp
+from surmod import gaussian_process_regression as gpr
 
 
 def parse_arguments():
@@ -152,7 +152,7 @@ def main():
 
     # Initial set-up
     np.random.seed(seed)
-    synth_function = gp.load_test_function(objective_function)
+    synth_function = gpr.load_test_function(objective_function)
     bounds_low = [b[0] for b in synth_function._bounds]
     bounds_high = [b[1] for b in synth_function._bounds]
 
