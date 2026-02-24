@@ -463,8 +463,7 @@ class BayesianOptimizer:
                 max_val = -res.fun
                 max_x = res.x
 
-        x_next = max_x
-        return x_next
+        return max_x
 
     def bayes_opt(
         self, df: Optional[pd.DataFrame] = None, n_init: int = 10
