@@ -295,7 +295,7 @@ class BayesianOptimizer:
         y_init (np.ndarray): Initial output values.
         kernel (str): Kernel type for the Gaussian Process.
         isotropic (bool): Whether to use an isotropic kernel.
-        acquisition_function (str): Acquisition function to use ('EI', 'PI', 'UCB', 'random').
+        acquisition_function (str): Acquisition function to use ('EI', 'PI', 'UCB', 'PV', 'random').
         n_acquire (int): Number of optimization steps.
         seed (int, optional): Random seed for reproducibility. Default is 42.
     """
@@ -385,13 +385,13 @@ class BayesianOptimizer:
         This method selects the next candidate point in the search space for
         evaluation based on the given acquisition function. It supports 'EI'
         (Expected Improvement), 'PI' (Probability of Improvement), 'UCB'
-        (Upper Confidence Bound), and 'random'. For non-random acquisition
-        functions, it performs multiple restarts of optimization to find the
-        best candidate.
+        (Upper Confidence Bound), 'PV' (Predictive Variance), and 'random'. For
+        non-random acquisition functions, it performs multiple restarts of optimization
+        to find the best candidate.
 
         Args:
             acquisition (str, optional): The acquisition function to use. Must
-                be one of 'EI', 'PI', 'UCB', or 'random'. Defaults to 'EI'.
+                be one of 'EI', 'PI', 'UCB', 'PV', or 'random'. Defaults to 'EI'.
             n_restarts (int, optional): Number of random restarts for the optimizer.
                 Defaults to 100.
 
@@ -415,7 +415,7 @@ class BayesianOptimizer:
 
         if acquisition not in ACQUISITION_FUNCTIONS:
             raise ValueError(
-                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', or 'random'."
+                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
             )
 
         acq_func = ACQUISITION_FUNCTIONS[acquisition]
@@ -613,8 +613,8 @@ def plot_acquisition_comparison(
     This function generates a line plot comparing the progression of the maximum
     output over optimization iterations for several acquisition strategies:
     Expected Improvement (EI), Probability of Improvement (PI), Upper Confidence
-    Bound (UCB), and Uniform Random sampling. The plot is saved as a PNG file in
-    the './plots' directory.
+    Bound (UCB), Predictive Variance (PV), and Uniform Random sampling. The plot is
+    saved as a PNG file in the './plots' directory.
 
     Args:
         max_output_EI (np.ndarray): Array of maximum output per iteration using
@@ -622,7 +622,9 @@ def plot_acquisition_comparison(
         max_output_PI (np.ndarray): Array of maximum output per iteration using
             Probability of Improvement.
         max_output_UCB (np.ndarray): Array of maximum output per iteration using
-        Upper Confidence Bound.
+            Upper Confidence Bound.
+        max_output_PV (np.ndarray): Array of maximum output per iteration using
+            maximum Predictive Variance.
         max_output_random (np.ndarray): Array of maximum output per iteration using
             random sampling.
         kernel (str): Name of the kernel used in the optimization (for plot filename).
