@@ -180,7 +180,7 @@ def main():
     )
 
     # Fit the initial GP model
-    model = bopt.gp_model_fit()
+    gp = bopt.gp_model_fit()
 
     # Generate a grid for contour plotting
     x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
@@ -251,21 +251,21 @@ def main():
     if acquisition == "EI":
         acquisition_values = bo.expected_improvement(
             x_grid,
-            model,
+            gp,
             np.max(y_sample),
             xi=xi,
         )
     elif acquisition == "PI":
         acquisition_values = bo.probability_of_improvement(
             x_grid,
-            model,
+            gp,
             np.max(y_sample),
             xi=xi,
         )
     elif acquisition == "UCB":
         acquisition_values = bo.upper_confidence_bound(
             x_grid,
-            model,
+            gp,
             kappa=kappa,
         )
     elif acquisition == "random":
@@ -292,7 +292,7 @@ def main():
     scatter.remove()  # Remove initial sample points to avoid clutter/distraction
 
     # Plot the initial GP mean surface on ax3
-    mu = model.predict(x_grid, return_std=False)
+    mu = gp.predict(x_grid, return_std=False)
     if isinstance(mu, tuple):
         mu = mu[0]  # take the mean
     mu = mu.reshape(x1_grid.shape)
@@ -367,17 +367,15 @@ def main():
             plt.pause(0.6)
 
         # Re-fit the GP model
-        model = bopt.gp_model_fit()
+        gp = bopt.gp_model_fit()
 
         # Update the acquisition function surface with the new sample
         if acquisition == "EI":
-            acquisition_values = bo.expected_improvement(x_grid, model, y_max, xi=xi)
+            acquisition_values = bo.expected_improvement(x_grid, gp, y_max, xi=xi)
         elif acquisition == "PI":
-            acquisition_values = bo.probability_of_improvement(
-                x_grid, model, y_max, xi=xi
-            )
+            acquisition_values = bo.probability_of_improvement(x_grid, gp, y_max, xi=xi)
         elif acquisition == "UCB":
-            acquisition_values = bo.upper_confidence_bound(x_grid, model, kappa=kappa)
+            acquisition_values = bo.upper_confidence_bound(x_grid, gp, kappa=kappa)
         elif acquisition == "random":
             acquisition_values = np.random.uniform(size=x_grid.shape[0])
         else:
@@ -408,7 +406,7 @@ def main():
             plt.pause(1.0)
 
         # Update the GP mean surface based on new sample
-        mu = model.predict(x_grid, return_std=False)
+        mu = gp.predict(x_grid, return_std=False)
         gp_mean_max_value = np.max(mu)
         gp_mean_max_location = x_grid[np.argmax(mu), :]
         if isinstance(mu, tuple):
