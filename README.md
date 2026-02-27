@@ -8,9 +8,9 @@ This repository contains materials for an introductory course on "Surrogate Mode
 
 For more detailed documentation on the modules in the `surmod` package, please view our [documentation](https://seamsurrogates.readthedocs.io/en/latest/index.html).
 
-Information about the SEAM program is available to employees of Lawrence Livermore National Laboratory at https://seam.llnl.gov  
+Information about the SEAM program is available to employees of Lawrence Livermore National Laboratory at https://seam.llnl.gov.
 
-Please send correspondence about this code to seam@llnl.gov  
+Please send correspondence about this code to seam@llnl.gov.
 
 ## Getting Started
 
