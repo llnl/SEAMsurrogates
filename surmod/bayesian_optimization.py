@@ -155,7 +155,10 @@ def get_synth_global_optima(
 
 
 def expected_improvement(
-    X: np.ndarray, y_max: float, gp: GaussianProcessRegressor, xi: float = 0.0
+    X: np.ndarray,
+    gp: GaussianProcessRegressor,
+    y_max: float,
+    xi: float = 0.0,
 ) -> np.ndarray:
     """
     Compute the Expected Improvement (EI) acquisition values for a set of input
@@ -169,10 +172,10 @@ def expected_improvement(
     Args:
         X (np.ndarray): 2D array of shape (n_points, n_features) representing
             the input points where EI is evaluated.
-        y_max (float): The current maximum observed value of the objective
-            function.
         gp (GaussianProcessRegressor): A fitted Gaussian process regressor used
             to predict mean and standard deviation.
+        y_max (float): The current maximum observed value of the objective
+            function.
         xi (float, optional): Exploration-exploitation trade-off hyperparameter.
             Larger values encourage exploration. Default is 0.0 (standard EI).
 
@@ -192,7 +195,7 @@ def expected_improvement(
 
 def probability_of_improvement(
     x_sample: np.ndarray,
-    model: GaussianProcessRegressor,
+    gp: GaussianProcessRegressor,
     y_max: float,
     xi: float = 0.0,
 ) -> np.ndarray:
@@ -206,7 +209,7 @@ def probability_of_improvement(
     Args:
         x_sample (np.ndarray): Points at which the acquisition function should
             be evaluated, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
         y_max (float): The current maximum known value of the target function.
         xi (float, optional): Exploration-exploitation trade-off hyperparameter.
@@ -216,7 +219,7 @@ def probability_of_improvement(
         np.ndarray: The probability of improvement at each point in `x_sample`
             with shape (n_samples,).
     """
-    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     with np.errstate(divide="warn"):
         Z = (mu - (y_max + xi)) / sigma
         pi = norm.cdf(Z)
@@ -225,7 +228,9 @@ def probability_of_improvement(
 
 
 def upper_confidence_bound(
-    x_sample: np.ndarray, model: GaussianProcessRegressor, kappa: float
+    x_sample: np.ndarray,
+    gp: GaussianProcessRegressor,
+    kappa: float,
 ) -> np.ndarray:
     """
     Compute the Upper Confidence Bound (UCB) acquisition function.
@@ -237,7 +242,7 @@ def upper_confidence_bound(
     Args:
         x_sample (np.ndarray): Points at which to evaluate the acquisition
             function, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the mean and standard deviation at the sample points.
         kappa (float): Controls the balance between exploration and exploitation.
 
@@ -245,12 +250,13 @@ def upper_confidence_bound(
         np.ndarray: The UCB value at each point in `x_sample`, with shape
             (n_samples,).
     """
-    mu, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return mu + kappa * sigma
 
 
 def predictive_variance(
-    x_sample: np.ndarray, model: GaussianProcessRegressor
+    x_sample: np.ndarray,
+    gp: GaussianProcessRegressor,
 ) -> np.ndarray:
     """
     Compute the Predictive Variance acquisition function.
@@ -262,14 +268,14 @@ def predictive_variance(
     Args:
         x_sample (np.ndarray): Points at which to evaluate the acquisition
             function, with shape (n_samples, n_features).
-        model (GaussianProcessRegressor): A fitted Gaussian process model used
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
             to predict the standard deviation at the sample points.
 
     Returns:
         np.ndarray: The predictive variance at each point in `x_sample`, with shape
             (n_samples,).
     """
-    _, sigma = model.predict(x_sample, return_std=True)  # type: ignore
+    _, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return sigma**2
 
 
@@ -295,7 +301,7 @@ class BayesianOptimizer:
         y_init (np.ndarray): Initial output values.
         kernel (str): Kernel type for the Gaussian Process.
         isotropic (bool): Whether to use an isotropic kernel.
-        acquisition_function (str): Acquisition function to use ('EI', 'PI', 'UCB', 'random').
+        acquisition_function (str): Acquisition function to use ('EI', 'PI', 'UCB', 'PV', 'random').
         n_acquire (int): Number of optimization steps.
         seed (int, optional): Random seed for reproducibility. Default is 42.
     """
@@ -385,13 +391,13 @@ class BayesianOptimizer:
         This method selects the next candidate point in the search space for
         evaluation based on the given acquisition function. It supports 'EI'
         (Expected Improvement), 'PI' (Probability of Improvement), 'UCB'
-        (Upper Confidence Bound), and 'random'. For non-random acquisition
-        functions, it performs multiple restarts of optimization to find the
-        best candidate.
+        (Upper Confidence Bound), 'PV' (Predictive Variance), and 'random'. For
+        non-random acquisition functions, it performs multiple restarts of optimization
+        to find the best candidate.
 
         Args:
             acquisition (str, optional): The acquisition function to use. Must
-                be one of 'EI', 'PI', 'UCB', or 'random'. Defaults to 'EI'.
+                be one of 'EI', 'PI', 'UCB', 'PV', or 'random'. Defaults to 'EI'.
             n_restarts (int, optional): Number of random restarts for the optimizer.
                 Defaults to 100.
 
@@ -415,7 +421,7 @@ class BayesianOptimizer:
 
         if acquisition not in ACQUISITION_FUNCTIONS:
             raise ValueError(
-                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', or 'random'."
+                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
             )
 
         acq_func = ACQUISITION_FUNCTIONS[acquisition]
@@ -430,28 +436,23 @@ class BayesianOptimizer:
             bounds_low, bounds_high, size=(n_restarts, input_size)
         )
 
-        for x0 in starting_points:
+        def acq_wrap(x):
+            x = x.reshape(1, -1)
+            if acquisition == "EI":
+                xi = self.acquisition_kwargs.get("xi", 0.0)
+                return -acq_func(x, self.gp_model, y_max, xi=xi).item()
+            elif acquisition == "PI":
+                xi = self.acquisition_kwargs.get("xi", 0.0)
+                return -acq_func(x, self.gp_model, y_max, xi=xi).item()
+            elif acquisition == "UCB":
+                kappa = self.acquisition_kwargs.get("kappa", 2.0)
+                return -acq_func(x, self.gp_model, kappa=kappa).item()
+            elif acquisition == "PV":
+                return -acq_func(x, self.gp_model).item()
+            else:
+                raise ValueError("Invalid acquisition function.")
 
-            def acq_wrap(x):
-                if acquisition == "EI":
-                    xi = self.acquisition_kwargs.get("xi", 0.0)
-                    return -acq_func(
-                        x.reshape(1, -1), y_max, self.gp_model, xi=xi
-                    ).item()
-                elif acquisition == "PI":
-                    xi = self.acquisition_kwargs.get("xi", 0.0)
-                    return -acq_func(
-                        x.reshape(1, -1), self.gp_model, y_max, xi=xi
-                    ).item()
-                elif acquisition == "UCB":
-                    kappa = self.acquisition_kwargs.get("kappa", 2.0)
-                    return -acq_func(
-                        x.reshape(1, -1), self.gp_model, kappa=kappa
-                    ).item()
-                elif acquisition == "PV":
-                    return -acq_func(x.reshape(1, -1), self.gp_model).item()
-                else:
-                    raise ValueError("Invalid acquisition function.")
+        for x0 in starting_points:
 
             res = minimize(
                 fun=acq_wrap,
@@ -463,8 +464,7 @@ class BayesianOptimizer:
                 max_val = -res.fun
                 max_x = res.x
 
-        x_next = max_x
-        return x_next
+        return max_x
 
     def bayes_opt(
         self, df: Optional[pd.DataFrame] = None, n_init: int = 10
@@ -521,8 +521,8 @@ class BayesianOptimizer:
                     xi = self.acquisition_kwargs.get("xi", 0.0)
                     acquisition_values = expected_improvement(
                         x_remaining,
-                        np.max(self.y_all_data),
                         gp_model,
+                        np.max(self.y_all_data),
                         xi=xi,
                     )
                 elif self.acquisition == "PI":
@@ -613,8 +613,8 @@ def plot_acquisition_comparison(
     This function generates a line plot comparing the progression of the maximum
     output over optimization iterations for several acquisition strategies:
     Expected Improvement (EI), Probability of Improvement (PI), Upper Confidence
-    Bound (UCB), and Uniform Random sampling. The plot is saved as a PNG file in
-    the './plots' directory.
+    Bound (UCB), Predictive Variance (PV), and Uniform Random sampling. The plot is
+    saved as a PNG file in the './plots' directory.
 
     Args:
         max_output_EI (np.ndarray): Array of maximum output per iteration using
@@ -622,7 +622,9 @@ def plot_acquisition_comparison(
         max_output_PI (np.ndarray): Array of maximum output per iteration using
             Probability of Improvement.
         max_output_UCB (np.ndarray): Array of maximum output per iteration using
-        Upper Confidence Bound.
+            Upper Confidence Bound.
+        max_output_PV (np.ndarray): Array of maximum output per iteration using
+            maximum Predictive Variance.
         max_output_random (np.ndarray): Array of maximum output per iteration using
             random sampling.
         kernel (str): Name of the kernel used in the optimization (for plot filename).
