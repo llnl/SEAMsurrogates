@@ -457,7 +457,6 @@ def plot_test_predictions(
         observed (np.ndarray): Observed target values corresponding to x_test.
         gp_model (GaussianProcessRegressor): Trained Gaussian Process model for prediction.
         objective_data_name (str): Name of the objective or dataset, used for labeling and saving the plot.
-
     """
     prediction_mean, std_dev = gp_model.predict(x_test, return_std=True)  # type: ignore
 
@@ -477,10 +476,10 @@ def plot_test_predictions(
     plt.style.use("seaborn-v0_8-whitegrid")
 
     # Create a plot
-    plt.figure()
+    fig, ax = plt.subplots(figsize=(6, 6))
 
     # Plot truth vs prediction mean with error bars
-    plt.errorbar(
+    ax.errorbar(
         observed,
         prediction_mean,
         yerr=1.96 * std_dev,
@@ -489,24 +488,33 @@ def plot_test_predictions(
         color="blue",
     )
 
+    # Shared limits for a proper y = x comparison
+    max_value = max(np.max(observed), np.max(upper_bounds))
+    min_value = min(np.min(observed), np.min(lower_bounds))
+    ax.set_xlim(min_value, max_value)
+    ax.set_ylim(min_value, max_value)
+
+    # Ensure equal scaling and a square axes box
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_box_aspect(1)
+
     # Add a line for y = x
-    max_value = max(np.max(observed), max(upper_bounds))
-    min_value = min(np.min(observed), min(lower_bounds))
-    plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
+    ax.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
     # Add labels and title
-    plt.ylabel("Predicted", fontsize=14)
-    plt.xlabel("Observed", fontsize=14)
-    plt.title(f"{objective_data_name} \n {gp_model.kernel_}")
-    plt.text(
+    ax.set_ylabel("Predicted", fontsize=14)
+    ax.set_xlabel("Observed", fontsize=14)
+    ax.set_title(f"{objective_data_name} \n {gp_model.kernel_}")
+    ax.text(
         0.3,
         0.95,
         f"RMSE: {rmse:.5f}, Coverage: {coverage:.2%}",
         ha="center",
         fontsize=14,
-        transform=plt.gca().transAxes,
+        transform=ax.transAxes,
     )
-    plt.tight_layout()
+
+    fig.tight_layout()
 
     # Save the plot
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
@@ -515,5 +523,5 @@ def plot_test_predictions(
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_test_predictions_{timestamp}.png"
     )
-    plt.savefig(path_to_plot, bbox_inches="tight")
+    fig.savefig(path_to_plot)
     print(f"Figure saved to {path_to_plot}")
