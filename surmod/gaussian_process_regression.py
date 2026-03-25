@@ -467,9 +467,8 @@ def plot_test_predictions(
         (observed.flatten() >= lower_bounds) & (observed.flatten() <= upper_bounds)
     )
 
-    # Calculate MSE
-    mse = np.mean((observed.flatten() - prediction_mean.flatten()) ** 2)
     # Calculate RMSE
+    mse = np.mean((observed.flatten() - prediction_mean.flatten()) ** 2)
     rmse = np.sqrt(mse)
 
     # Set Seaborn style
