@@ -518,8 +518,7 @@ def plot_test_predictions(
 
     # Save the plot
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_test_predictions_{timestamp}.png"
     )
