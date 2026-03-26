@@ -137,8 +137,8 @@ def parse_arguments():
 
 def main():
     """
-    Trains and evaluates a Gaussian Process (GP) surrogate model on the JAG ICF
-    dataset.
+    Trains and evaluates a Gaussian Process (GP) surrogate model on a dataset
+    contained in a csv file.
     """
     # Parse command line arguments
     args = parse_arguments()
