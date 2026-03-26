@@ -118,7 +118,12 @@ def load_test_function(objective_function: str):
     return test_function
 
 
-def simulate_data(objective_function: str, num_train: int, num_test: int):
+def simulate_data(
+    objective_function: str,
+    num_train: int,
+    num_test: int,
+    seed: int | None = None,
+):
     """
     Simulates training and testing data from a specified test function.
 
@@ -147,8 +152,8 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
     bounds_high = [b[1] for b in test_function._bounds]
 
     # Sample random data from test function
-    np.random.seed(1)
-    x_data = np.random.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    rng = np.random.default_rng(seed)
+    x_data = rng.uniform(bounds_low, bounds_high, size=(num_total, 2))
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets

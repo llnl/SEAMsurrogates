@@ -19,7 +19,7 @@ chmod +x ./gp_sandbox.py
 ./gp_sandbox.py --objective_function=Parabola --kernels=matern --plots
 
 # Smooth Branin test function with an RBF kernel.
-./gp_sandbox.py --objective_function=Branin --kernels=rbf --plots
+./gp_sandbox.py --objective_function=Branin --kernels=rbf --seed 1 --plots
 
 # Smooth Ackley function with an RBF kernel, save results in log, 200 training
 #   points, 3 values of alpha.
@@ -148,6 +148,14 @@ def parse_arguments():
         "for all inputs).",
     )
 
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducibility.",
+    )
+
     args = parser.parse_args()
 
     return args
@@ -171,12 +179,14 @@ def main():
     plots = args.plots
     log = args.log
     isotropic = args.isotropic
+    seed = args.seed
 
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = gp.simulate_data(
         objective_function,
         num_train,
         num_test,
+        seed,
     )
 
     scaler_x_train = None
