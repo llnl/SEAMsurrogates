@@ -162,7 +162,7 @@ def main():
         )
 
     # Load and split data
-    df = data_processing.load_data(dataset= data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df=df, LHD=False, n_train=num_train, seed=seed
     )
