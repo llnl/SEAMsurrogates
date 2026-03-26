@@ -197,8 +197,7 @@ def log_results(message: str, path_to_log: str):
         message (str): The message to be written to the log file.
         path_to_log (str): The path to the log file where the message will be appended.
     """
-    if not os.path.exists("output_log"):
-        os.makedirs("output_log")
+    os.makedirs("output_log", exist_ok=True)
     with open(path_to_log, "a") as f:
         f.write("\n--------------------\n\n" + message)
     print(f"Output log saved to end of {path_to_log}.")
@@ -317,8 +316,7 @@ def plot_gp_mean_prediction(
 
     # Specify where to save plot of GP fit, create directory if it doesn't exist
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_gp_mean_{timestamp}.png"
     )
@@ -429,8 +427,7 @@ def plot_gp_std_dev_prediction(
 
     # Save plot
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_gp_std_dev_{timestamp}.png"
     )

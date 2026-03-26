@@ -685,8 +685,7 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = os.path.join(
         "plots",
