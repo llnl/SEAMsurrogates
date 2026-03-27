@@ -114,29 +114,37 @@ def simulate_data(
 
 def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> None:
     """
-    Plot test set predictions vs. ground truth for a GP model.
+    Plot test set predictions vs. ground truth for a Gaussian Process model.
 
-    Compatible with GPSurrogate.predict(), which returns (mean, std) and does
-    not accept return_std=...
+    Args:
+        x_test (np.ndarray): Test input data of shape (num_test, input_dim).
+        y_test (np.ndarray): True observed outputs for the test set.
+        gp_model (Any): Trained Gaussian Process model with a predict method.
+        objective_function (str): Name of the objective function, used for plot
+            file naming.
+
+    Returns:
+        None, used for visualization purposes only.
     """
-    prediction_mean, std_dev = gp_model.predict(x_test)
-
-    prediction_mean = np.asarray(prediction_mean).reshape(-1)
-    std_dev = np.asarray(std_dev).reshape(-1)
-    observed = np.asarray(y_test).reshape(-1)
-
+    prediction_mean, std_dev = gp_model.predict(x_test, return_std=True)
+    observed = y_test
     Zscore = 1.96
 
-    lower_bounds = prediction_mean - Zscore * std_dev
-    upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = float(np.mean((observed >= lower_bounds) & (observed <= upper_bounds)))
+    # Calculate Coverage
+    lower_bounds = prediction_mean.flatten() - Zscore * std_dev.flatten()
+    upper_bounds = prediction_mean.flatten() + Zscore * std_dev.flatten()
+    coverage = np.mean((observed.flatten() >= lower_bounds.flatten()) & (observed.flatten() <= upper_bounds.flatten()))
 
-    # RMSE (NumPy)
-    test_rmse = float(np.sqrt(np.mean((observed - prediction_mean) ** 2)))
+    # Calculate RMSE
+    test_rmse = np.sqrt(mse(observed, prediction_mean))
 
+    # Set Seaborn style
     plt.style.use("seaborn-v0_8-whitegrid")
+
+    # Create a plot
     plt.figure()
 
+    # Plot truth vs prediction mean with error bars
     plt.errorbar(
         observed,
         prediction_mean,
@@ -147,10 +155,14 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
         alpha=0.7,
     )
 
-    max_value = max(np.max(observed), np.max(upper_bounds)) + 0.1
+    # Add a line for y = x
+    max_value = (
+        max(np.max(observed), np.max(upper_bounds)) + 0.1
+    )  # Extend the line slightly beyond the max values
     min_value = min(np.min(observed), np.min(lower_bounds)) - 0.1
     plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
+    # Add labels and title
     plt.ylabel("Predicted", fontsize=14)
     plt.xlabel("Observed", fontsize=14)
     plt.text(
@@ -163,10 +175,68 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"test_predictions_{objective_function}_{timestamp}.png"
+    )
+    plt.savefig(path_to_plot, bbox_inches="tight")
+    print(f"Figure saved to {path_to_plot}")
+
+
+def sobol_plot(
+    S1: Sequence[float],
+    ST: Sequence[float],
+    variables: List[str],
+    S1_conf: Sequence[float],
+    ST_conf: Sequence[float],
+    objective_function: str,
+):
+    """
+    Plots first and total order Sobol sensitivity indices with confidence
+    intervals and saves the figure.
+
+    Args:
+        S1 (Sequence[float]): First order sensitivity indices for each variable.
+        ST (Sequence[float]): Total order sensitivity indices for each variable.
+        variables (List[str]): List of variable names.
+        S1_conf (Sequence[float]): Confidence intervals for first order indices.
+        ST_conf (Sequence[float]): Confidence intervals for total order indices.
+        objective_function (str): Name of the objective function, used in the
+            saved plot filename.
+
+    Returns:
+        None, for visualization purposes only.
+    """
+    # Define colors for each variable
+    colors = sns.color_palette("husl", len(variables))
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+
+    # First Order Sensitivity Plot
+    axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)
+    axes[0].set_title("First Order Sensitivity Indices")
+    axes[0].set_ylabel("Sensitivity Index")
+    axes[0].set_ylim(0, 1)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Total Order Sensitivity Plot
+    axes[1].bar(variables, ST, yerr=ST_conf, color=colors, alpha=0.7)
+    axes[1].set_title("Total Order Sensitivity Indices")
+    axes[1].set_ylabel("Sensitivity Index")
+    axes[1].set_ylim(0, 1)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    path_to_plot = os.path.join(
+        "plots", f"sensitivity_{objective_function}_{timestamp}.png"
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

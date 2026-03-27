@@ -1,34 +1,10 @@
 #!/usr/bin/env python3
-
 """
 This script simulates data from a test function, fits a Gaussian process to the
 data, and saves a log message and plot of the fitted surface if desired.
 
-Usage:
-
-# Make script executable
-chmod +x ./gp_sandbox.py
-
-# See help.
-./gp_sandbox.py -h
-
-# Smooth parabola function with an isotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --isotropic --plots
-
-# Smooth parabola function with an anisotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --plots
-
-# Smooth Branin test function with an RBF kernel.
-./gp_sandbox.py --objective_function=Branin --kernels=rbf --plots
-
-# Smooth Ackley function with an RBF kernel, save results in log, 200 training
-#   points, 3 values of alpha.
-./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200 -a 0.001 0.01 0.1
-
-# Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
-#   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
 """
+
 
 import argparse
 import itertools
@@ -36,20 +12,20 @@ import os
 import time
 from datetime import datetime
 
+import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from surmod import gaussian_process_regression as gp
+from surmod.test_functions import simulate_data
+
+from surmod.gpytorch_gaussian_process import GPSurrogate
 
 
 def parse_arguments():
     """Get command line arguments."""
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train GP surrogate models on synthetic test"
-        "functions.",
+        description="A script to train GP surrogate models on synthetic test functions (BoTorch GPSurrogate).",
     )
 
     parser.add_argument(
@@ -82,8 +58,7 @@ def parse_arguments():
         "--normalize_x",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the input values by removing the "
-        "mean and scaling to unit-variance per dimension.",
+        help="Normalize the input values to mean 0 and unit variance per dimension using training data.",
     )
 
     parser.add_argument(
@@ -91,8 +66,7 @@ def parse_arguments():
         "--scale_x",
         action="store_true",
         default=False,
-        help="Whether or not to scale the input values to [0,1] using min-max "
-        "scaling per dimension.",
+        help="Scale the input values to [0,1] per dimension using training data.",
     )
 
     parser.add_argument(
@@ -100,18 +74,14 @@ def parse_arguments():
         "--normalize_y",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the output values in the"
-        " GaussianProcessRegressor.",
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
     )
 
     parser.add_argument(
-        "-a",
-        "--alphas",
+        "--fixed_nugget",
         type=float,
-        nargs="+",
-        default=[1e-5],
-        help="Specify one or more variances of additional Gaussian measurement "
-        "noise on the training observations (e.g., 1e-10 1e-08 1e-06).",
+        default=None,
+        help="Fix the likelihood noise (nugget). Implemented by setting noise_bounds to nugget +/- nugget/10000.",
     )
 
     parser.add_argument(
@@ -119,65 +89,75 @@ def parse_arguments():
         "--kernels",
         type=str,
         nargs="+",
-        choices=["matern", "rbf", "matern_dot"],
+        choices=["matern", "rbf", "periodic"],
         default=["matern"],
-        help="Choice of kernel function from 'rbf', 'matern', or 'matern_dot'.",
+        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
     parser.add_argument(
         "-l",
         "--log",
         action="store_true",
-        help="Save output in file based on objective function and kernel; if "
-        "file already exists, new runs will be appended to end of existing file.",
+        help="Save output in file based on objective function and kernel; if file exists, append.",
     )
 
     parser.add_argument(
         "-p",
         "--plots",
         action="store_true",
-        help="Plot the objective function contour with the GP mean surface, and "
-        "GP standard deviation heatmap.",
+        help="Save parity plot (observed vs predicted) with 95 percent intervals.",
     )
 
     parser.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
-        help="Specify that the kernel function is isotropic (same length scale "
-        "for all inputs).",
+        help="Specify that the kernel function is isotropic (same length scale for all inputs).",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    return args
+
+def log_results(log_message: str, path_to_log: str) -> None:
+    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
+    with open(path_to_log, "a", encoding="utf-8") as f:
+        f.write(log_message + "\n")
+
+
+def nugget_to_bounds(nugget: float) -> tuple[float, float]:
+    if nugget <= 0.0:
+        raise ValueError("--fixed_nugget must be > 0.")
+    delta = 1e-16
+    low = max(nugget - delta, 1e-20)
+    high = nugget + delta
+    return (low, high)
 
 
 def main():
-    """Simulate data from test function, train GP model, predict model on
-    hold-out data, and plot or log results.
-    """
-
-    # Parse command-line arguments
+    """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
+
     objective_function = args.objective_function
     kernels = args.kernels
-    alphas = args.alphas
     num_train = args.num_train
     num_test = args.num_test
     normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
+    fixed_nugget = args.fixed_nugget
     plots = args.plots
-    log = args.log
+    do_log = args.log
     isotropic = args.isotropic
 
     # Generate test and train data sets
-    x_train, x_test, y_train, y_test = gp.simulate_data(
+    x_train, x_test, y_train, y_test = simulate_data(
         objective_function,
         num_train,
         num_test,
     )
+
+    y_train_1d = np.asarray(y_train).reshape(-1)
+    y_test_1d = np.asarray(y_test).reshape(-1)
 
     scaler_x_train = None
 
@@ -185,127 +165,100 @@ def main():
         raise ValueError("Choose either normalize_x or scale_x, not both.")
 
     if normalize_x or scale_x:
-
-        # Create the scaler and fit it on training data
         if normalize_x:
             print(
-                "Input data is being normalized to have mean 0, variance 1, in "
-                "each dimension based on training data.\n"
+                "Input data is being normalized to have mean 0, variance 1, in each dimension based on training data.\n"
             )
             scaler_x_train = StandardScaler()
 
         if scale_x:
             print(
-                "Input data is being scaled using min-max scaling in each "
-                "dimension based on training data.\n"
+                "Input data is being scaled using min-max scaling in each dimension based on training data.\n"
             )
             scaler_x_train = MinMaxScaler()
 
         scaler_x_train.fit(x_train)  # type: ignore
-
-        # Transform both train and test sets
         x_train = scaler_x_train.transform(x_train)  # type: ignore
         x_test = scaler_x_train.transform(x_test)  # type: ignore
 
-    for kernel, alpha in itertools.product(kernels, alphas):
-        # Instantiate GP model
-        gp_model = GaussianProcessRegressor(
-            kernel=gp.get_kernel(kernel, 2, isotropic),
-            alpha=alpha,
-            n_restarts_optimizer=5,
-            random_state=42,
-            normalize_y=normalize_y,
+    noise_bounds = None
+    if fixed_nugget is not None:
+        noise_bounds = nugget_to_bounds(float(fixed_nugget))
+
+    for kernel in kernels:
+        gp_model = GPSurrogate(
+            x_train=x_train,
+            y_train=y_train_1d,
+            x_test=x_test,
+            y_test=y_test_1d,
+            kernel=kernel,
+            isotropic=isotropic,
+            # Inputs already optionally normalized/scaled above, avoid double scaling
+            scale_inputs=False,
+            scale_outputs=normalize_y,
+            noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
         )
 
-        # Train GP model
         start_time = time.perf_counter()
-        gp_model.fit(x_train, y_train)
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
+        gp_model.fit()
+        elapsed_time = time.perf_counter() - start_time
 
-        # Evaluate GP model at train and test inputs
-        pred_train = gp_model.predict(x_train, return_std=False)
-        pred_test = gp_model.predict(x_test, return_std=False)
+        pred_train_mean, _pred_train_std = gp_model.predict(x_train)
+        pred_test_mean, pred_test_std = gp_model.predict(x_test)
 
-        # Evaluate Mean Absolute Error (MAE) with trained GP model
-        train_mae = mean_absolute_error(y_train, pred_train)
-        test_mae = mean_absolute_error(y_test, pred_test)
+        train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
+        test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
 
-        # Evaluate Mean Square Error (MSE) with trained GP model
-        train_mse = mean_squared_error(y_train, pred_train)
-        test_mse = mean_squared_error(y_test, pred_test)
+        train_mse = float(mean_squared_error(y_train_1d, pred_train_mean))
+        test_mse = float(mean_squared_error(y_test_1d, pred_test_mean))
 
-        # Evaluate Maximum Absolute Error (MaAE) with trained GP model
-        train_max_abserr, train_max_input = gp.compute_max_error(
-            pred_train, y_train, x_train  # type: ignore
+        train_max_abserr, train_max_input = gp_model.compute_max_error(
+            pred_train_mean, y_train_1d, x_train
         )
-        test_max_abserr, test_max_input = gp.compute_max_error(
-            pred_test, y_test, x_test  # type: ignore
+        test_max_abserr, test_max_input = gp_model.compute_max_error(
+            pred_test_mean, y_test_1d, x_test
         )
 
-        # Prepare the log message
+        lower = pred_test_mean - 1.96 * pred_test_std
+        upper = pred_test_mean + 1.96 * pred_test_std
+        coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
+
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [
             f"Run timestamp (%m%d_%H%M%S): {timestamp}",
             f"Test Function: {objective_function}",
             f"Number of training points: {num_train}",
             f"Number of testing points: {num_test}",
-            f"Kernel: {gp_model.kernel_}",
-            f"Regularization value alpha: {alpha}",
+            f"Kernel: {kernel}",
+            f"Isotropic kernel: {isotropic}",
             f"Normalize x values: {normalize_x}",
             f"Scale x values: {scale_x}",
-            f"Normalize y values: {normalize_y}",
+            f"Standardize outputs (normalize_y): {normalize_y}",
+            f"Fixed nugget: {fixed_nugget}",
+            f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}",
             f"Train MSE: {train_mse:.5e}",
             f"Test MSE: {test_mse:.5e}",
+            f"Test 95% interval coverage: {coverage:.2%}",
             f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
             f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
             f"Train Mean abs err: {train_mae:.5e}",
             f"Test Mean abs err:  {test_mae:.5e}",
             f"Elapsed time for training GP: {elapsed_time:.3f} seconds\n",
         ]
-
         log_message = "\n".join(log_lines)
-
         print(log_message)
 
-        gp.plot_test_predictions(x_test, y_test, gp_model, objective_function)
-
-        if log:
-            gp.log_results(
+        if do_log:
+            log_results(
                 log_message,
                 path_to_log=os.path.join(
-                    "output_log", f"{objective_function}_{kernel}_alpha-{alpha}.txt"
+                    "output_log",
+                    f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
                 ),
             )
 
         if plots:
-
-            gp.plot_gp_mean_prediction(
-                x_train,
-                y_train,
-                gp_model,
-                test_mse,
-                kernel,
-                objective_function,
-                alpha,
-                normalize_x,
-                scale_x,
-                normalize_y,
-                input_scaler=scaler_x_train,
-            )
-
-            gp.plot_gp_std_dev_prediction(
-                x_train,
-                gp_model,
-                test_mse,
-                kernel,
-                objective_function,
-                alpha,
-                normalize_x,
-                scale_x,
-                normalize_y,
-                input_scaler=scaler_x_train,
-            )
+            gp_model.plot_test_predictions(objective_data_name=objective_function)
 
 
 if __name__ == "__main__":

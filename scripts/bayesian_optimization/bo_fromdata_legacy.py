@@ -35,16 +35,9 @@ import argparse
 from surmod import bayesian_optimization as bo, data_processing
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = 1e-16
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def parse_arguments():
+    """Get command line arguments."""
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on JAG data.",
@@ -63,7 +56,8 @@ def parse_arguments():
         "-ny",
         "--normalize_y",
         action="store_true",
-        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+        help="Whether or not to normalize the output values in the"
+        " GaussianProcessRegressor.",
     )
 
     parser.add_argument(
@@ -86,7 +80,7 @@ def parse_arguments():
         "-k",
         "--kernel",
         type=str,
-        choices=["matern", "rbf", "periodic"],
+        choices=["matern", "rbf", "matern_dot"],
         default="matern",
         help="Choose kernel.",
     )
@@ -104,7 +98,7 @@ def parse_arguments():
         "--xi",
         type=float,
         default=0.0,
-        help="Exploration-exploitation parameter for EI and PI (non-negative).",
+        help="Exploration-exploitation trade-off parameter for EI and PI acquisition functions (non-negative float).",
     )
 
     parser.add_argument(
@@ -112,20 +106,16 @@ def parse_arguments():
         "--kappa",
         type=float,
         default=2.0,
-        help="Exploration-exploitation parameter for UCB (non-negative).",
+        help="Exploration-exploitation trade-off parameter for UCB acquisition function (non-negative float).",
     )
 
-    parser.add_argument(
-        "--fixed_nugget",
-        type=float,
-        default=None,
-        help="Fix GP likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
-    )
+    args = parser.parse_args()
 
-    return parser.parse_args()
+    return args
 
 
 def main():
+    # Parse command-line arguments
     args = parse_arguments()
     data = args.data
     normalize_y = args.normalize_y
@@ -134,19 +124,17 @@ def main():
     num_iter = args.num_iter
     seed = args.seed
 
+    # Check data availability
     num_samples = num_init + num_iter
     if num_samples > 10000:
         raise ValueError(
-            f"Total samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
+            f"Total samples ({num_samples}) exceed existing dataset(s) size "
+            "limit (10000)."
         )
 
     df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
     x = df.iloc[:, :-1].to_numpy()
     y = df.iloc[:, -1].to_numpy()
-
-    noise_bounds = None
-    if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
 
     bayes_opt_EI = bo.BayesianOptimizer(
         data,
@@ -158,8 +146,6 @@ def main():
         acquisition_function="EI",
         n_acquire=num_iter,
         seed=seed,
-        noise_bounds=noise_bounds,
-        xi=args.xi,
     )
 
     bayes_opt_PI = bo.BayesianOptimizer(
@@ -172,8 +158,6 @@ def main():
         acquisition_function="PI",
         n_acquire=num_iter,
         seed=seed,
-        noise_bounds=noise_bounds,
-        xi=args.xi,
     )
 
     bayes_opt_UCB = bo.BayesianOptimizer(
@@ -186,8 +170,6 @@ def main():
         acquisition_function="UCB",
         n_acquire=num_iter,
         seed=seed,
-        noise_bounds=noise_bounds,
-        kappa=args.kappa,
     )
 
     bayes_opt_PV = bo.BayesianOptimizer(
@@ -200,7 +182,6 @@ def main():
         acquisition_function="PV",
         n_acquire=num_iter,
         seed=seed,
-        noise_bounds=noise_bounds,
     )
 
     bayes_opt_rand = bo.BayesianOptimizer(
@@ -213,9 +194,9 @@ def main():
         acquisition_function="random",
         n_acquire=num_iter,
         seed=seed,
-        noise_bounds=noise_bounds,
     )
 
+    # Run Bayesian Optimization for different acquisition functions
     max_yield_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
     max_yield_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
     max_yield_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]

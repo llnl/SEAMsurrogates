@@ -28,7 +28,6 @@ chmod +x ./sa_fromdata.py
 #  excluding columns 1 and 2, and save results to log file
 ./sa_fromdata.py -tr 150 -e 1 2 --log
 """
-
 import argparse
 import os
 
@@ -36,23 +35,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
-from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error as mse,
-)
+from sklearn.metrics import mean_absolute_error, mean_squared_error as mse
 
-from surmod import (
-    gaussian_process_regression as gp,
-    sensitivity_analysis as sa,
-    data_processing
-)
+from surmod import sensitivity_analysis as sa, data_processing
+
+from surmod.gpytorch_gaussian_process import GPSurrogate
 
 
 def parse_arguments():
     """Get command line arguments."""
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="A script to perform a sensitivity analysis of the JAG dataset.",
@@ -63,8 +55,8 @@ def parse_arguments():
         "--data",
         type=str,
         choices=["JAG", "borehole"],
-        default = "JAG",
-        help="Which dataset to use (defualt: JAG)."
+        default="JAG",
+        help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
@@ -72,8 +64,7 @@ def parse_arguments():
         "--normalize_x",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the input values by removing the "
-        "mean and scaling to unit-variance per dimension.",
+        help="Whether or not to normalize the input values by removing the mean and scaling to unit-variance per dimension.",
     )
 
     parser.add_argument(
@@ -81,9 +72,11 @@ def parse_arguments():
         "--exclude",
         type=int,
         nargs="+",
-        help="Zero-based column indices to exclude from fitting the surrogate model. "
-        "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5." \
-        "Valid values for borehole dataset: 0=rw, 1=r, 2=Tu, 3=Hu, 4=Tl, 5=Hl, 6=L, 7=Kw.",
+        help=(
+            "Zero-based column indices to exclude from fitting the surrogate model. "
+            "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5."
+            "Valid values for borehole dataset: 0=rw, 1=r, 2=Tu, 3=Hu, 4=Tl, 5=Hl, 6=L, 7=Kw."
+        ),
     )
 
     parser.add_argument(
@@ -105,36 +98,52 @@ def parse_arguments():
     parser.add_argument(
         "--log",
         action="store_true",
-        help="Save output in file based on objective function and kernel; if "
-        "   file already exists, new runs will be appended to end of existing file.",
+        help="Append results to output_log/<data>_Results.txt",
     )
 
-    args = parser.parse_args()
+    parser.add_argument(
+        "--fixed_nugget",
+        type=float,
+        default=None,
+        help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+    )
 
-    return args
+    return parser.parse_args()
+
+
+def log_results(log_message: str, path_to_log: str) -> None:
+    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
+    with open(path_to_log, "a", encoding="utf-8") as f:
+        f.write(log_message + "\n")
+
+
+def nugget_to_bounds(nugget: float) -> tuple[float, float]:
+    if nugget <= 0.0:
+        raise ValueError("--fixed_nugget must be > 0.")
+    delta = nugget / 10000.0
+    low = max(nugget - delta, 1e-20)
+    high = nugget + delta
+    return (low, high)
 
 
 def main():
     """
-    Trains and evaluates a Gaussian process surrogate model on the JAG dataset,
-    performs sensitivity analysis, and generates relevant plots and logs.
+    Trains and evaluates a GP surrogate model on the chosen dataset,
+    performs Sobol sensitivity analysis, and generates plots/logs.
     """
-    # Parse command line arguments
     args = parse_arguments()
     data = args.data
     normalize_x = args.normalize_x
-    alpha = 1e-8
     num_train = args.num_train
     num_test = args.num_test
-    log = args.log
+    do_log = args.log
     exclude = args.exclude
 
     # Check data availability
     num_samples = num_test + num_train
     if num_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size "
-            "limit (10000)."
+            f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
     df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
@@ -145,82 +154,92 @@ def main():
         variable_names = np.array(["x1", "x2", "x3", "x4", "x5"])
     elif data == "borehole":
         variable_names = np.array(["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"])
+    else:
+        raise ValueError(f"Unknown dataset: {data}")
 
-    # Apply exclusions consistently to x and variable_names
+    # Apply exclusions consistently
     if exclude is not None:
         x_train = np.delete(x_train, exclude, axis=1)
-        x_test  = np.delete(x_test,  exclude, axis=1)
-        variable_names = np.delete(variable_names, exclude) # type: ignore
+        x_test = np.delete(x_test, exclude, axis=1)
+        variable_names = np.delete(variable_names, exclude)  # type: ignore
 
-    # Now get correct dimension AFTER exclusion
     _, dim = x_train.shape
 
+    x_scaler = None
     if normalize_x:
-        # Feature scaling: mean 0, std 1 using training data only
         x_scaler = StandardScaler()
         x_train = x_scaler.fit_transform(x_train)
         x_test = x_scaler.transform(x_test)
 
-    # Train the Gaussian process surrogate model with correct dim
-    gp_model = GaussianProcessRegressor(
-        kernel=gp.get_kernel("matern", dim, isotropic=True),
-        alpha=alpha,
-        n_restarts_optimizer=5,
-        random_state=42,
-        normalize_y=True,
+    # Fixed nugget -> noise_bounds
+    noise_bounds = None
+    if args.fixed_nugget is not None:
+        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
+
+    # Train GPSurrogate
+    gp_model = GPSurrogate(
+        x_train=x_train,
+        y_train=np.asarray(y_train).reshape(-1),
+        x_test=x_test,
+        y_test=np.asarray(y_test).reshape(-1),
+        kernel="matern",
+        isotropic=True,
+        # you already optionally StandardScaler'ed X above, avoid double scaling
+        scale_inputs=False,
+        # keep output standardization on (matches your old normalize_y=True intent)
+        scale_outputs=True,
+        noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+    )
+    gp_model.fit()
+
+    # Predict
+    pred_train_mean, _ = gp_model.predict(x_train)
+    pred_test_mean, _ = gp_model.predict(x_test)
+
+    y_train_1d = np.asarray(y_train).reshape(-1)
+    y_test_1d = np.asarray(y_test).reshape(-1)
+
+    # Metrics
+    train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
+    test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
+
+    train_mse = float(mse(y_train_1d, pred_train_mean))
+    test_mse = float(mse(y_test_1d, pred_test_mean))
+
+    train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
+        pred_train_mean, y_train_1d, x_train
+    )
+    test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
+        pred_test_mean, y_test_1d, x_test
     )
 
-    gp_model.fit(x_train, y_train)
+    # Bounds for SALib (use observed range of the (possibly scaled) x_train)
+    bounds = [[float(np.min(x_train[:, i])), float(np.max(x_train[:, i]))] for i in range(dim)]
 
-    # Evaluate GP model at train and test inputs
-    pred_train = gp_model.predict(x_train)
-    pred_test = gp_model.predict(x_test)
-    # If pred_train or pred_test is a tuple, get the first element (usually the
-    #  mean prediction)
-    if isinstance(pred_train, tuple):
-        pred_train = pred_train[0]
-    if isinstance(pred_test, tuple):
-        pred_test = pred_test[0]
-
-    # Evaluate Mean Absolute Error (MAE) with trained GP model
-    train_mae = mean_absolute_error(y_train, pred_train)
-    test_mae = mean_absolute_error(y_test, pred_test)
-
-    # Evaluate Mean Square Error (MSE) with trained GP model
-    train_mse = mse(y_train, pred_train)
-    test_mse = mse(y_test, pred_test)
-
-    # Evaluate Maximum Absolute Error (MSE) with trained GP model
-    train_max_abserr, train_max_input = gp.compute_max_error(
-        pred_train, y_train, x_train
-    )
-    test_max_abserr, test_max_input = gp.compute_max_error(pred_test, y_test, x_test)
-
-    # Build bounds from the modified x_train
-    bounds = []
-    for i in range(dim):
-        bounds.append([np.min(x_train[:, i]), np.max(x_train[:, i])])
-
-    # SALib problem definition, all dimensions must match
     problem = {
         "num_vars": dim,
-        "names": list(variable_names), # type: ignore
+        "names": list(variable_names),  # type: ignore
         "bounds": bounds,
     }
 
     param_values = saltelli.sample(problem, 2**13, calc_second_order=False)
 
-    Y = gp_model.predict(param_values)
+    # Predict on SALib samples
+    Y_mean, _Y_std = gp_model.predict(param_values)
+    Y = np.asarray(Y_mean).reshape(-1)
+
     Si = sobol.analyze(problem, Y, calc_second_order=False)
     print(Si["ST"] - Si["S1"])
 
-    # Prepare the log message
-    num_test = num_samples - num_train
-
+    # Log message
     log_message = (
         f"Number of training points: {num_train}\n"
         f"Number of testing points: {num_test}\n"
-        f"Kernel: {gp_model.kernel_}\n"
+        f"Kernel: matern\n"
+        f"Isotropic: True\n"
+        f"Normalize x values: {normalize_x}\n"
+        f"Fixed nugget: {args.fixed_nugget}\n"
+        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
         f"Train MSE: {train_mse:.3e}\n"
         f"Test MSE: {test_mse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
@@ -228,15 +247,14 @@ def main():
         f"Train MAE: {train_mae:.3e}\n"
         f"Test MAE:  {test_mae:.3e}\n"
     )
-
     print(log_message)
 
-    if log:
-        gp.log_results(
-            log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt")
-        )
+    if do_log:
+        log_results(log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt"))
 
-    sa.plot_test_predictions(x_test, y_test, gp_model, data)
+    # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
+    sa.plot_test_predictions(x_test, y_test_1d, gp_model, data)
+
     plt.figure()
     sa.sobol_plot(
         Si["S1"],

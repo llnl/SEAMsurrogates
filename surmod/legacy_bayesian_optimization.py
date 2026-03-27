@@ -11,9 +11,9 @@ import torch
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-from surmod.test_functions import load_test_function
+from sklearn.gaussian_process import GaussianProcessRegressor
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod import gaussian_process_regression as gp
 
 
 def sample_parabola(
@@ -91,7 +91,7 @@ def sample_data(
             - y_sample: Array of shape (n_initial, ...) with corresponding
                 function outputs.
     """
-    test_function = load_test_function(objective_function)
+    test_function = gp.load_test_function(objective_function)
 
     if objective_function == "Parabola":
         x_data = sample_parabola(n_initial, bounds_low, bounds_high, input_size)
@@ -153,9 +153,10 @@ def get_synth_global_optima(
 
     return global_optima[objective_function]
 
-def expected_improvement_from_preds(
-    mu: np.ndarray,
-    sigma: np.ndarray,
+
+def expected_improvement(
+    X: np.ndarray,
+    gp: GaussianProcessRegressor,
     y_max: float,
     xi: float = 0.0,
 ) -> np.ndarray:
@@ -167,18 +168,34 @@ def expected_improvement_from_preds(
     exploration and exploitation when searching for the maximum of an unknown
     function. It quantifies the expected amount by which sampling at a new point
     will improve over the current best observed value.
+
+    Args:
+        X (np.ndarray): 2D array of shape (n_points, n_features) representing
+            the input points where EI is evaluated.
+        gp (GaussianProcessRegressor): A fitted Gaussian process regressor used
+            to predict mean and standard deviation.
+        y_max (float): The current maximum observed value of the objective
+            function.
+        xi (float, optional): Exploration-exploitation trade-off hyperparameter.
+            Larger values encourage exploration. Default is 0.0 (standard EI).
+
+    Returns:
+        np.ndarray: 1D array of expected improvement values at each point in X,
+            shape (n_points,).
     """
-    with np.errstate(divide="warn", invalid="warn"):
+    mu, sigma = gp.predict(X, return_std=True)  # type: ignore
+    with np.errstate(divide="warn"):
         improvement = mu - (y_max + xi)
         Z = improvement / sigma
         ei = improvement * norm.cdf(Z) + sigma * norm.pdf(Z)
-        ei[sigma == 0.0] = 0.0
+        if any(sigma == 0):
+            ei[sigma == 0.0] = 0.0
     return ei
 
 
-def probability_of_improvement_from_preds(
-    mu: np.ndarray,
-    sigma: np.ndarray,
+def probability_of_improvement(
+    x_sample: np.ndarray,
+    gp: GaussianProcessRegressor,
     y_max: float,
     xi: float = 0.0,
 ) -> np.ndarray:
@@ -188,17 +205,31 @@ def probability_of_improvement_from_preds(
     The probability of improvement is used in Bayesian optimization to estimate
     the likelihood that sampling at given points will yield an improvement over
     the current maximum observed value.
+
+    Args:
+        x_sample (np.ndarray): Points at which the acquisition function should
+            be evaluated, with shape (n_samples, n_features).
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
+            to predict the mean and standard deviation at the sample points.
+        y_max (float): The current maximum known value of the target function.
+        xi (float, optional): Exploration-exploitation trade-off hyperparameter.
+            Larger values encourage exploration. Default is 0.0 (standard PI).
+
+    Returns:
+        np.ndarray: The probability of improvement at each point in `x_sample`
+            with shape (n_samples,).
     """
-    with np.errstate(divide="warn", invalid="warn"):
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
+    with np.errstate(divide="warn"):
         Z = (mu - (y_max + xi)) / sigma
         pi = norm.cdf(Z)
-        pi[sigma == 0.0] = 0.0
+        pi[sigma == 0.0] = 0.0  # Avoid division by zero
     return pi
 
 
-def upper_confidence_bound_from_preds(
-    mu: np.ndarray,
-    sigma: np.ndarray,
+def upper_confidence_bound(
+    x_sample: np.ndarray,
+    gp: GaussianProcessRegressor,
     kappa: float,
 ) -> np.ndarray:
     """
@@ -207,12 +238,25 @@ def upper_confidence_bound_from_preds(
     The UCB acquisition function is used in Bayesian optimization to balance
     exploration and exploitation by combining the predicted mean and uncertainty
     of a Gaussian process model.
+
+    Args:
+        x_sample (np.ndarray): Points at which to evaluate the acquisition
+            function, with shape (n_samples, n_features).
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
+            to predict the mean and standard deviation at the sample points.
+        kappa (float): Controls the balance between exploration and exploitation.
+
+    Returns:
+        np.ndarray: The UCB value at each point in `x_sample`, with shape
+            (n_samples,).
     """
+    mu, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return mu + kappa * sigma
 
 
-def predictive_variance_from_preds(
-    sigma: np.ndarray,
+def predictive_variance(
+    x_sample: np.ndarray,
+    gp: GaussianProcessRegressor,
 ) -> np.ndarray:
     """
     Compute the Predictive Variance acquisition function.
@@ -220,18 +264,26 @@ def predictive_variance_from_preds(
     The Predictive Variance acquisition function focuses purely on exploration
     by selecting points with the highest prediction uncertainty. It helps
     explore regions where the model is most uncertain about the function values.
+
+    Args:
+        x_sample (np.ndarray): Points at which to evaluate the acquisition
+            function, with shape (n_samples, n_features).
+        gp (GaussianProcessRegressor): A fitted Gaussian process model used
+            to predict the standard deviation at the sample points.
+
+    Returns:
+        np.ndarray: The predictive variance at each point in `x_sample`, with shape
+            (n_samples,).
     """
+    _, sigma = gp.predict(x_sample, return_std=True)  # type: ignore
     return sigma**2
 
 
-
-
-
 ACQUISITION_FUNCTIONS = {
-    "EI": expected_improvement_from_preds,
-    "PI": probability_of_improvement_from_preds,
-    "UCB": upper_confidence_bound_from_preds,
-    "PV": predictive_variance_from_preds,
+    "EI": expected_improvement,
+    "PI": probability_of_improvement,
+    "UCB": upper_confidence_bound,
+    "PV": predictive_variance,
     "random": None,
 }
 
@@ -265,7 +317,6 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        noise_bounds: Optional[Tuple[float, float]] = None,
         **acquisition_kwargs,
     ):
         self.objective_function = objective_function
@@ -284,7 +335,6 @@ class BayesianOptimizer:
         self.acquisition_kwargs = acquisition_kwargs
         self.gp_model = None
         self.y_max_history = np.empty((0,))
-        self.noise_bounds = noise_bounds
 
     def evaluate_objective(self, x_next) -> torch.Tensor:
         """
@@ -298,7 +348,7 @@ class BayesianOptimizer:
             torch.Tensor: The output of the synthetic objective function evaluated
             at x_next.
         """
-        synthetic_function = load_test_function(self.objective_function)
+        synthetic_function = gp.load_test_function(self.objective_function)
         # Before calling the synthetic function:
         if isinstance(x_next, np.ndarray):
             x_next = torch.from_numpy(
@@ -311,18 +361,25 @@ class BayesianOptimizer:
         y_next = synthetic_function(x_next)
         return y_next
 
-    def gp_model_fit(self) -> GPSurrogate:
-    # NOTE: In dataset mode, data is already scaled to [0,1] in bayes_opt(), so keep scale_inputs=False
-        self.gp_model = GPSurrogate(
-            x_train=self.x_all_data,
-            y_train=self.y_all_data,
-            kernel=self.kernel,
-            isotropic=self.isotropic,
-            scale_inputs=False,
-            scale_outputs=self.normalize_y,
-            noise_bounds=self.noise_bounds if self.noise_bounds is not None else (1e-16, 1e-1),
+    def gp_model_fit(self) -> GaussianProcessRegressor:
+        """
+        Fits a Gaussian Process (GP) model to the available data.
+
+        Uses the specified kernel, normalization, and random seed to initialize
+        the GaussianProcessRegressor. The model is trained on all available input
+        and output data.
+
+        Returns:
+            GaussianProcessRegressor: The fitted GP model.
+        """
+        dim = self.x_all_data.shape[1]
+        self.gp_model = GaussianProcessRegressor(
+            kernel=gp.get_kernel(self.kernel, dim, self.isotropic),
+            n_restarts_optimizer=10,
+            random_state=self.seed,
+            normalize_y=self.normalize_y,
         )
-        self.gp_model.fit()
+        self.gp_model.fit(self.x_all_data, self.y_all_data)
         return self.gp_model
 
     def propose_location(
@@ -351,7 +408,7 @@ class BayesianOptimizer:
             ValueError: If an invalid acquisition function is specified.
         """
         rng = np.random.RandomState(self.seed)
-        synthetic_function = load_test_function(self.objective_function)
+        synthetic_function = gp.load_test_function(self.objective_function)
         epsilon = 1e-4
         bounds_low = [b[0] for b in synthetic_function._bounds]
         bounds_high = [b[1] for b in synthetic_function._bounds]
@@ -381,7 +438,6 @@ class BayesianOptimizer:
 
         def acq_wrap(x):
             x = x.reshape(1, -1)
-
             if acquisition == "EI":
                 xi = self.acquisition_kwargs.get("xi", 0.0)
                 return -acq_func(x, self.gp_model, y_max, xi=xi).item()
@@ -460,19 +516,35 @@ class BayesianOptimizer:
             remaining_indices = set(range(len(df))) - set(initial_indices)
             for _ in range(n_iter):
                 x_remaining = x[list(remaining_indices)]
-                mu, sigma = gp_model.predict(x_remaining)
-
+                # Compute acquisition values
                 if self.acquisition == "EI":
                     xi = self.acquisition_kwargs.get("xi", 0.0)
-                    acquisition_values = expected_improvement_from_preds(mu, sigma, np.max(self.y_all_data), xi=xi)
+                    acquisition_values = expected_improvement(
+                        x_remaining,
+                        gp_model,
+                        np.max(self.y_all_data),
+                        xi=xi,
+                    )
                 elif self.acquisition == "PI":
                     xi = self.acquisition_kwargs.get("xi", 0.0)
-                    acquisition_values = probability_of_improvement_from_preds(mu, sigma, np.max(self.y_all_data), xi=xi)
+                    acquisition_values = probability_of_improvement(
+                        x_remaining,
+                        gp_model,
+                        np.max(self.y_all_data),
+                        xi=xi,
+                    )
                 elif self.acquisition == "UCB":
                     kappa = self.acquisition_kwargs.get("kappa", 2.0)
-                    acquisition_values = upper_confidence_bound_from_preds(mu, sigma, kappa=kappa)
+                    acquisition_values = upper_confidence_bound(
+                        x_remaining,
+                        gp_model,
+                        kappa=kappa,
+                    )
                 elif self.acquisition == "PV":
-                    acquisition_values = predictive_variance_from_preds(sigma)
+                    acquisition_values = predictive_variance(
+                        x_remaining,
+                        gp_model,
+                    )
                 elif self.acquisition == "random":
                     acquisition_values = rng.uniform(size=x_remaining.shape[0])
                 else:

@@ -43,9 +43,8 @@ import matplotlib.figure
 import imageio.v2 as imageio
 import torch
 
-from surmod import bayesian_optimization as bo  
-from surmod.gpytorch_gaussian_process import GPSurrogate 
-from surmod.test_functions import load_test_function
+from surmod import bayesian_optimization as bo
+from surmod import gaussian_process_regression as gpr
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +71,7 @@ def parse_arguments() -> argparse.Namespace:
         "-k",
         "--kernel",
         type=str,
-        choices=["matern", "rbf", "periodic"],
+        choices=["matern", "rbf", "matern_dot"],
         default="matern",
     )
     parser.add_argument(
@@ -101,10 +100,11 @@ def parse_arguments() -> argparse.Namespace:
 # Acquisition function helper
 # ---------------------------------------------------------------------------
 
+
 def compute_acquisition(
     acquisition: str,
     x_grid: np.ndarray,
-    gp: GPSurrogate,
+    gp: object,
     y_max: float,
     xi: float,
     kappa: float,
@@ -139,18 +139,17 @@ def compute_acquisition(
     ValueError
         If ``acquisition`` is not one of the recognised strategies.
     """
-    mu, sigma = gp.predict(x_grid)
-
     if acquisition == "EI":
-        return bo.expected_improvement_from_preds(mu, sigma, y_max, xi=xi)
+        return bo.expected_improvement(x_grid, gp, y_max, xi=xi)
     elif acquisition == "PI":
-        return bo.probability_of_improvement_from_preds(mu, sigma, y_max, xi=xi)
+        return bo.probability_of_improvement(x_grid, gp, y_max, xi=xi)
     elif acquisition == "UCB":
-        return bo.upper_confidence_bound_from_preds(mu, sigma, kappa=kappa)
+        return bo.upper_confidence_bound(x_grid, gp, kappa=kappa)
     elif acquisition == "random":
         return np.random.uniform(size=x_grid.shape[0])
     else:
         raise ValueError(f"Unknown acquisition function: {acquisition!r}")
+
 
 # ---------------------------------------------------------------------------
 # Core BO loop (pure logic, no plotting)
@@ -206,15 +205,7 @@ def run_bayesian_optimization(
         - ``acquired_max`` (float): Maximum objective value among all acquired
           points.
     """
-    gp = GPSurrogate(
-        x_train=bopt.x_all_data,
-        y_train=bopt.y_all_data,
-        kernel=bopt.kernel,
-        isotropic=bopt.isotropic,
-        scale_inputs=False,     # inputs are in original domain for plotting, do not normalize internally
-        scale_outputs=True,     # matches old normalize_y-ish behavior for stability
-    )
-    gp.fit()
+    gp = bopt.gp_model_fit()
 
     for i in range(bopt.n_acquire):
         # --- propose and evaluate ---
@@ -230,18 +221,10 @@ def run_bayesian_optimization(
         bopt.y_max_history = np.append(bopt.y_max_history, y_max)
 
         # --- refit GP ---
-        gp = GPSurrogate(
-            x_train=bopt.x_all_data,
-            y_train=bopt.y_all_data,
-            kernel=bopt.kernel,
-            isotropic=bopt.isotropic,
-            scale_inputs=False,     # inputs are in original domain for plotting, do not normalize internally
-            scale_outputs=True,     # matches old normalize_y-ish behavior for stability
-            )
-        gp.fit()
+        gp = bopt.gp_model_fit()
 
         # --- GP mean surface ---
-        mu, _ = gp.predict(x_grid)
+        mu = gp.predict(x_grid, return_std=False)
         if isinstance(mu, tuple):
             mu = mu[0]
         gp_mean_max_value = float(np.max(mu))
@@ -434,7 +417,9 @@ def setup_figure(
     ax2.set_title("Acquisition Function")
 
     # --- ax3: initial GP mean surface ---
-    mu_init, _ = gp_initial.predict(x_grid)
+    mu_init = gp_initial.predict(x_grid, return_std=False)
+    if isinstance(mu_init, tuple):
+        mu_init = mu_init[0]
     mu_init = mu_init.reshape(x1_grid.shape)
     gp_mean_max_val = float(np.max(mu_init))
     gp_mean_max_loc = x_grid[np.argmax(mu_init), :]
@@ -680,7 +665,7 @@ def main() -> None:
     np.random.seed(args.seed)
 
     # --- setup objective function and grid ---
-    synth_function = load_test_function(args.objective_function)
+    synth_function = gpr.load_test_function(args.objective_function)
     bounds_low = [b[0] for b in synth_function._bounds]
     bounds_high = [b[1] for b in synth_function._bounds]
 
@@ -721,15 +706,7 @@ def main() -> None:
         xi=args.xi,
         kappa=args.kappa,
     )
-    gp_initial = GPSurrogate(
-        x_train=x_sample,
-        y_train=y_sample,
-        kernel=args.kernel,
-        isotropic=args.isotropic,
-        scale_inputs=False,
-        scale_outputs=True,
-    )
-    gp_initial.fit()
+    gp_initial = bopt.gp_model_fit()
 
     # --- set up figure ---
     fig, axes, handles, meta = setup_figure(
