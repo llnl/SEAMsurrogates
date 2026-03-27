@@ -131,9 +131,9 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     Zscore = 1.96
 
     # Calculate Coverage
-    lower_bounds = prediction_mean - Zscore * std_dev
-    upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = np.mean((observed >= lower_bounds) & (observed <= upper_bounds))
+    lower_bounds = prediction_mean.flatten() - Zscore * std_dev.flatten()
+    upper_bounds = prediction_mean.flatten() + Zscore * std_dev.flatten()
+    coverage = np.mean((observed.flatten() >= lower_bounds.flatten()) & (observed.flatten() <= upper_bounds.flatten()))
 
     # Calculate RMSE
     test_rmse = np.sqrt(mse(observed, prediction_mean))
