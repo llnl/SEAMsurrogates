@@ -118,7 +118,12 @@ def load_test_function(objective_function: str):
     return test_function
 
 
-def simulate_data(objective_function: str, num_train: int, num_test: int):
+def simulate_data(
+    objective_function: str,
+    num_train: int,
+    num_test: int,
+    seed: int | None = None,
+):
     """
     Simulates training and testing data from a specified test function.
 
@@ -147,8 +152,8 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
     bounds_high = [b[1] for b in test_function._bounds]
 
     # Sample random data from test function
-    np.random.seed(1)
-    x_data = np.random.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    rng = np.random.default_rng(seed)
+    x_data = rng.uniform(bounds_low, bounds_high, size=(num_total, 2))
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets
@@ -197,8 +202,7 @@ def log_results(message: str, path_to_log: str):
         message (str): The message to be written to the log file.
         path_to_log (str): The path to the log file where the message will be appended.
     """
-    if not os.path.exists("output_log"):
-        os.makedirs("output_log")
+    os.makedirs("output_log", exist_ok=True)
     with open(path_to_log, "a") as f:
         f.write("\n--------------------\n\n" + message)
     print(f"Output log saved to end of {path_to_log}.")
@@ -317,8 +321,7 @@ def plot_gp_mean_prediction(
 
     # Specify where to save plot of GP fit, create directory if it doesn't exist
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_gp_mean_{timestamp}.png"
     )
@@ -429,8 +432,7 @@ def plot_gp_std_dev_prediction(
 
     # Save plot
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_gp_std_dev_{timestamp}.png"
     )
@@ -457,7 +459,6 @@ def plot_test_predictions(
         observed (np.ndarray): Observed target values corresponding to x_test.
         gp_model (GaussianProcessRegressor): Trained Gaussian Process model for prediction.
         objective_data_name (str): Name of the objective or dataset, used for labeling and saving the plot.
-
     """
     prediction_mean, std_dev = gp_model.predict(x_test, return_std=True)  # type: ignore
 
@@ -468,19 +469,18 @@ def plot_test_predictions(
         (observed.flatten() >= lower_bounds) & (observed.flatten() <= upper_bounds)
     )
 
-    # Calculate MSE
-    mse = np.mean((observed.flatten() - prediction_mean.flatten()) ** 2)
     # Calculate RMSE
+    mse = np.mean((observed.flatten() - prediction_mean.flatten()) ** 2)
     rmse = np.sqrt(mse)
 
     # Set Seaborn style
     plt.style.use("seaborn-v0_8-whitegrid")
 
     # Create a plot
-    plt.figure()
+    fig, ax = plt.subplots(figsize=(6, 6))
 
     # Plot truth vs prediction mean with error bars
-    plt.errorbar(
+    ax.errorbar(
         observed,
         prediction_mean,
         yerr=1.96 * std_dev,
@@ -489,31 +489,39 @@ def plot_test_predictions(
         color="blue",
     )
 
+    # Shared limits for a proper y = x comparison
+    max_value = max(np.max(observed), np.max(upper_bounds))
+    min_value = min(np.min(observed), np.min(lower_bounds))
+    ax.set_xlim(min_value, max_value)
+    ax.set_ylim(min_value, max_value)
+
+    # Ensure equal scaling and a square axes box
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_box_aspect(1)
+
     # Add a line for y = x
-    max_value = max(np.max(observed), max(upper_bounds))
-    min_value = min(np.min(observed), min(lower_bounds))
-    plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
+    ax.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
     # Add labels and title
-    plt.ylabel("Predicted", fontsize=14)
-    plt.xlabel("Observed", fontsize=14)
-    plt.title(f"{objective_data_name} \n {gp_model.kernel_}")
-    plt.text(
+    ax.set_ylabel("Predicted", fontsize=14)
+    ax.set_xlabel("Observed", fontsize=14)
+    ax.set_title(f"{objective_data_name} \n {gp_model.kernel_}")
+    ax.text(
         0.3,
         0.95,
         f"RMSE: {rmse:.5f}, Coverage: {coverage:.2%}",
         ha="center",
         fontsize=14,
-        transform=plt.gca().transAxes,
+        transform=ax.transAxes,
     )
-    plt.tight_layout()
+
+    fig.tight_layout()
 
     # Save the plot
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     path_to_plot = os.path.join(
         "plots", f"{objective_data_name}_test_predictions_{timestamp}.png"
     )
-    plt.savefig(path_to_plot, bbox_inches="tight")
+    fig.savefig(path_to_plot)
     print(f"Figure saved to {path_to_plot}")

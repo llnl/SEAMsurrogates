@@ -175,8 +175,7 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"test_predictions_{objective_function}_{timestamp}.png"
@@ -232,8 +231,7 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"sensitivity_{objective_function}_{timestamp}.png"

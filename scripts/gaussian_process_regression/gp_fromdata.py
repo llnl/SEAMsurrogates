@@ -55,8 +55,8 @@ def parse_arguments():
         "--data",
         type=str,
         choices=["JAG", "borehole"],
-        default = "JAG",
-        help="Which dataset to use (defualt: JAG)."
+        default="JAG",
+        help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
@@ -137,8 +137,8 @@ def parse_arguments():
 
 def main():
     """
-    Trains and evaluates a Gaussian Process (GP) surrogate model on the JAG ICF
-    dataset.
+    Trains and evaluates a Gaussian Process (GP) surrogate model on a dataset
+    contained in a csv file.
     """
     # Parse command line arguments
     args = parse_arguments()
@@ -162,7 +162,7 @@ def main():
         )
 
     # Load and split data
-    df = data_processing.load_data(dataset= data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df=df, LHD=False, n_train=num_train, seed=seed
     )
