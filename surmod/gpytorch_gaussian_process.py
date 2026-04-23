@@ -5,14 +5,108 @@ from typing import Any, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import copy
+import warnings
 from botorch.fit import fit_gpytorch_mll
 from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
+from botorch.exceptions.errors import ModelFittingError
 from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
+
+def fit_gpytorch_mll_multistart(
+    build_model_and_mll,
+    n_restarts: int = 10,
+    seed: int | None = None,
+):
+    if seed is not None:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+
+    best_model = None
+    best_mll = None
+    best_loss = float("inf")
+
+    for i in range(n_restarts):
+        model, mll = build_model_and_mll()
+        model.train()
+        mll.train()
+
+        with torch.no_grad():
+            if hasattr(model.covar_module.base_kernel, "lengthscale"):
+                model.covar_module.base_kernel.lengthscale = 10 ** np.random.uniform(-2, 1)
+
+            if hasattr(model.covar_module, "outputscale"):
+                model.covar_module.outputscale = 10 ** np.random.uniform(-1, 1)
+
+            if hasattr(model.likelihood, "noise"):
+                model.likelihood.noise = 10 ** np.random.uniform(-6, -1)
+
+        abnormal = False
+        fit_failed = False
+        warning_msgs = []
+
+        try:
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter("always")
+                fit_gpytorch_mll(mll)
+
+            for w in caught_warnings:
+                msg = str(w.message)
+                if "ABNORMAL" in msg or "OptimizationStatus.FAILURE" in msg:
+                    abnormal = True
+                    warning_msgs.append(msg)
+
+        except ModelFittingError as e:
+            fit_failed = True
+            warning_msgs.append(f"ModelFittingError: {e}")
+        except Exception as e:
+            fit_failed = True
+            warning_msgs.append(f"{type(e).__name__}: {e}")
+
+        model.train()
+        mll.train()
+
+        try:
+            with torch.no_grad():
+                output = model(model.train_inputs[0])
+                loss = -mll(output, model.train_targets).item()
+        except Exception as e:
+            print(f"restart {i + 1}/{n_restarts}, failed to evaluate loss: {e}")
+            for msg in warning_msgs:
+                print(f"  warning: {msg}")
+            continue
+
+        if not np.isfinite(loss):
+            print(f"restart {i + 1}/{n_restarts}, loss is not finite, skipping")
+            for msg in warning_msgs:
+                print(f"  warning: {msg}")
+            continue
+
+        if fit_failed:
+            status = "FIT_FAILED_BUT_SCORED"
+        elif abnormal:
+            status = "ABNORMAL"
+        else:
+            status = "OK"
+
+        print(f"restart {i + 1}/{n_restarts}, loss={loss:.6f}, status={status}")
+
+        for msg in warning_msgs:
+            print(f"  warning: {msg}")
+
+        if loss < best_loss:
+            best_loss = loss
+            best_model = copy.deepcopy(model)
+            best_mll = copy.deepcopy(mll)
+
+    if best_model is None or best_mll is None:
+        raise RuntimeError("All multistart GP fits failed or produced invalid losses.")
+
+    return best_model, best_mll, best_loss
 
 
 class GPSurrogate:
@@ -48,6 +142,7 @@ class GPSurrogate:
         scale_outputs: bool = True,
         lengthscale_bounds: tuple[float, float] = (1e-2, 100.0),
         noise_bounds: tuple[float, float] = (1e-16, 1e-1),
+        optimization_restarts: int = 3,
     ) -> None:
         """
         Initialize the GP surrogate model.
@@ -63,26 +158,27 @@ class GPSurrogate:
             scale_outputs: Whether to standardize outputs.
             lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
             noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
+            optimization_restrats: Number of times to randomly initialize the hyperparamter optimization. Defaults to 5
         """
-        self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float32)
+        self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
         self.y_train: torch.Tensor = torch.as_tensor(
-            y_train, dtype=torch.float32
+            y_train, dtype=torch.float64
         ).reshape(-1, 1)
 
         self.x_test: Optional[torch.Tensor] = (
-            None if x_test is None else torch.as_tensor(x_test, dtype=torch.float32)
+            None if x_test is None else torch.as_tensor(x_test, dtype=torch.float64)
         )
         self.y_test: Optional[torch.Tensor] = (
             None
             if y_test is None
-            else torch.as_tensor(y_test, dtype=torch.float32).reshape(-1, 1)
+            else torch.as_tensor(y_test, dtype=torch.float64).reshape(-1, 1)
         )
 
         self.kernel: str = kernel
         self.isotropic: bool = isotropic
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
-
+        self.optimization_restarts: int = optimization_restarts 
         self.model: Optional[SingleTaskGP] = None
         self.mll: Optional[ExactMarginalLogLikelihood] = None
         self.lengthscale_bounds = lengthscale_bounds
@@ -114,6 +210,11 @@ class GPSurrogate:
 
         return ScaleKernel(base_kernel)
 
+    def _build_fresh_model_and_mll(self):
+        self._build_model()
+        return self.model, self.mll
+    
+    
     def _build_model(self) -> None:
         """
         Build the BoTorch SingleTaskGP model.
@@ -149,9 +250,19 @@ class GPSurrogate:
         Returns:
             None
         """
-        if self.mll is None:
-            raise ValueError("Model has not been built.")
-        fit_gpytorch_mll(self.mll)
+        best_model, best_mll, best_loss = fit_gpytorch_mll_multistart(
+            self._build_fresh_model_and_mll,
+            n_restarts=self.optimization_restarts,
+        )
+        
+        if best_model is None or best_mll is None:
+            raise RuntimeError("Multistart fitting failed to produce a model.")
+
+        self.model = best_model
+        self.mll = best_mll
+        print(f"best loss: {best_loss:.6f}")
+        self.model.eval()
+        self.mll.eval()
 
     def predict(
         self,
@@ -183,7 +294,7 @@ class GPSurrogate:
         elif isinstance(x, torch.Tensor):
             x_tensor = x
         else:
-            x_tensor = torch.as_tensor(x, dtype=torch.float32)
+            x_tensor = torch.as_tensor(x, dtype=torch.float64)
 
         self.model.eval()
 
@@ -273,7 +384,7 @@ class GPSurrogate:
                 raise ValueError("No input data provided and x_test is not set.")
             x_tensor = self.x_test
         else:
-            x_tensor = torch.as_tensor(x, dtype=torch.float32)
+            x_tensor = torch.as_tensor(x, dtype=torch.float64)
 
         self.model.eval()
 
@@ -302,7 +413,7 @@ class GPSurrogate:
         if self.model is None:
             raise ValueError("Model has not been built.")
 
-        x_tensor = torch.as_tensor(x, dtype=torch.float32, device=self.x_train.device)
+        x_tensor = torch.as_tensor(x, dtype=torch.float64, device=self.x_train.device)
         x_tensor = x_tensor.clone().detach().requires_grad_(True)
 
         self.model.eval()
