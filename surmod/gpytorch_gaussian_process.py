@@ -1,3 +1,4 @@
+# wrapper for gpytoch GP fitting
 import os
 from datetime import datetime
 from typing import Any, Optional, Tuple
@@ -16,6 +17,7 @@ from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
+
 
 def fit_gpytorch_mll_multistart(
     build_model_and_mll,
@@ -37,7 +39,9 @@ def fit_gpytorch_mll_multistart(
 
         with torch.no_grad():
             if hasattr(model.covar_module.base_kernel, "lengthscale"):
-                model.covar_module.base_kernel.lengthscale = 10 ** np.random.uniform(-2, 1)
+                model.covar_module.base_kernel.lengthscale = 10 ** np.random.uniform(
+                    -2, 1
+                )
 
             if hasattr(model.covar_module, "outputscale"):
                 model.covar_module.outputscale = 10 ** np.random.uniform(-1, 1)
@@ -178,7 +182,7 @@ class GPSurrogate:
         self.isotropic: bool = isotropic
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
-        self.optimization_restarts: int = optimization_restarts 
+        self.optimization_restarts: int = optimization_restarts
         self.model: Optional[SingleTaskGP] = None
         self.mll: Optional[ExactMarginalLogLikelihood] = None
         self.lengthscale_bounds = lengthscale_bounds
@@ -200,11 +204,20 @@ class GPSurrogate:
         lengthscale_constraint = Interval(*self.lengthscale_bounds)
 
         if self.kernel == "rbf":
-            base_kernel = RBFKernel(ard_num_dims=ard_num_dims,lengthscale_constraint=lengthscale_constraint)
+            base_kernel = RBFKernel(
+                ard_num_dims=ard_num_dims, lengthscale_constraint=lengthscale_constraint
+            )
         elif self.kernel == "matern":
-            base_kernel = MaternKernel(nu=2.5, ard_num_dims=ard_num_dims,lengthscale_constraint=lengthscale_constraint)
+            base_kernel = MaternKernel(
+                nu=2.5,
+                ard_num_dims=ard_num_dims,
+                lengthscale_constraint=lengthscale_constraint,
+            )
         elif self.kernel == "periodic":
-            base_kernel = PeriodicKernel(ard_num_dims=ard_num_dims,lengthscale_constraint=lengthscale_constraint,)
+            base_kernel = PeriodicKernel(
+                ard_num_dims=ard_num_dims,
+                lengthscale_constraint=lengthscale_constraint,
+            )
         else:
             raise ValueError("kernel must be 'rbf', 'matern', or 'periodic'")
 
@@ -213,8 +226,7 @@ class GPSurrogate:
     def _build_fresh_model_and_mll(self):
         self._build_model()
         return self.model, self.mll
-    
-    
+
     def _build_model(self) -> None:
         """
         Build the BoTorch SingleTaskGP model.
@@ -236,7 +248,7 @@ class GPSurrogate:
             input_transform=input_transform,
             outcome_transform=outcome_transform,
         )
-        
+
         self.model.likelihood.noise_covar.register_constraint(
             "raw_noise",
             Interval(*self.noise_bounds),
@@ -254,7 +266,7 @@ class GPSurrogate:
             self._build_fresh_model_and_mll,
             n_restarts=self.optimization_restarts,
         )
-        
+
         if best_model is None or best_mll is None:
             raise RuntimeError("Multistart fitting failed to produce a model.")
 
@@ -358,12 +370,12 @@ class GPSurrogate:
         max_idx = np.argmax(abs_errors.flatten())
         sample_index = max_idx % inputs.shape[0]
         return float(abs_errors.flatten()[max_idx]), inputs[sample_index]
-    
+
     def sample_posterior(
         self,
         x: np.ndarray | None = None,
         n_samples: int = 1,
-        ) -> np.ndarray:
+    ) -> np.ndarray:
         """
         Draw samples from the GP posterior at the given input points.
 
@@ -394,7 +406,6 @@ class GPSurrogate:
             samples = samples.squeeze(-1).cpu().numpy()
 
         return samples
-
 
     def posterior_gradient(
         self,
@@ -429,8 +440,10 @@ class GPSurrogate:
         )[0]
 
         return grad.detach().cpu().numpy()
-    
-    def plot_test_predictions(self, objective_data_name: str = "GP Test Predictions") -> None:
+
+    def plot_test_predictions(
+        self, objective_data_name: str = "GP Test Predictions"
+    ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
 
@@ -487,4 +500,3 @@ class GPSurrogate:
         )
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
-        
