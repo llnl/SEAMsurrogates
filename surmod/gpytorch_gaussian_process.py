@@ -47,7 +47,18 @@ def fit_gpytorch_mll_multistart(
                 model.covar_module.outputscale = 10 ** np.random.uniform(-1, 1)
 
             if hasattr(model.likelihood, "noise"):
-                model.likelihood.noise = 10 ** np.random.uniform(-6, -1)
+                noise_constraint = model.likelihood.noise_covar.raw_noise_constraint
+                low = float(noise_constraint.lower_bound.item())
+                high = float(noise_constraint.upper_bound.item())
+
+                # sample log-uniformly within the active constraint bounds
+                low = max(low, 1e-16)
+                if high <= low:
+                    noise_value = low
+                else:
+                    noise_value = 10 ** np.random.uniform(np.log10(low), np.log10(high))
+
+                model.likelihood.noise = noise_value
 
         abnormal = False
         fit_failed = False
@@ -312,8 +323,18 @@ class GPSurrogate:
 
         with torch.no_grad():
             posterior = self.model.posterior(x_tensor)
-            mean = posterior.mean.squeeze(-1).cpu().numpy()
-            std = posterior.variance.sqrt().squeeze(-1).cpu().numpy()
+            mean_t = posterior.mean
+            var_t = posterior.variance
+
+            outcome_transform = getattr(self.model, "outcome_transform", None)
+
+            if self.scale_outputs and outcome_transform is not None:
+                mean_raw, var_raw = outcome_transform.untransform(mean_t, var_t)
+                mean = mean_raw.squeeze(-1).cpu().numpy()
+                std = var_raw.sqrt().squeeze(-1).cpu().numpy()
+            else:
+                mean = mean_t.squeeze(-1).cpu().numpy()
+                std = var_t.sqrt().squeeze(-1).cpu().numpy()
 
         return mean, std
 
