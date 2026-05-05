@@ -17,6 +17,7 @@ from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
+from matplotlib.tri import Triangulation
 
 
 def fit_gpytorch_mll_multistart(
@@ -293,19 +294,6 @@ class GPSurrogate:
     ) -> Tuple[NDArray, NDArray]:
         """
         Predict posterior mean and standard deviation for input points.
-
-        If x is not provided, stored test inputs are used.
-
-        Args:
-            x: Optional prediction inputs.
-
-        Returns:
-            A tuple containing:
-                - mean: Posterior mean predictions.
-                - std: Posterior standard deviations.
-
-        Raises:
-            ValueError: If no prediction inputs are available.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -315,7 +303,7 @@ class GPSurrogate:
                 raise ValueError("No prediction data provided and x_test is not set.")
             x_tensor = self.x_test
         elif isinstance(x, torch.Tensor):
-            x_tensor = x
+            x_tensor = x.to(dtype=torch.float64)
         else:
             x_tensor = torch.as_tensor(x, dtype=torch.float64)
 
@@ -323,18 +311,8 @@ class GPSurrogate:
 
         with torch.no_grad():
             posterior = self.model.posterior(x_tensor)
-            mean_t = posterior.mean
-            var_t = posterior.variance
-
-            outcome_transform = getattr(self.model, "outcome_transform", None)
-
-            if self.scale_outputs and outcome_transform is not None:
-                mean_raw, var_raw = outcome_transform.untransform(mean_t, var_t)
-                mean = mean_raw.squeeze(-1).cpu().numpy()
-                std = var_raw.sqrt().squeeze(-1).cpu().numpy()
-            else:
-                mean = mean_t.squeeze(-1).cpu().numpy()
-                std = var_t.sqrt().squeeze(-1).cpu().numpy()
+            mean = posterior.mean.squeeze(-1).cpu().numpy()
+            std = posterior.variance.clamp_min(0.0).sqrt().squeeze(-1).cpu().numpy()
 
         return mean, std
 
@@ -521,3 +499,134 @@ class GPSurrogate:
         )
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
+
+    def plot_gp_mean_surface(
+        self,
+        objective_data_name: str = "GP Mean Surface",
+        input_scaler=None,
+        grid_points: int = 100,
+    ) -> None:
+        if self.x_train.shape[1] != 2:
+            raise ValueError("plot_gp_mean_surface currently only supports 2D inputs.")
+
+        x_plot = self.x_train.cpu().numpy()
+        y_plot = self.y_train.squeeze(-1).cpu().numpy()
+
+        x1_min, x1_max = x_plot[:, 0].min(), x_plot[:, 0].max()
+        x2_min, x2_max = x_plot[:, 1].min(), x_plot[:, 1].max()
+
+        xx1, xx2 = np.meshgrid(
+            np.linspace(x1_min, x1_max, grid_points),
+            np.linspace(x2_min, x2_max, grid_points),
+        )
+        Xgrid = np.column_stack([xx1.ravel(), xx2.ravel()])
+        mean, _ = self.predict(Xgrid)
+        Z = mean.reshape(xx1.shape)
+
+        plt.style.use("seaborn-v0_8-whitegrid")
+        fig, ax = plt.subplots()
+        contour = ax.contourf(xx1, xx2, Z, levels=30, cmap="viridis")
+        ax.scatter(x_plot[:, 0], x_plot[:, 1], c=y_plot, edgecolor="k", s=30)
+        ax.set_xlabel("x1")
+        ax.set_ylabel("x2")
+        ax.set_title(objective_data_name)
+        fig.colorbar(contour, ax=ax, label="Predicted mean")
+        plt.tight_layout()
+
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
+        os.makedirs("plots", exist_ok=True)
+        path_to_plot = os.path.join(
+            "plots", f"{objective_data_name}_mean_surface_{timestamp}.png"
+        )
+        plt.savefig(path_to_plot, bbox_inches="tight")
+        print(f"Figure saved to {path_to_plot}")
+
+    def plot_gp_std_surface(
+        self,
+        objective_data_name: str = "GP Std Surface",
+        grid_points: int = 100,
+    ) -> None:
+        if self.x_train.shape[1] != 2:
+            raise ValueError("plot_gp_std_surface currently only supports 2D inputs.")
+
+        x_plot = self.x_train.cpu().numpy()
+
+        x1_min, x1_max = x_plot[:, 0].min(), x_plot[:, 0].max()
+        x2_min, x2_max = x_plot[:, 1].min(), x_plot[:, 1].max()
+
+        xx1, xx2 = np.meshgrid(
+            np.linspace(x1_min, x1_max, grid_points),
+            np.linspace(x2_min, x2_max, grid_points),
+        )
+        Xgrid = np.column_stack([xx1.ravel(), xx2.ravel()])
+        _, std = self.predict(Xgrid)
+        Z = std.reshape(xx1.shape)
+
+        plt.style.use("seaborn-v0_8-whitegrid")
+        fig, ax = plt.subplots()
+        contour = ax.contourf(xx1, xx2, Z, levels=30, cmap="magma")
+        ax.scatter(x_plot[:, 0], x_plot[:, 1], c="white", edgecolor="k", s=30)
+        ax.set_xlabel("x1")
+        ax.set_ylabel("x2")
+        ax.set_title(objective_data_name)
+        fig.colorbar(contour, ax=ax, label="Predicted std. dev.")
+        plt.tight_layout()
+
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
+        os.makedirs("plots", exist_ok=True)
+        path_to_plot = os.path.join(
+            "plots", f"{objective_data_name}_std_surface_{timestamp}.png"
+        )
+        plt.savefig(path_to_plot, bbox_inches="tight")
+        print(f"Figure saved to {path_to_plot}")
+
+    def get_fitted_parameters(self) -> dict[str, Any]:
+        """
+        Return fitted GP hyperparameters in a simple dictionary.
+        """
+        if self.model is None:
+            raise ValueError("Model has not been built.")
+
+        params: dict[str, Any] = {
+            "kernel": self.kernel,
+            "isotropic": self.isotropic,
+        }
+
+        with torch.no_grad():
+            base_kernel = self.model.covar_module.base_kernel
+            params["lengthscale"] = (
+                base_kernel.lengthscale.detach().cpu().numpy().reshape(-1).tolist()
+                if hasattr(base_kernel, "lengthscale")
+                else None
+            )
+            params["outputscale"] = (
+                float(self.model.covar_module.outputscale.detach().cpu().item())
+                if hasattr(self.model.covar_module, "outputscale")
+                else None
+            )
+            params["noise"] = (
+                float(self.model.likelihood.noise.detach().cpu().item())
+                if hasattr(self.model.likelihood, "noise")
+                else None
+            )
+
+            outcome_transform = getattr(self.model, "outcome_transform", None)
+            if outcome_transform is not None:
+                if hasattr(outcome_transform, "means"):
+                    params["outcome_mean"] = (
+                        outcome_transform.means.detach()
+                        .cpu()
+                        .numpy()
+                        .reshape(-1)
+                        .tolist()
+                    )
+                if hasattr(outcome_transform, "stdvs"):
+                    params["outcome_std"] = (
+                        outcome_transform.stdvs.detach()
+                        .cpu()
+                        .numpy()
+                        .reshape(-1)
+                        .tolist()
+                    )
+
+        return params

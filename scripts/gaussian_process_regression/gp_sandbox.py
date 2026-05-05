@@ -13,7 +13,6 @@ import time
 from datetime import datetime
 
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from surmod.test_functions import simulate_data
@@ -51,14 +50,6 @@ def parse_arguments():
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
-    )
-
-    parser.add_argument(
-        "-nx",
-        "--normalize_x",
-        action="store_true",
-        default=False,
-        help="Normalize the input values to mean 0 and unit variance per dimension using training data.",
     )
 
     parser.add_argument(
@@ -141,7 +132,6 @@ def main():
     kernels = args.kernels
     num_train = args.num_train
     num_test = args.num_test
-    normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
@@ -159,28 +149,6 @@ def main():
     y_train_1d = np.asarray(y_train).reshape(-1)
     y_test_1d = np.asarray(y_test).reshape(-1)
 
-    scaler_x_train = None
-
-    if normalize_x and scale_x:
-        raise ValueError("Choose either normalize_x or scale_x, not both.")
-
-    if normalize_x or scale_x:
-        if normalize_x:
-            print(
-                "Input data is being normalized to have mean 0, variance 1, in each dimension based on training data.\n"
-            )
-            scaler_x_train = StandardScaler()
-
-        if scale_x:
-            print(
-                "Input data is being scaled using min-max scaling in each dimension based on training data.\n"
-            )
-            scaler_x_train = MinMaxScaler()
-
-        scaler_x_train.fit(x_train)  # type: ignore
-        x_train = scaler_x_train.transform(x_train)  # type: ignore
-        x_test = scaler_x_train.transform(x_test)  # type: ignore
-
     noise_bounds = None
     if fixed_nugget is not None:
         noise_bounds = nugget_to_bounds(float(fixed_nugget))
@@ -194,7 +162,7 @@ def main():
             kernel=kernel,
             isotropic=isotropic,
             # Inputs already optionally normalized/scaled above, avoid double scaling
-            scale_inputs=False,
+            scale_inputs=scale_x,
             scale_outputs=normalize_y,
             noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
         )
@@ -218,7 +186,7 @@ def main():
         test_max_abserr, test_max_input = gp_model.compute_max_error(
             pred_test_mean, y_test_1d, x_test
         )
-
+        fitted_params = gp_model.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
         coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
@@ -231,7 +199,9 @@ def main():
             f"Number of testing points: {num_test}",
             f"Kernel: {kernel}",
             f"Isotropic kernel: {isotropic}",
-            f"Normalize x values: {normalize_x}",
+            f"Learned noise: {fitted_params.get('noise')}",
+            f"Learned outputscale: {fitted_params.get('outputscale')}",
+            f"Learned lengthscale(s): {fitted_params.get('lengthscale')}",
             f"Scale x values: {scale_x}",
             f"Standardize outputs (normalize_y): {normalize_y}",
             f"Fixed nugget: {fixed_nugget}",
@@ -258,7 +228,19 @@ def main():
             )
 
         if plots:
-            gp_model.plot_test_predictions(objective_data_name=objective_function)
+            gp_model.plot_test_predictions(
+                objective_data_name=f"{objective_function}_{kernel}"
+            )
+
+        try:
+            gp_model.plot_gp_mean_surface(
+                objective_data_name=f"{objective_function}_{kernel}"
+            )
+            gp_model.plot_gp_std_surface(
+                objective_data_name=f"{objective_function}_{kernel}"
+            )
+        except ValueError as e:
+            print(f"Skipping surface plots: {e}")
 
 
 if __name__ == "__main__":
