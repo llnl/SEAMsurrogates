@@ -66,96 +66,27 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def compute_acquisition(
-    acquisition: str,
-    x_grid: np.ndarray,
-    gp: GPSurrogate,
-    y_max: float,
-    beta: float,
-) -> np.ndarray:
-    acquisition = acquisition.upper()
-
-    if acquisition == "random":
-        return np.random.uniform(size=x_grid.shape[0])
-
-    model = gp.model
-    if model is None:
-        raise ValueError("GP model must be fit before computing acquisition values.")
-
-    if acquisition == "EI":
-        from botorch.acquisition.analytic import ExpectedImprovement
-
-        acq = ExpectedImprovement(model=model, best_f=float(y_max))
-    elif acquisition == "PI":
-        from botorch.acquisition.analytic import ProbabilityOfImprovement
-
-        acq = ProbabilityOfImprovement(model=model, best_f=float(y_max))
-
-    elif acquisition == "UCB":
-        from botorch.acquisition.analytic import UpperConfidenceBound
-
-        acq = UpperConfidenceBound(model=model, beta=float(beta))
-    elif acquisition == "PV":
-        from botorch.acquisition.analytic import PosteriorStandardDeviation
-
-        acq = PosteriorStandardDeviation(model=model)
-    else:
-        raise ValueError(f"Unknown acquisition function: {acquisition!r}")
-
-    x_tensor = torch.as_tensor(x_grid, dtype=torch.float64).unsqueeze(1)
-    with torch.no_grad():
-        values = acq(x_tensor).detach().cpu().numpy().reshape(-1)
-    return values
-
-
 def run_bayesian_optimization(
     bopt: bo.BayesianOptimizer,
     x_grid: np.ndarray,
     x1_grid: np.ndarray,
-    acquisition: str,
-    beta: float,
 ) -> Generator[dict, None, None]:
     bopt.y_max_history = np.array([np.max(bopt.y_all_data)], dtype=float)
 
     for i in range(bopt.n_acquire):
-        bopt.gp_model_fit()
-        gp = bopt.gp_model
-
-        mu, _ = gp.predict(x_grid)
-        gp_mean_max_value = float(np.max(mu))
-        gp_mean_max_location = x_grid[np.argmax(mu), :]
-        mu_grid = mu.reshape(x1_grid.shape)
-
-        acq_values = compute_acquisition(
-            acquisition, x_grid, gp, np.max(bopt.y_all_data), beta
+        snapshot = bopt.step(
+            x_grid=x_grid,
+            grid_shape=x1_grid.shape,
+            return_diagnostics=True,
         )
-        acq_grid = acq_values.reshape(x1_grid.shape)
+        snapshot["iteration"] = i
 
-        x_next = bopt.propose_location()
-        y_next = bopt.evaluate_objective(x_next)
-        y_next_scalar = float(y_next[0])
-
-        bopt.x_all_data = np.vstack((bopt.x_all_data, x_next.reshape(1, -1)))
-        bopt.y_all_data = np.append(bopt.y_all_data, y_next_scalar)
-        bopt.x_acquired = np.vstack((bopt.x_acquired, x_next.reshape(1, -1)))
-        bopt.y_acquired = np.append(bopt.y_acquired, y_next_scalar)
-        y_max = np.max(bopt.y_all_data)
-        bopt.y_max_history = np.append(bopt.y_max_history, y_max)
-
-        x_best = bopt.x_all_data[np.argmax(bopt.y_all_data), :]
-
-        snapshot = dict(
-            iteration=i,
-            x_next=x_next,
-            y_next=y_next_scalar,
-            y_max=y_max,
-            x_best=x_best,
-            mu=mu_grid,
-            acq_values=acq_grid,
-            gp_mean_max_value=gp_mean_max_value,
-            gp_mean_max_location=gp_mean_max_location,
-            acquired_max=float(np.max(bopt.y_all_data)),
-        )
+        x_next = snapshot["x_next"]
+        y_next_scalar = snapshot["y_next"]
+        y_max = snapshot["y_max"]
+        x_best = snapshot["x_best"]
+        gp_mean_max_location = snapshot["gp_mean_max_location"]
+        gp_mean_max_value = snapshot["gp_mean_max_value"]
 
         print(
             f"\nIter. {i+1}: acquired f(x)={y_next_scalar:.3g} at x=({x_next[0]:.3g},{x_next[1]:.3g})"
@@ -180,7 +111,7 @@ def _capture_frame(fig: matplotlib.figure.Figure, frames: list) -> None:
 
 
 def setup_figure(
-    bopt_config: dict,
+    bopt: bo.BayesianOptimizer,
     x1_grid: np.ndarray,
     x2_grid: np.ndarray,
     y_grid: np.ndarray,
@@ -191,10 +122,9 @@ def setup_figure(
     kernel: str,
     n_initial: int,
     n_iteration: int,
-    acquisition: str,
-    beta: float,
     gp_initial: object,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
+
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
         f"Bayesian Optimization of {objective_function} w/ {kernel} kernel\n",
@@ -240,9 +170,10 @@ def setup_figure(
     ax1.legend(loc="upper right")
 
     x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
-    acq_init = compute_acquisition(
-        acquisition, x_grid, gp_initial, np.max(bopt_config["y_sample"]), beta
-    )
+
+    bopt.gp_model = gp_initial
+    acq_init = bopt.score_candidates(x_grid)
+
     acq_init = acq_init.reshape(x1_grid.shape)
     acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis")
     ax2.set_xlabel("x1")
@@ -412,8 +343,8 @@ def main() -> None:
     bounds_low = [b[0] for b in synth_function._bounds]
     bounds_high = [b[1] for b in synth_function._bounds]
 
-    x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
-    x2 = np.linspace(bounds_low[1], bounds_high[1], 100)
+    x1 = np.linspace(bounds_low[0], bounds_high[0], 101)
+    x2 = np.linspace(bounds_low[1], bounds_high[1], 101)
     x1_grid, x2_grid = np.meshgrid(x1, x2)
     x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
     y_grid = np.array(
@@ -460,7 +391,7 @@ def main() -> None:
     gp_initial.fit()
 
     fig, axes, handles, meta = setup_figure(
-        bopt_config=dict(y_sample=y_sample),
+        bopt=bopt,
         x1_grid=x1_grid,
         x2_grid=x2_grid,
         y_grid=y_grid,
@@ -471,8 +402,6 @@ def main() -> None:
         kernel=args.kernel,
         n_initial=args.n_initial,
         n_iteration=args.n_iteration,
-        acquisition=args.acquisition,
-        beta=args.beta,
         gp_initial=gp_initial,
     )
 
@@ -483,8 +412,6 @@ def main() -> None:
         bopt,
         x_grid,
         x1_grid,
-        acquisition=args.acquisition,
-        beta=args.beta,
     )
 
     frames, acquired_maxima, gp_mean_maxima = animate_optimization(

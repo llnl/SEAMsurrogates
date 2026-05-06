@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 
 from botorch.acquisition.analytic import (
-    ExpectedImprovement,
+    LogExpectedImprovement,
     ProbabilityOfImprovement,
     UpperConfidenceBound,
     PosteriorStandardDeviation,
@@ -220,11 +220,20 @@ class BayesianOptimizer:
     def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
         synthetic_function = load_test_function(self.objective_function)
 
-        x_tensor = torch.as_tensor(x_next, dtype=torch.float32)
-        if x_tensor.ndim == 1:
-            x_tensor = x_tensor.unsqueeze(0)
+        bounds = self._get_objective_bounds().cpu().numpy()
+        x_next = np.asarray(x_next, dtype=np.float64).reshape(-1)
+        x_next = np.clip(x_next, bounds[0], bounds[1])
 
-        y_tensor = synthetic_function(x_tensor)
+        x_tensor = torch.as_tensor(x_next, dtype=torch.float64).unsqueeze(0)
+
+        try:
+            y_tensor = synthetic_function(x_tensor)
+        except ValueError:
+            print("Objective bounds low :", bounds[0])
+            print("Objective bounds high:", bounds[1])
+            print("Tried x_next        :", x_next)
+            raise
+
         return y_tensor.detach().cpu().numpy().reshape(-1)
 
     def gp_model_fit(self) -> GPSurrogate:
@@ -236,7 +245,7 @@ class BayesianOptimizer:
             scale_inputs=True,
             scale_outputs=True,
             noise_bounds=(
-                self.noise_bounds if self.noise_bounds is not None else (1e-16, 1e-6)
+                self.noise_bounds if self.noise_bounds is not None else (1e-8, 1e-3)
             ),
         )
         self.gp_model.fit()
@@ -260,7 +269,7 @@ class BayesianOptimizer:
 
         if acquisition_name == "EI":
             best_f = float(np.max(self.y_all_data))
-            return ExpectedImprovement(model=model, best_f=best_f)
+            return LogExpectedImprovement(model=model, best_f=best_f)
 
         if acquisition_name == "PI":
             best_f = float(np.max(self.y_all_data))
@@ -279,27 +288,32 @@ class BayesianOptimizer:
 
     def propose_location(
         self,
-        num_restarts: int = 10,
-        raw_samples: int = 128,
+        num_restarts: int = 30,
+        raw_samples: int = 1000,
     ) -> np.ndarray:
         rng = np.random.RandomState(self.seed)
+        bounds_t = self._get_objective_bounds()
+        bounds = bounds_t.cpu().numpy()
 
         if self.acquisition.lower() == "random":
-            bounds = self._get_objective_bounds().cpu().numpy()
-            return rng.uniform(bounds[0], bounds[1])
+            x_next = rng.uniform(bounds[0], bounds[1])
+            return np.clip(
+                np.asarray(x_next, dtype=np.float64).reshape(-1), bounds[0], bounds[1]
+            )
 
         acq_func = self._build_analytic_acquisition()
-        bounds = self._get_objective_bounds()
 
         candidate, _ = optimize_acqf(
             acq_function=acq_func,
-            bounds=bounds,
+            bounds=bounds_t,
             q=1,
             num_restarts=num_restarts,
             raw_samples=raw_samples,
         )
 
-        return candidate.detach().cpu().numpy().reshape(-1)
+        x_next = candidate.detach().cpu().numpy().reshape(-1)
+        x_next = np.clip(np.asarray(x_next, dtype=np.float64), bounds[0], bounds[1])
+        return x_next
 
     def _score_candidates_discrete(
         self,
@@ -317,6 +331,96 @@ class BayesianOptimizer:
             values = acq_func(x_tensor).detach().cpu().numpy().reshape(-1)
 
         return values
+
+    def score_candidates(
+        self,
+        x_candidates: np.ndarray,
+    ) -> np.ndarray:
+        return self._score_candidates_discrete(x_candidates)
+
+    def _append_observation(
+        self,
+        x_next: np.ndarray,
+        y_next_scalar: float,
+    ) -> None:
+        x_next = np.asarray(x_next, dtype=float).reshape(1, -1)
+
+        self.x_all_data = np.vstack((self.x_all_data, x_next))
+        self.y_all_data = np.append(self.y_all_data, y_next_scalar)
+        self.x_acquired = np.vstack((self.x_acquired, x_next))
+        self.y_acquired = np.append(self.y_acquired, y_next_scalar)
+        self.y_max_history = np.append(self.y_max_history, np.max(self.y_all_data))
+
+    def step(
+        self,
+        df: Optional[pd.DataFrame] = None,
+        remaining_indices: Optional[set[int]] = None,
+        x_grid: Optional[np.ndarray] = None,
+        grid_shape: Optional[tuple[int, int]] = None,
+        return_diagnostics: bool = False,
+    ) -> dict:
+        self.gp_model_fit()
+        gp = self.gp_model
+        if gp is None:
+            raise ValueError("GP model failed to fit.")
+
+        snapshot: dict = {}
+
+        if return_diagnostics and x_grid is not None:
+            mu, _ = gp.predict(x_grid)
+
+            acq_values = self.score_candidates(x_grid)
+
+            if self.acquisition.upper() == "EI":
+                acq_values = np.exp(acq_values)
+
+            snapshot["gp_mean_max_value"] = float(np.max(mu))
+            snapshot["gp_mean_max_location"] = np.asarray(x_grid[np.argmax(mu), :])
+            snapshot["mu"] = mu.reshape(grid_shape) if grid_shape is not None else mu
+            snapshot["acq_values"] = (
+                acq_values.reshape(grid_shape) if grid_shape is not None else acq_values
+            )
+
+        if df is None:
+            x_next = self.propose_location()
+            y_next = self.evaluate_objective(x_next)
+            y_next_scalar = float(y_next[0])
+
+        else:
+            if remaining_indices is None or len(remaining_indices) == 0:
+                raise ValueError(
+                    "remaining_indices must be provided and non-empty for dataset BO."
+                )
+
+            x = df.iloc[:, :-1].to_numpy(dtype=float)
+            y = df.iloc[:, -1].to_numpy(dtype=float).reshape(-1)
+
+            remaining_list = list(remaining_indices)
+            x_remaining = x[remaining_list]
+
+            acquisition_values = self.score_candidates(x_remaining)
+            next_idx_in_remaining = int(np.argmax(acquisition_values))
+            next_index = remaining_list[next_idx_in_remaining]
+
+            x_next = x[next_index]
+            y_next_scalar = float(y[next_index])
+            snapshot["selected_index"] = next_index
+
+        self._append_observation(x_next, y_next_scalar)
+
+        x_best = self.x_all_data[np.argmax(self.y_all_data), :]
+
+        snapshot.update(
+            dict(
+                x_next=np.asarray(x_next, dtype=float),
+                y_next=y_next_scalar,
+                y_max=float(np.max(self.y_all_data)),
+                x_best=x_best,
+                acquired_max=float(np.max(self.y_all_data)),
+            )
+        )
+
+        return snapshot
 
     def bayes_opt(
         self,
@@ -362,27 +466,12 @@ class BayesianOptimizer:
                 if len(remaining_indices) == 0:
                     break
 
-                self.gp_model_fit()
-
-                remaining_list = list(remaining_indices)
-                x_remaining = x[remaining_list]
-
-                acquisition_values = self._score_candidates_discrete(x_remaining)
-                next_idx_in_remaining = int(np.argmax(acquisition_values))
-                next_index = remaining_list[next_idx_in_remaining]
-
-                next_point = x[next_index].reshape(1, -1)
-                next_value = float(y[next_index])
-
-                self.x_all_data = np.vstack((self.x_all_data, next_point))
-                self.y_all_data = np.append(self.y_all_data, next_value)
-                self.x_acquired = np.vstack((self.x_acquired, next_point))
-                self.y_acquired = np.append(self.y_acquired, next_value)
-                self.y_max_history = np.append(
-                    self.y_max_history, np.max(self.y_all_data)
+                snapshot = self.step(
+                    df=df,
+                    remaining_indices=remaining_indices,
+                    return_diagnostics=False,
                 )
-
-                remaining_indices.remove(next_index)
+                remaining_indices.remove(snapshot["selected_index"])
 
             return self.x_all_data, self.y_all_data, self.y_max_history
 
@@ -393,19 +482,13 @@ class BayesianOptimizer:
         self.y_max_history = np.array([np.max(self.y_all_data)], dtype=float)
 
         for _ in range(self.n_acquire):
-            self.gp_model_fit()
-
-            x_next = self.propose_location()
-            y_next = self.evaluate_objective(x_next)
-            y_next_scalar = float(y_next[0])
-
-            self.x_all_data = np.vstack((self.x_all_data, x_next.reshape(1, -1)))
-            self.y_all_data = np.append(self.y_all_data, y_next_scalar)
-            self.x_acquired = np.vstack((self.x_acquired, x_next.reshape(1, -1)))
-            self.y_acquired = np.append(self.y_acquired, y_next_scalar)
-            self.y_max_history = np.append(self.y_max_history, np.max(self.y_all_data))
+            self.step(return_diagnostics=False)
 
         return self.x_all_data, self.y_all_data, self.y_max_history
+
+    def _clip_to_objective_bounds(self, x: np.ndarray) -> np.ndarray:
+        bounds = self._get_objective_bounds().cpu().numpy()
+        return np.clip(np.asarray(x, dtype=float), bounds[0], bounds[1])
 
 
 def plot_acquisition_comparison(

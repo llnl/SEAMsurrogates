@@ -139,7 +139,7 @@ def main():
         )
 
     # If user does not specify, keep nugget small by default
-    noise_bounds = (1e-12, 1e-6)
+    noise_bounds = (1e-8, 1e-6)
     if args.fixed_nugget is not None:
         noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
 
