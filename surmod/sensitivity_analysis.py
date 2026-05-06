@@ -170,3 +170,60 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
+
+
+def sobol_plot(
+    S1: Sequence[float],
+    ST: Sequence[float],
+    variables: List[str],
+    S1_conf: Sequence[float],
+    ST_conf: Sequence[float],
+    objective_function: str,
+):
+    """
+    Plots first and total order Sobol sensitivity indices with confidence
+    intervals and saves the figure.
+
+    Args:
+        S1 (Sequence[float]): First order sensitivity indices for each variable.
+        ST (Sequence[float]): Total order sensitivity indices for each variable.
+        variables (List[str]): List of variable names.
+        S1_conf (Sequence[float]): Confidence intervals for first order indices.
+        ST_conf (Sequence[float]): Confidence intervals for total order indices.
+        objective_function (str): Name of the objective function, used in the
+            saved plot filename.
+
+    Returns:
+        None, for visualization purposes only.
+    """
+    # Define colors for each variable
+    colors = sns.color_palette("husl", len(variables))
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+
+    # First Order Sensitivity Plot
+    axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)
+    axes[0].set_title("First Order Sensitivity Indices")
+    axes[0].set_ylabel("Sensitivity Index")
+    axes[0].set_ylim(0, 1)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Total Order Sensitivity Plot
+    axes[1].bar(variables, ST, yerr=ST_conf, color=colors, alpha=0.7)
+    axes[1].set_title("Total Order Sensitivity Indices")
+    axes[1].set_ylabel("Sensitivity Index")
+    axes[1].set_ylim(0, 1)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    path_to_plot = os.path.join(
+        "plots", f"sensitivity_{objective_function}_{timestamp}.png"
+    )
+    plt.savefig(path_to_plot, bbox_inches="tight")
+    print(f"Figure saved to {path_to_plot}")
