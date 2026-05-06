@@ -19,6 +19,8 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
 from matplotlib.tri import Triangulation
 
+from surmod.gaussian_process_regression import load_test_function
+
 
 def fit_gpytorch_mll_multistart(
     build_model_and_mll,
@@ -156,8 +158,9 @@ class GPSurrogate:
         isotropic: bool = False,
         scale_inputs: bool = True,
         scale_outputs: bool = True,
-        lengthscale_bounds: tuple[float, float] = (1e-2, 100.0),
-        noise_bounds: tuple[float, float] = (1e-16, 1e-1),
+        lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
+        noise_bounds: tuple[float, float] = (1e-8, 1e-1),
+        outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
         optimization_restarts: int = 3,
     ) -> None:
         """
@@ -173,7 +176,8 @@ class GPSurrogate:
             scale_inputs: Whether to normalize inputs.
             scale_outputs: Whether to standardize outputs.
             lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
-            noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
+            outputscale_bounds: Bounds on the variance scale parameter, current option is for output scaled to mean 0, variance1. Defaults to [1e-3,1e3]
+            noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-8,1e-1]
             optimization_restrats: Number of times to randomly initialize the hyperparamter optimization. Defaults to 5
         """
         self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
@@ -199,6 +203,7 @@ class GPSurrogate:
         self.mll: Optional[ExactMarginalLogLikelihood] = None
         self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
+        self.outputscale_bounds = outputscale_bounds
         self._build_model()
 
     def _get_covar_module(self) -> ScaleKernel:
@@ -233,7 +238,11 @@ class GPSurrogate:
         else:
             raise ValueError("kernel must be 'rbf', 'matern', or 'periodic'")
 
-        return ScaleKernel(base_kernel)
+        outputscale_constraint = Interval(*self.outputscale_bounds)
+        return ScaleKernel(
+            base_kernel,
+            outputscale_constraint=outputscale_constraint,
+        )
 
     def _build_fresh_model_and_mll(self):
         self._build_model()
@@ -441,16 +450,14 @@ class GPSurrogate:
         return grad.detach().cpu().numpy()
 
     def plot_test_predictions(
-        self, objective_data_name: str = "GP Test Predictions"
+        self,
+        objective_data_name: str = "GP Test Predictions",
+        scale_x: bool = False,
+        normalize_y: bool = False,
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
-
-        Args:
-            objective_data_name: Plot and file label.
-
-        Returns:
-            None
+        Styled to closely match the legacy sklearn plotting function.
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -474,13 +481,16 @@ class GPSurrogate:
             color="blue",
         )
 
-        max_value = max(np.max(observed), np.max(prediction_mean + 1.96 * std_dev))
-        min_value = min(np.min(observed), np.min(prediction_mean - 1.96 * std_dev))
+        lower_bounds = prediction_mean.flatten() - 1.96 * std_dev.flatten()
+        upper_bounds = prediction_mean.flatten() + 1.96 * std_dev.flatten()
+
+        max_value = max(np.max(observed), np.max(upper_bounds))
+        min_value = min(np.min(observed), np.min(lower_bounds))
         plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
-        plt.title(objective_data_name)
+        plt.title(f"{objective_data_name} \n {self.get_fitted_kernel_label()}")
         plt.text(
             0.3,
             0.95,
@@ -500,84 +510,177 @@ class GPSurrogate:
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_mean_surface(
+    def plot_gp_mean_prediction(
         self,
-        objective_data_name: str = "GP Mean Surface",
-        input_scaler=None,
-        grid_points: int = 100,
+        test_mse: float,
+        objective_data_name: str,
+        scale_x: bool = False,
+        normalize_y: bool = False,
     ) -> None:
+        """
+        Plot GP mean surface in a style closely matching the legacy sklearn version.
+        Uses learned likelihood noise as the alpha analog.
+        """
+        if self.model is None:
+            raise ValueError("Model has not been built.")
+
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_mean_surface currently only supports 2D inputs.")
+            raise ValueError("plot_gp_mean_prediction only supports 2D inputs.")
 
-        x_plot = self.x_train.cpu().numpy()
-        y_plot = self.y_train.squeeze(-1).cpu().numpy()
+        test_rmse = np.sqrt(test_mse)
 
-        x1_min, x1_max = x_plot[:, 0].min(), x_plot[:, 0].max()
-        x2_min, x2_max = x_plot[:, 1].min(), x_plot[:, 1].max()
+        test_function = load_test_function(objective_data_name)
+        bounds_low = [b[0] for b in test_function._bounds]
+        bounds_high = [b[1] for b in test_function._bounds]
 
-        xx1, xx2 = np.meshgrid(
-            np.linspace(x1_min, x1_max, grid_points),
-            np.linspace(x2_min, x2_max, grid_points),
+        x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
+        x2 = np.linspace(bounds_low[1], bounds_high[1], 100)
+        x1_grid, x2_grid = np.meshgrid(x1, x2)
+        x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
+
+        y_grid = np.array([test_function(torch.tensor(x)) for x in x_grid]).reshape(
+            x1_grid.shape
         )
-        Xgrid = np.column_stack([xx1.ravel(), xx2.ravel()])
-        mean, _ = self.predict(Xgrid)
-        Z = mean.reshape(xx1.shape)
 
-        plt.style.use("seaborn-v0_8-whitegrid")
-        fig, ax = plt.subplots()
-        contour = ax.contourf(xx1, xx2, Z, levels=30, cmap="viridis")
-        ax.scatter(x_plot[:, 0], x_plot[:, 1], c=y_plot, edgecolor="k", s=30)
+        mu, _ = self.predict(x_grid)
+        mu = mu.reshape(x1_grid.shape)
+
+        x_train_plot = self.x_train.detach().cpu().numpy()
+        y_train_plot = self.y_train.squeeze(-1).detach().cpu().numpy()
+
+        alpha_like = float(self.model.likelihood.noise.detach().cpu().item())
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+
+        ax.plot_surface(x1_grid, x2_grid, mu, cmap="viridis", alpha=0.6)  # type: ignore
+        ax.contour(
+            x1_grid,
+            x2_grid,
+            y_grid,
+            levels=20,
+            cmap="inferno",
+            linestyles="solid",
+        )
+
+        ax.scatter(
+            x_train_plot[:, 0],
+            x_train_plot[:, 1],
+            y_train_plot,
+            color="red",
+            s=20,  # type: ignore
+            label="Training Points",
+            marker="o",
+        )
+
+        title_lines = [
+            f"{objective_data_name} Test Function and GP Mean",
+            f"Training samples: {len(x_train_plot)}",
+            f"Alpha: {alpha_like}",
+            f"kernel: {self.get_fitted_kernel_label()}",
+            f"Scale_x: {scale_x}",
+            f"Normalize_y: {normalize_y}",
+            f"Test RMSE: {test_rmse:.5f}",
+        ]
+
         ax.set_xlabel("x1")
         ax.set_ylabel("x2")
-        ax.set_title(objective_data_name)
-        fig.colorbar(contour, ax=ax, label="Predicted mean")
-        plt.tight_layout()
+        ax.set_zlabel("Value")  # type: ignore
+        ax.set_title("\n".join(title_lines))
+        ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        os.makedirs("plots", exist_ok=True)
+        if not os.path.exists("plots"):
+            os.makedirs("plots")
         path_to_plot = os.path.join(
-            "plots", f"{objective_data_name}_mean_surface_{timestamp}.png"
+            "plots", f"{objective_data_name}_gp_mean_{timestamp}.png"
         )
-        plt.savefig(path_to_plot, bbox_inches="tight")
+        plt.tight_layout()
+        plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_std_surface(
+    def plot_gp_std_dev_prediction(
         self,
-        objective_data_name: str = "GP Std Surface",
-        grid_points: int = 100,
+        test_mse: float,
+        objective_data_name: str,
+        scale_x: bool = False,
+        normalize_y: bool = False,
     ) -> None:
+        """
+        Plot GP predictive standard deviation in a style closely matching the legacy
+        sklearn version.
+        """
+        if self.model is None:
+            raise ValueError("Model has not been built.")
+
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_std_surface currently only supports 2D inputs.")
+            raise ValueError("plot_gp_std_dev_prediction only supports 2D inputs.")
 
-        x_plot = self.x_train.cpu().numpy()
+        test_rmse = np.sqrt(test_mse)
 
-        x1_min, x1_max = x_plot[:, 0].min(), x_plot[:, 0].max()
-        x2_min, x2_max = x_plot[:, 1].min(), x_plot[:, 1].max()
+        test_function = load_test_function(objective_data_name)
+        bounds_low = [b[0] for b in test_function._bounds]
+        bounds_high = [b[1] for b in test_function._bounds]
 
-        xx1, xx2 = np.meshgrid(
-            np.linspace(x1_min, x1_max, grid_points),
-            np.linspace(x2_min, x2_max, grid_points),
+        x1 = np.linspace(bounds_low[0], bounds_high[0], 100)
+        x2 = np.linspace(bounds_low[1], bounds_high[1], 100)
+        x1_grid, x2_grid = np.meshgrid(x1, x2)
+        x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
+
+        _, std = self.predict(x_grid)
+        std_grid = std.reshape(x1_grid.shape)
+
+        x_train_plot = self.x_train.detach().cpu().numpy()
+
+        alpha_like = float(self.model.likelihood.noise.detach().cpu().item())
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.grid(False)
+        c = ax.imshow(
+            std_grid,
+            extent=(bounds_low[0], bounds_high[0], bounds_low[1], bounds_high[1]),
+            origin="lower",
+            cmap="viridis",
+            aspect="auto",
         )
-        Xgrid = np.column_stack([xx1.ravel(), xx2.ravel()])
-        _, std = self.predict(Xgrid)
-        Z = std.reshape(xx1.shape)
 
-        plt.style.use("seaborn-v0_8-whitegrid")
-        fig, ax = plt.subplots()
-        contour = ax.contourf(xx1, xx2, Z, levels=30, cmap="magma")
-        ax.scatter(x_plot[:, 0], x_plot[:, 1], c="white", edgecolor="k", s=30)
+        ax.scatter(
+            x_train_plot[:, 0],
+            x_train_plot[:, 1],
+            color="red",
+            s=20,
+            label="Training Points",
+            marker="o",
+            edgecolor="black",
+        )
+
+        title_lines = [
+            f"{objective_data_name} GP Predictive Standard Deviation",
+            f"Training samples: {len(x_train_plot)}",
+            f"Alpha: {alpha_like}",
+            f"kernel: {self.get_fitted_kernel_label()}",
+            f"Scale_x: {scale_x}",
+            f"Normalize_y: {normalize_y}",
+            f"Test RMSE: {test_rmse:.5f}",
+        ]
+
         ax.set_xlabel("x1")
         ax.set_ylabel("x2")
-        ax.set_title(objective_data_name)
-        fig.colorbar(contour, ax=ax, label="Predicted std. dev.")
-        plt.tight_layout()
+        ax.set_title("\n".join(title_lines))
+        legend = ax.legend(loc="upper right")
+        for text in legend.get_texts():
+            text.set_color("white")
+
+        fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        os.makedirs("plots", exist_ok=True)
+        if not os.path.exists("plots"):
+            os.makedirs("plots")
         path_to_plot = os.path.join(
-            "plots", f"{objective_data_name}_std_surface_{timestamp}.png"
+            "plots", f"{objective_data_name}_gp_std_dev_{timestamp}.png"
         )
-        plt.savefig(path_to_plot, bbox_inches="tight")
+        plt.tight_layout()
+        plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
 
     def get_fitted_parameters(self) -> dict[str, Any]:
@@ -630,3 +733,32 @@ class GPSurrogate:
                     )
 
         return params
+
+    def get_fitted_kernel_label(self) -> str:
+        """Helper function for plotting
+
+        Returns:
+            str: Summary of fitted model parameters
+        """
+        params = self.get_fitted_parameters()
+
+        outputscale = params.get("outputscale", None)
+        lengthscale = params.get("lengthscale", None)
+        noise = params.get("noise", None)
+
+        outputscale_str = "None" if outputscale is None else f"{outputscale:.2e}"
+        noise_str = "None" if noise is None else f"{noise:.2e}"
+
+        if lengthscale is None:
+            lengthscale_str = "None"
+        else:
+            lengthscale_str = (
+                "[" + ", ".join(f"{float(v):.3g}" for v in lengthscale) + "]"
+            )
+
+        return (
+            f"{self.kernel}, "
+            f"outputscale={outputscale_str}, "
+            f"lengthscale={lengthscale_str}, "
+            f"noise={noise_str}"
+        )

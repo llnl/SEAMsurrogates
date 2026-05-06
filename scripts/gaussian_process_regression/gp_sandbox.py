@@ -161,10 +161,9 @@ def main():
             y_test=y_test_1d,
             kernel=kernel,
             isotropic=isotropic,
-            # Inputs already optionally normalized/scaled above, avoid double scaling
             scale_inputs=scale_x,
             scale_outputs=normalize_y,
-            noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+            noise_bounds=noise_bounds if noise_bounds is not None else (1e-8, 1e-1),
         )
 
         start_time = time.perf_counter()
@@ -228,19 +227,21 @@ def main():
             )
 
         if plots:
-            gp_model.plot_test_predictions(
-                objective_data_name=f"{objective_function}_{kernel}"
-            )
+            gp_model.plot_test_predictions(objective_data_name=objective_function)
 
-        try:
-            gp_model.plot_gp_mean_surface(
-                objective_data_name=f"{objective_function}_{kernel}"
-            )
-            gp_model.plot_gp_std_surface(
-                objective_data_name=f"{objective_function}_{kernel}"
-            )
-        except ValueError as e:
-            print(f"Skipping surface plots: {e}")
+        gp_model.plot_gp_mean_prediction(
+            test_mse=test_mse,
+            objective_data_name=objective_function,
+            scale_x=scale_x,
+            normalize_y=normalize_y,
+        )
+
+        gp_model.plot_gp_std_dev_prediction(
+            test_mse=test_mse,
+            objective_data_name=objective_function,
+            scale_x=scale_x,
+            normalize_y=normalize_y,
+        )
 
 
 if __name__ == "__main__":
