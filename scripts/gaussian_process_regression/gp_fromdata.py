@@ -42,7 +42,7 @@ def parse_arguments():
         "-tr",
         "--num_train",
         type=int,
-        default=400,
+        default=50,
         help="Number of train samples.",
     )
 
@@ -50,7 +50,7 @@ def parse_arguments():
         "-te",
         "--num_test",
         type=int,
-        default=100,
+        default=500,
         help="Number of test samples.",
     )
 
