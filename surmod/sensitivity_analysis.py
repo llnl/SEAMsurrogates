@@ -219,8 +219,7 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    if not os.path.exists("plots"):
-        os.makedirs("plots")
+    os.makedirs("plots", exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"sensitivity_{objective_function}_{timestamp}.png"

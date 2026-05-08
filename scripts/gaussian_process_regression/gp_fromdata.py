@@ -18,7 +18,7 @@ from datetime import datetime
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from surmod import data_processing 
+from surmod import data_processing
 
 from surmod.gpytorch_gaussian_process import GPSurrogate
 
@@ -148,6 +148,11 @@ def log_results(log_message: str, path_to_log: str) -> None:
 
 
 def main():
+    """
+    Trains and evaluates a Gaussian Process (GP) surrogate model on a dataset
+    contained in a csv file.
+    """
+    # Parse command line arguments
     args = parse_arguments()
 
     data = args.data

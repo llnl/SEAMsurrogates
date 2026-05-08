@@ -3,8 +3,31 @@
 This script simulates data from a test function, fits a Gaussian process to the
 data, and saves a log message and plot of the fitted surface if desired.
 
-"""
+Usage:
 
+# Make script executable
+chmod +x ./gp_sandbox.py
+
+# See help.
+./gp_sandbox.py -h
+
+# Smooth parabola function with an isotropic Matern kernel.
+./gp_sandbox.py --objective_function=Parabola --kernels=matern --isotropic --plots
+
+# Smooth parabola function with an anisotropic Matern kernel.
+./gp_sandbox.py --objective_function=Parabola --kernels=matern --plots
+
+# Smooth Branin test function with an RBF kernel.
+./gp_sandbox.py --objective_function=Branin --kernels=rbf --seed 1 --plots
+
+# Smooth Ackley function with an RBF kernel, save results in log, 200 training
+#   points, 3 values of alpha.
+./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200 -a 0.001 0.01 0.1
+
+# Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
+#   Save plot and log file.
+./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
+"""
 
 import argparse
 import itertools
@@ -103,7 +126,16 @@ def parse_arguments():
         "-i",
         "--isotropic",
         action="store_true",
-        help="Specify that the kernel function is isotropic (same length scale for all inputs).",
+        help="Specify that the kernel function is isotropic (same length scale "
+        "for all inputs).",
+    )
+
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducibility.",
     )
 
     return parser.parse_args()
@@ -138,6 +170,7 @@ def main():
     plots = args.plots
     do_log = args.log
     isotropic = args.isotropic
+    seed = args.seed
 
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
