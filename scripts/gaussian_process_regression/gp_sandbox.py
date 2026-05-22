@@ -95,7 +95,7 @@ def parse_arguments():
         "--fixed_nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget). Implemented by setting noise_bounds to nugget +/- nugget/10000.",
+        help="Fix the likelihood noise (nugget).",
     )
 
     parser.add_argument(
@@ -182,9 +182,13 @@ def main():
     y_train_1d = np.asarray(y_train).reshape(-1)
     y_test_1d = np.asarray(y_test).reshape(-1)
 
-    noise_bounds = None
+    noise_bounds = (1e-8, 1e-1)
+    fixed_noise = None
+
     if fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(fixed_nugget))
+        fixed_noise = float(fixed_nugget)
+        eps = max(1e-8, abs(fixed_noise) * 1e-6)
+        noise_bounds = (fixed_noise - eps, fixed_noise + eps)
 
     for kernel in kernels:
         gp_model = GPSurrogate(
@@ -196,7 +200,8 @@ def main():
             isotropic=isotropic,
             scale_inputs=scale_x,
             scale_outputs=normalize_y,
-            noise_bounds=noise_bounds if noise_bounds is not None else (1e-8, 1e-1),
+            fixed_noise=float(fixed_nugget) if fixed_nugget is not None else None,
+            noise_bounds=noise_bounds,
         )
 
         start_time = time.perf_counter()
@@ -237,7 +242,7 @@ def main():
             f"Scale x values: {scale_x}",
             f"Standardize outputs (normalize_y): {normalize_y}",
             f"Fixed nugget: {fixed_nugget}",
-            f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}",
+            f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
             f"Train MSE: {train_mse:.5e}",
             f"Test MSE: {test_mse:.5e}",
             f"Test 95% interval coverage: {coverage:.2%}",

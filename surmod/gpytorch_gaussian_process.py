@@ -209,6 +209,7 @@ class GPSurrogate:
         noise_bounds: tuple[float, float] = (1e-8, 1e-1),
         outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
         optimization_restarts: int = 3,
+        fixed_noise: float | None = None,
     ) -> None:
         """
         Initialize the GP surrogate model.
@@ -251,6 +252,7 @@ class GPSurrogate:
         self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
         self.outputscale_bounds = outputscale_bounds
+        self.fixed_noise = fixed_noise
         self._build_model()
 
     def _get_covar_module(self) -> ScaleKernel:
@@ -321,6 +323,11 @@ class GPSurrogate:
             "raw_noise",
             Interval(*self.noise_bounds),
         )
+        if self.fixed_noise is not None:
+            with torch.no_grad():
+                self.model.likelihood.noise = float(self.fixed_noise)
+            self.model.likelihood.raw_noise.requires_grad_(False)
+
         self.mll = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
 
     def fit(self) -> None:
@@ -347,6 +354,7 @@ class GPSurrogate:
     def predict(
         self,
         x: Optional[NDArray | torch.Tensor] = None,
+        include_nugget: bool = False,
     ) -> Tuple[NDArray, NDArray]:
         """
         Predict posterior mean and standard deviation for input points.
@@ -367,12 +375,15 @@ class GPSurrogate:
 
         with torch.no_grad():
             posterior = self.model.posterior(x_tensor)
+            if include_nugget:
+                mvn = posterior.mvn
+                posterior = self.model.likelihood(mvn)
             mean = posterior.mean.squeeze(-1).cpu().numpy()
             std = posterior.variance.clamp_min(0.0).sqrt().squeeze(-1).cpu().numpy()
 
         return mean, std
 
-    def evaluate(self) -> dict[str, Any]:
+    def evaluate(self, include_nugget: bool = False) -> dict[str, Any]:
         """
         Evaluate the GP model on the stored test dataset.
 
@@ -387,7 +398,7 @@ class GPSurrogate:
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for evaluation.")
 
-        mean, std = self.predict(self.x_test)
+        mean, std = self.predict(self.x_test, include_nugget=include_nugget)
         y_true = self.y_test.squeeze(-1).cpu().numpy()
 
         mse = float(np.mean((y_true - mean) ** 2))
@@ -509,7 +520,7 @@ class GPSurrogate:
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
 
-        results = self.evaluate()
+        results = self.evaluate(include_nugget=True)
         prediction_mean = results["mean"]
         std_dev = results["std"]
         rmse = results["rmse"]
