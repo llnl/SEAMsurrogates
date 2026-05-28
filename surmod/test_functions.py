@@ -1,8 +1,14 @@
 import numpy as np
 import numpy.typing as npt
 import torch
-from botorch.test_functions.synthetic import SyntheticTestFunction
+from botorch.test_functions.synthetic import (SyntheticTestFunction,
+    Ackley,
+    Branin,
+    Griewank,
+    HolderTable,
+)
 from typing import Optional, List, Tuple, Union
+
 
 class Parabola_synth_test_func(SyntheticTestFunction):
     """Parabola test function.
@@ -467,3 +473,85 @@ def borehole(
     flow_rate = frac1 / frac2
 
     return flow_rate
+
+
+def load_test_function(objective_function: str):
+    """
+    Loads a test function instance for simulating data based on the given
+    objective function name.
+
+    Args:
+        objective_function (str): The name of the objective function to load.
+            Supported values are "Parabola", "Ackley", "Griewank", "Branin",
+            and "HolderTable".
+
+    Returns:
+        object: An instance of the requested test function, initialized with
+        standard parameters.
+
+    Raises:
+        ValueError: If the specified objective function name is not recognized.
+    """
+    if objective_function == "Parabola":
+        test_function = Parabola_synth_test_func(
+            dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
+        )
+    elif objective_function == "Ackley":
+        test_function = Ackley(
+            dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
+        )
+    elif objective_function == "Griewank":
+        test_function = Griewank(dim=2, negate=True, bounds=[(-100, 45), (-100, 45)])
+    elif objective_function == "Branin":
+        test_function = Branin(negate=True)
+    elif objective_function == "HolderTable":
+        test_function = HolderTable(negate=True)
+    else:
+        raise ValueError(
+            f"Test function '{objective_function}' not found. "
+            "Choose from 'Parabola', 'Ackley', 'Griewank', 'Branin',"
+            " or 'HolderTable'."
+        )
+    return test_function
+
+def simulate_data(objective_function: str, num_train: int, num_test: int):
+    """
+    Simulates training and testing data from a specified test function.
+
+    Args:
+        objective_function (str): The name of the objective function to simulate
+            data from. Supported values are "Parabola", "Ackley", "Griewank",
+            "Branin", and "HolderTable".
+        num_train (int): Number of training samples to generate.
+        num_test (int): Number of testing samples to generate.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+            A tuple containing:
+                - x_train (np.ndarray): Training input data of shape (num_train, 2).
+                - x_test (np.ndarray): Testing input data of shape (num_test, 2).
+                - y_train (np.ndarray): Training target data of shape (num_train,).
+                - y_test (np.ndarray): Testing target data of shape (num_test,).
+
+    Raises:
+        ValueError: If the specified objective function name is not recognized.
+    """
+    # Set-up simulation
+    num_total = num_train + num_test
+    test_function = load_test_function(objective_function)
+    bounds_low = [b[0] for b in test_function._bounds]
+    bounds_high = [b[1] for b in test_function._bounds]
+
+    # Sample random data from test function
+    np.random.seed(1)
+    x_data = np.random.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    y_data = np.array(test_function(torch.tensor(x_data)))
+
+    # Split data into training and testing sets
+    x_train = x_data.copy()[:num_train]
+    y_train = y_data.copy()[:num_train]
+
+    x_test = x_data.copy()[num_train:]
+    y_test = y_data.copy()[num_train:]
+
+    return x_train, x_test, y_train, y_test

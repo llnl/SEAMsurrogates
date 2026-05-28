@@ -114,29 +114,37 @@ def simulate_data(
 
 def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> None:
     """
-    Plot test set predictions vs. ground truth for a GP model.
+    Plot test set predictions vs. ground truth for a Gaussian Process model.
 
-    Compatible with GPSurrogate.predict(), which returns (mean, std) and does
-    not accept return_std=...
+    Args:
+        x_test (np.ndarray): Test input data of shape (num_test, input_dim).
+        y_test (np.ndarray): True observed outputs for the test set.
+        gp_model (Any): Trained Gaussian Process model with a predict method.
+        objective_function (str): Name of the objective function, used for plot
+            file naming.
+
+    Returns:
+        None, used for visualization purposes only.
     """
-    prediction_mean, std_dev = gp_model.predict(x_test)
-
-    prediction_mean = np.asarray(prediction_mean).reshape(-1)
-    std_dev = np.asarray(std_dev).reshape(-1)
-    observed = np.asarray(y_test).reshape(-1)
-
+    prediction_mean, std_dev = gp_model.predict(x_test, return_std=True)
+    observed = y_test
     Zscore = 1.96
 
-    lower_bounds = prediction_mean - Zscore * std_dev
-    upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = float(np.mean((observed >= lower_bounds) & (observed <= upper_bounds)))
+    # Calculate Coverage
+    lower_bounds = prediction_mean.flatten() - Zscore * std_dev.flatten()
+    upper_bounds = prediction_mean.flatten() + Zscore * std_dev.flatten()
+    coverage = np.mean((observed.flatten() >= lower_bounds.flatten()) & (observed.flatten() <= upper_bounds.flatten()))
 
-    # RMSE (NumPy)
-    test_rmse = float(np.sqrt(np.mean((observed - prediction_mean) ** 2)))
+    # Calculate RMSE
+    test_rmse = np.sqrt(mse(observed, prediction_mean))
 
+    # Set Seaborn style
     plt.style.use("seaborn-v0_8-whitegrid")
+
+    # Create a plot
     plt.figure()
 
+    # Plot truth vs prediction mean with error bars
     plt.errorbar(
         observed,
         prediction_mean,
@@ -147,10 +155,14 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
         alpha=0.7,
     )
 
-    max_value = max(np.max(observed), np.max(upper_bounds)) + 0.1
+    # Add a line for y = x
+    max_value = (
+        max(np.max(observed), np.max(upper_bounds)) + 0.1
+    )  # Extend the line slightly beyond the max values
     min_value = min(np.min(observed), np.min(lower_bounds)) - 0.1
     plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
+    # Add labels and title
     plt.ylabel("Predicted", fontsize=14)
     plt.xlabel("Observed", fontsize=14)
     plt.text(
@@ -163,7 +175,8 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"test_predictions_{objective_function}_{timestamp}.png"
@@ -219,7 +232,8 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = os.path.join(
         "plots", f"sensitivity_{objective_function}_{timestamp}.png"

@@ -1,33 +1,13 @@
 #!/usr/bin/env python3
 
 """
-This script demonstrates a Bayesian Optimization (BO) routine on a chosen
-dataset and plots performance based on max yield obtained of various acquisition
-function choices: Expected Improvement (EI), Probability of Improvement (PI),
-Upper Confidence Bound (UCB), Predictive Variance (PV), random.
-
-The approach is:
-1. Obtain an initial set of training data from chosen dataset
-2. Train a GP model on the training data
-3. Compute the acquisition function at the remaining data points
-4. Add the point with the highest value based on the acquisition function of
-    choice to the training data
-5. Return to step 2 and repeat until the user defined number of acquired points
-    is reached
-
-Usage:
-
-# Make script executable
-chmod +x ./bo_fromdata.py
-
-# See help.
-./bo_fromdata.py -h
-
-# Perform BO with 5 initial starting points, 30 iterations, and a Matern kernel
-./bo_fromdata.py -in 5 -it 30 -k matern
-
-# Perform BO with 10 initial starting points, 30 iterations, and an RBF kernel
-./bo_fromdata.py -in 10 -it 30 -k rbf
+This script demonstrates Bayesian Optimization on a chosen dataset and compares
+performance across acquisition functions:
+- Expected Improvement (EI)
+- Probability of Improvement (PI)
+- Upper Confidence Bound (UCB)
+- Predictive Variance (PV)
+- random
 """
 
 import argparse
@@ -35,12 +15,19 @@ import argparse
 from surmod import bayesian_optimization as bo, data_processing
 
 
-def parse_arguments():
-    """Get command line arguments."""
+def nugget_to_bounds(nugget: float) -> tuple[float, float]:
+    if nugget <= 0.0:
+        raise ValueError("--fixed_nugget must be > 0.")
+    delta = 1e-16
+    low = max(nugget - delta, 1e-20)
+    high = nugget + delta
+    return (low, high)
 
+
+def parse_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform Bayesian optimization on JAG data.",
+        description="Perform Bayesian optimization on dataset data.",
     )
 
     parser.add_argument(
@@ -49,15 +36,7 @@ def parse_arguments():
         type=str,
         choices=["JAG", "borehole"],
         default="JAG",
-        help="Which dataset to use (default: JAG).",
-    )
-
-    parser.add_argument(
-        "-ny",
-        "--normalize_y",
-        action="store_true",
-        help="Whether or not to normalize the output values in the"
-        " GaussianProcessRegressor.",
+        help="Which dataset to use.",
     )
 
     parser.add_argument(
@@ -65,7 +44,7 @@ def parse_arguments():
         "--num_iter",
         type=int,
         default=10,
-        help="Number of BO iterations (number of data points to acquire).",
+        help="Number of BO iterations.",
     )
 
     parser.add_argument(
@@ -80,7 +59,7 @@ def parse_arguments():
         "-k",
         "--kernel",
         type=str,
-        choices=["matern", "rbf", "matern_dot"],
+        choices=["matern", "rbf", "periodic"],
         default="matern",
         help="Choose kernel.",
     )
@@ -90,113 +69,166 @@ def parse_arguments():
         "--seed",
         type=int,
         default=42,
-        help="Set random seed for reproducibility.",
+        help="Random seed.",
     )
 
     parser.add_argument(
-        "-xi",
-        "--xi",
-        type=float,
-        default=0.0,
-        help="Exploration-exploitation trade-off parameter for EI and PI acquisition functions (non-negative float).",
-    )
-
-    parser.add_argument(
-        "-kappa",
-        "--kappa",
+        "-beta",
+        "--beta",
         type=float,
         default=2.0,
-        help="Exploration-exploitation trade-off parameter for UCB acquisition function (non-negative float).",
+        help="Exploration parameter for UCB.",
     )
 
-    args = parser.parse_args()
+    parser.add_argument(
+        "--init_design",
+        type=str,
+        choices=["random", "lhd", "maximin_lhd"],
+        default="random",
+        help="Initial design strategy. For dataset BO, LHD-based designs are matched to nearest dataset rows.",
+    )
 
-    return args
+    parser.add_argument(
+        "--fixed_nugget",
+        type=float,
+        default=None,
+        help="Fix GP likelihood noise tightly around this nugget value.",
+    )
+
+    return parser.parse_args()
 
 
 def main():
-    # Parse command-line arguments
     args = parse_arguments()
     data = args.data
-    normalize_y = args.normalize_y
     kernel = args.kernel
     num_init = args.num_init
     num_iter = args.num_iter
     seed = args.seed
 
-    # Check data availability
     num_samples = num_init + num_iter
     if num_samples > 10000:
         raise ValueError(
-            f"Total samples ({num_samples}) exceed existing dataset(s) size "
-            "limit (10000)."
+            f"Total samples ({num_samples}) exceed existing dataset size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=data, n_samples=10000, random=False)
+
+    if num_init > len(df):
+        raise ValueError(
+            f"num_init ({num_init}) cannot exceed dataset size ({len(df)})."
+        )
+
+    if num_init + num_iter > len(df):
+        raise ValueError(
+            f"num_init + num_iter ({num_init + num_iter}) exceeds dataset size ({len(df)})."
+        )
     x = df.iloc[:, :-1].to_numpy()
     y = df.iloc[:, -1].to_numpy()
+    # Keep maximin-LHD settings internal, not exposed on CLI
+    init_design_kwargs = {}
+    if args.init_design == "maximin_lhd":
+        init_design_kwargs = dict(
+            T0=10.0,
+            c=0.95,
+            it=2000,
+            p=50,
+            profile="GEOM",
+            Imax=100,
+            jitter=False,
+        )
+
+    # If user does not specify, keep nugget small by default
+    default_noise_bounds = (1e-8, 1e-6)
+    noise_bounds = default_noise_bounds
+    fixed_noise = None
+
+    if args.fixed_nugget is not None:
+        fixed_noise = float(args.fixed_nugget)
+        low, high = default_noise_bounds
+        if not (low <= fixed_noise <= high):
+            margin = max(abs(fixed_noise) * 0.1, 1e-12)
+            noise_bounds = (
+                min(low, fixed_noise - margin),
+                max(high, fixed_noise + margin),
+            )
 
     bayes_opt_EI = bo.BayesianOptimizer(
         data,
         x,
         y,
-        normalize_y,
         kernel,
         isotropic=False,
         acquisition_function="EI",
         n_acquire=num_iter,
         seed=seed,
+        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        init_design=args.init_design,
+        init_design_kwargs=init_design_kwargs,
     )
 
     bayes_opt_PI = bo.BayesianOptimizer(
         data,
         x,
         y,
-        normalize_y,
         kernel,
         isotropic=False,
         acquisition_function="PI",
         n_acquire=num_iter,
         seed=seed,
+        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        init_design=args.init_design,
+        init_design_kwargs=init_design_kwargs,
     )
 
     bayes_opt_UCB = bo.BayesianOptimizer(
         data,
         x,
         y,
-        normalize_y,
         kernel,
         isotropic=False,
         acquisition_function="UCB",
         n_acquire=num_iter,
         seed=seed,
+        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        init_design=args.init_design,
+        init_design_kwargs=init_design_kwargs,
+        beta=args.beta,
     )
 
     bayes_opt_PV = bo.BayesianOptimizer(
         data,
         x,
         y,
-        normalize_y,
         kernel,
         isotropic=False,
         acquisition_function="PV",
         n_acquire=num_iter,
         seed=seed,
+        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        init_design=args.init_design,
+        init_design_kwargs=init_design_kwargs,
     )
 
     bayes_opt_rand = bo.BayesianOptimizer(
         data,
         x,
         y,
-        normalize_y,
         kernel,
         isotropic=False,
         acquisition_function="random",
         n_acquire=num_iter,
         seed=seed,
+        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        init_design=args.init_design,
+        init_design_kwargs=init_design_kwargs,
     )
 
-    # Run Bayesian Optimization for different acquisition functions
     max_yield_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
     max_yield_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
     max_yield_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
@@ -212,9 +244,8 @@ def main():
         kernel,
         num_iter,
         num_init,
-        data,
-        xi=args.xi,
-        kappa=args.kappa,
+        f"{data}_{args.init_design}",
+        beta=args.beta,
     )
 
 
