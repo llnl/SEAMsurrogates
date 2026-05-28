@@ -190,6 +190,7 @@ class BayesianOptimizer:
         n_acquire: int = 10,
         seed: int = 42,
         noise_bounds: Optional[Tuple[float, float]] = None,
+        fixed_noise: Optional[float] = None,
         init_design: str = "random",
         init_design_kwargs: Optional[dict] = None,
         **acquisition_kwargs,
@@ -207,6 +208,7 @@ class BayesianOptimizer:
         self.n_acquire = n_acquire
         self.seed = seed
         self.noise_bounds = noise_bounds
+        self.fixed_noise = fixed_noise
         self.acquisition_kwargs = acquisition_kwargs
 
         self.x_acquired = np.empty((0, self.x_init.shape[1]), dtype=float)
@@ -247,6 +249,7 @@ class BayesianOptimizer:
             noise_bounds=(
                 self.noise_bounds if self.noise_bounds is not None else (1e-8, 1e-3)
             ),
+            fixed_noise=self.fixed_noise,
         )
         self.gp_model.fit()
         return self.gp_model
@@ -510,9 +513,9 @@ def plot_acquisition_comparison(
     plt.plot(max_output_PV, marker="o", c="red", label="PV")
     plt.plot(max_output_random, marker="o", c="purple", label="Uniform Random")
 
-    plt.title("Maximum Observed Output vs Iteration")
+    plt.title("Best Observed Value vs Iteration")
     plt.xlabel("Iteration")
-    plt.ylabel("Maximum Output")
+    plt.ylabel("Best Observed Value")
 
     y_min = min(
         np.min(max_output_EI),

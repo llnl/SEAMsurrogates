@@ -29,14 +29,27 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization with GP surrogate models.",
     )
-    parser.add_argument("-it", "--n_iteration", type=int, default=10)
-    parser.add_argument("-in", "--n_initial", type=int, default=10)
+    parser.add_argument(
+        "-it",
+        "--n_iteration",
+        type=int,
+        default=10,
+        help="Number of Bayesian optimization acquisitions.",
+    )
+    parser.add_argument(
+        "-in",
+        "--n_initial",
+        type=int,
+        default=10,
+        help="Number of initial samples before Bayesian optimization.",
+    )
     parser.add_argument(
         "-k",
         "--kernel",
         type=str,
         choices=["matern", "rbf", "periodic"],
         default="matern",
+        help="Kernel function used for GP surrogate.",
     )
     parser.add_argument(
         "-acq",
@@ -44,6 +57,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["EI", "PI", "UCB", "PV", "random"],
         default="EI",
+        help="Choice of acquisition function.",
     )
     parser.add_argument(
         "-f",
@@ -51,6 +65,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["Parabola", "Ackley", "Griewank", "Branin", "HolderTable"],
         default="Parabola",
+        help="Function to optimize.",
     )
     parser.add_argument(
         "--init_design",
@@ -59,10 +74,28 @@ def parse_arguments() -> argparse.Namespace:
         default="random",
         help="Initial design strategy for BO.",
     )
-    parser.add_argument("-i", "--isotropic", action="store_true")
-    parser.add_argument("-s", "--seed", type=int, default=42)
-    parser.add_argument("-save", "--save_animation", action="store_true")
-    parser.add_argument("-beta", "--beta", type=float, default=2.0)
+    parser.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Force GP kernel to be isotropic (single lengthscale).",
+    )
+    parser.add_argument(
+        "-s", "--seed", type=int, default=42, help="Set random initial seed."
+    )
+    parser.add_argument(
+        "-save",
+        "--save_animation",
+        action="store_true",
+        help="Save the animation (useful for lightning AI users).",
+    )
+    parser.add_argument(
+        "-beta",
+        "--beta",
+        type=float,
+        default=2.0,
+        help="Tuning parameter for UCB method only.",
+    )
     return parser.parse_args()
 
 

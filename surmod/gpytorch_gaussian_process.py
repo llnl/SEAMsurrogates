@@ -56,7 +56,7 @@ def fit_gpytorch_mll_multistart(
             if hasattr(model.covar_module, "outputscale"):
                 model.covar_module.outputscale = 10 ** np.random.uniform(-1, 1)
 
-            if hasattr(model.likelihood, "noise"):
+            if hasattr(model.likelihood, "noise") and not _noise_is_fixed(model):
                 noise_constraint = model.likelihood.noise_covar.raw_noise_constraint
                 low = float(noise_constraint.lower_bound.item())
                 high = float(noise_constraint.upper_bound.item())
@@ -172,6 +172,13 @@ def load_test_function(objective_function: str):
             " or 'HolderTable'."
         )
     return test_function
+
+
+def _noise_is_fixed(model) -> bool:
+    return (
+        hasattr(model.likelihood, "noise_covar")
+        and not model.likelihood.noise_covar.raw_noise.requires_grad
+    )
 
 
 class GPSurrogate:
@@ -318,7 +325,6 @@ class GPSurrogate:
             input_transform=input_transform,
             outcome_transform=outcome_transform,
         )
-
         self.model.likelihood.noise_covar.register_constraint(
             "raw_noise",
             Interval(*self.noise_bounds),

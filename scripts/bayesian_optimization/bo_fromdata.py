@@ -139,9 +139,19 @@ def main():
         )
 
     # If user does not specify, keep nugget small by default
-    noise_bounds = (1e-8, 1e-6)
+    default_noise_bounds = (1e-8, 1e-6)
+    noise_bounds = default_noise_bounds
+    fixed_noise = None
+
     if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
+        fixed_noise = float(args.fixed_nugget)
+        low, high = default_noise_bounds
+        if not (low <= fixed_noise <= high):
+            margin = max(abs(fixed_noise) * 0.1, 1e-12)
+            noise_bounds = (
+                min(low, fixed_noise - margin),
+                max(high, fixed_noise + margin),
+            )
 
     bayes_opt_EI = bo.BayesianOptimizer(
         data,
@@ -153,6 +163,7 @@ def main():
         n_acquire=num_iter,
         seed=seed,
         noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
         init_design=args.init_design,
         init_design_kwargs=init_design_kwargs,
     )
@@ -167,6 +178,7 @@ def main():
         n_acquire=num_iter,
         seed=seed,
         noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
         init_design=args.init_design,
         init_design_kwargs=init_design_kwargs,
     )
@@ -181,6 +193,7 @@ def main():
         n_acquire=num_iter,
         seed=seed,
         noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
         init_design=args.init_design,
         init_design_kwargs=init_design_kwargs,
         beta=args.beta,
@@ -196,6 +209,7 @@ def main():
         n_acquire=num_iter,
         seed=seed,
         noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
         init_design=args.init_design,
         init_design_kwargs=init_design_kwargs,
     )
@@ -210,6 +224,7 @@ def main():
         n_acquire=num_iter,
         seed=seed,
         noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
         init_design=args.init_design,
         init_design_kwargs=init_design_kwargs,
     )
