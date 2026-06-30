@@ -156,10 +156,9 @@ def split_data(
         x_lhd = LHD_gen.random(n=n_train)
 
         # Scale LHD points to the range of x
-        for i in range(k):
-            x_lhd[:, i] = x_lhd[:, i] * (np.max(x[:, i]) - np.min(x[:, i])) + np.min(
-                x[:, i]
-            )
+        x_min = x.min(axis=0)
+        x_range = x.ptp(axis=0)  # ptp = peak-to-peak = max - min
+        x_lhd = x_lhd * x_range + x_min
 
         # Build KDTree for nearest neighbor search
         tree = cKDTree(x)
