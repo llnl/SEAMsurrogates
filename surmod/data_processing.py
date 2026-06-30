@@ -23,7 +23,6 @@ from scipy.stats import qmc
 
 from sklearn.model_selection import train_test_split
 
-
 # Paths relative to this file's location
 _MODULE_DIR = Path(__file__).parent
 _DATA_DIR = _MODULE_DIR.parent / "data"
@@ -101,9 +100,7 @@ def load_data(
 
     # Select rows
     if random:
-        print(
-            f"Selecting {n_samples} samples at random from the {dataset} dataset (seed={seed}).\n"
-        )
+        print(f"Selecting {n_samples} random samples from the {dataset} dataset.\n")
         df = df.sample(n=n_samples, random_state=seed)
     else:
         print(f"Selecting the first {n_samples} samples from the {dataset} dataset.\n")
