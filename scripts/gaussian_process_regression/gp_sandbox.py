@@ -172,13 +172,13 @@ def main():
     y_train_1d = np.asarray(y_train).reshape(-1)
     y_test_1d = np.asarray(y_test).reshape(-1)
 
-    noise_bounds = (1e-8, 1e-1)
-    fixed_noise = None
-
     if fixed_nugget is not None:
         fixed_noise = float(fixed_nugget)
         eps = max(1e-8, abs(fixed_noise) * 1e-6)
         noise_bounds = (fixed_noise - eps, fixed_noise + eps)
+    else:
+        fixed_noise = None
+        noise_bounds = (1e-8, 1e-1)
 
     for kernel in kernels:
         gp_model = GPSurrogate(
@@ -190,7 +190,7 @@ def main():
             isotropic=isotropic,
             scale_inputs=scale_x,
             scale_outputs=normalize_y,
-            fixed_noise=float(fixed_nugget) if fixed_nugget is not None else None,
+            fixed_noise=fixed_noise,
             noise_bounds=noise_bounds,
         )
 
