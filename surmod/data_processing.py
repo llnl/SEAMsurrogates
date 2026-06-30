@@ -13,6 +13,7 @@ Borehole:
 from typing import Optional, Tuple
 import warnings
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,15 +24,19 @@ from scipy.stats import qmc
 from sklearn.model_selection import train_test_split
 
 
+# Paths relative to this file's location
+_MODULE_DIR = Path(__file__).parent
+_DATA_DIR = _MODULE_DIR.parent / "data"
+
 # Dataset configuration
 DATASET_CONFIG = {
     "JAG": {
-        "path": "../../data/JAG_10k.csv",
+        "path": str(_DATA_DIR / "JAG_10k.csv"),
         "n_inputs": 5,
         "n_outputs": 1,
     },
     "borehole": {
-        "path": "../../data/borehole_10k.csv",
+        "path": str(_DATA_DIR / "borehole_10k.csv"),
         "n_inputs": 8,
         "n_outputs": 1,
     },
