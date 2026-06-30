@@ -73,6 +73,7 @@ def simulate_data(
     b1: float,
     b2: float,
     b12: float,
+    seed: int = 1,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Simulate training and testing data from a selected test function.
@@ -85,6 +86,7 @@ def simulate_data(
         b1 (float): First coefficient parameter for the test function.
         b2 (float): Second coefficient parameter for the test function.
         b12 (float): Interaction coefficient parameter for the test function.
+        seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -98,8 +100,8 @@ def simulate_data(
     out_dim, test_function = load_test_settings(objective_function)
 
     # Sample random data from test function
-    np.random.seed(1)
-    x_data = np.random.uniform(0, 1, size=(num_total, out_dim))
+    rng = np.random.default_rng(seed)
+    x_data = rng.uniform(0, 1, size=(num_total, out_dim))
     y_data = test_function(x_data, b1, b2, b12)
 
     # Split data into training and testing sets

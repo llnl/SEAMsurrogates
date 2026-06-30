@@ -499,7 +499,12 @@ def load_test_function(objective_function: str):
         )
     return test_function
 
-def simulate_data(objective_function: str, num_train: int, num_test: int):
+def simulate_data(
+    objective_function: str,
+    num_train: int,
+    num_test: int,
+    seed: int = 1,
+):
     """
     Simulates training and testing data from a specified test function.
 
@@ -509,6 +514,7 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
             "Branin", and "HolderTable".
         num_train (int): Number of training samples to generate.
         num_test (int): Number of testing samples to generate.
+        seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -528,8 +534,8 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
     bounds_high = [b[1] for b in test_function._bounds]
 
     # Sample random data from test function
-    np.random.seed(1)
-    x_data = np.random.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    rng = np.random.default_rng(seed)
+    x_data = rng.uniform(bounds_low, bounds_high, size=(num_total, 2))
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets
