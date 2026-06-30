@@ -102,7 +102,10 @@ def simulate_data(
     # Sample random data from test function
     rng = np.random.default_rng(seed)
     x_data = rng.uniform(0, 1, size=(num_total, out_dim))
-    y_data = test_function(x_data, b1, b2, b12)
+    if objective_function == "parabola":
+        y_data = test_function(x_data, b1, b2, b12)
+    else:
+        y_data = test_function(x_data)
 
     # Split data into training and testing sets
     x_train = x_data.copy()[:num_train]

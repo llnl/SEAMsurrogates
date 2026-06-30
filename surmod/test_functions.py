@@ -249,7 +249,6 @@ def scale_inputs(
 
 def otlcircuit(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the midpoint voltage of output transformerless (OTL)
@@ -305,7 +304,6 @@ def otlcircuit(
 
 def piston(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the time it takes a piston to complete one cycle.
@@ -358,7 +356,6 @@ def piston(
 
 def wingweight(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the weight of a light aircraft wing.
@@ -418,7 +415,6 @@ def wingweight(
 
 def borehole(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the water flow rate through a borehole.
