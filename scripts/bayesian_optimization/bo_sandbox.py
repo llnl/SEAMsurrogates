@@ -216,7 +216,7 @@ def setup_figure(
 
     mu_init, _ = gp_initial.predict(x_grid)
     mu_init = mu_init.reshape(x1_grid.shape)
-    gp_mean_max_val = float(np.max(mu_init))
+    gp_mean_max_val = np.max(mu_init)
     gp_mean_max_loc = x_grid[np.argmax(mu_init), :]
     gp_surface = ax3.plot_surface(x1_grid, x2_grid, mu_init, cmap="viridis", alpha=0.6)
     gp_mean_dot = ax3.scatter(

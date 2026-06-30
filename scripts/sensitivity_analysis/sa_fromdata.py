@@ -200,11 +200,11 @@ def main():
     y_test_1d = np.asarray(y_test).reshape(-1)
 
     # Metrics
-    train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
-    test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
+    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
+    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-    train_mse = float(mse(y_train_1d, pred_train_mean))
-    test_mse = float(mse(y_test_1d, pred_test_mean))
+    train_mse = mse(y_train_1d, pred_train_mean)
+    test_mse = mse(y_test_1d, pred_test_mean)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
         pred_train_mean, y_train_1d, x_train

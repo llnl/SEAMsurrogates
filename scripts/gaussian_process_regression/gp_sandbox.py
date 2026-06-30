@@ -211,11 +211,11 @@ def main():
         pred_train_mean, _pred_train_std = gp_model.predict(x_train)
         pred_test_mean, pred_test_std = gp_model.predict(x_test)
 
-        train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
-        test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
+        train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
+        test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-        train_mse = float(mean_squared_error(y_train_1d, pred_train_mean))
-        test_mse = float(mean_squared_error(y_test_1d, pred_test_mean))
+        train_mse = mean_squared_error(y_train_1d, pred_train_mean)
+        test_mse = mean_squared_error(y_test_1d, pred_test_mean)
 
         train_max_abserr, train_max_input = gp_model.compute_max_error(
             pred_train_mean, y_train_1d, x_train
@@ -226,7 +226,7 @@ def main():
         fitted_params = gp_model.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
-        coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
+        coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [
