@@ -223,10 +223,10 @@ def main():
         pred_test_mean, y_test_1d, x_test
     )
 
-    # 95 percent interval coverage on test using your model's std
+    # 95% confidence interval coverage on test data
     lower = pred_test_mean - 1.96 * pred_test_std
     upper = pred_test_mean + 1.96 * pred_test_std
-    coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
+    coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
 
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
