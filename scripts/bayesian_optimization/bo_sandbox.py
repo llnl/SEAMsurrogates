@@ -5,6 +5,13 @@ This script creates an animation of Bayesian Optimization on a chosen
 synthetic objective function and plots performance of the chosen acquisition
 function: Expected Improvement (EI), Probability of Improvement (PI),
 Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
+
+Usage examples:
+
+./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=Parabola
+./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=Ackley --beta=3.0
+./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
+./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
 """
 
 import argparse
