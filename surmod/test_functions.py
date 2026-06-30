@@ -160,14 +160,10 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         rw, r, Tu, Hu, Tl, Hl, L, Kw = [X[..., i] for i in range(8)]
 
         # SFU implementation
-        log_term = torch.log(r / rw)
-
-        frac1 = 2.0 * np.pi * Tu * (Hu - Hl)
-        frac2a = 2.0 * L * Tu / (log_term * rw.pow(2) * Kw)
-        frac2b = Tu / Tl
-        frac2 = log_term * (1.0 + frac2a + frac2b)
-
-        y = frac1 / frac2
+        log_r_rw = torch.log(r / rw)
+        numerator = 2.0 * np.pi * Tu * (Hu - Hl)
+        denominator = log_r_rw * (1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl)
+        y = numerator / denominator
 
         if self.negate:
             y = -y
