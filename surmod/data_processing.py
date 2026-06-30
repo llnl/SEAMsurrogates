@@ -43,8 +43,6 @@ DATASET_CONFIG = {
 }
 
 
-# Loading data
-
 def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
@@ -114,8 +112,6 @@ def load_data(
 
     return df
 
-
-# Splitting data
 
 def split_data(
     df: pd.DataFrame,
@@ -216,8 +212,6 @@ def split_data(
 
     return x_train, x_test, y_train, y_test
 
-
-# Convenience wrapper
 
 def load_and_split(
     dataset: str = "JAG",
