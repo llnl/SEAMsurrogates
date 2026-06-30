@@ -146,15 +146,6 @@ def log_results(log_message: str, path_to_log: str) -> None:
         f.write(log_message + "\n")
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = 1e-16
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
