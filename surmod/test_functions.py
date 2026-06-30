@@ -156,15 +156,8 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         if X.shape[-1] != 8:
             raise ValueError(f"Borehole expects input dimension 8, got {X.shape[-1]}")
 
-        # xx = [rw, r, Tu, Hu, Tl, Hl, L, Kw]
-        rw = X[..., 0]
-        r = X[..., 1]
-        Tu = X[..., 2]
-        Hu = X[..., 3]
-        Tl = X[..., 4]
-        Hl = X[..., 5]
-        L = X[..., 6]
-        Kw = X[..., 7]
+        # Unpack input variables: [rw, r, Tu, Hu, Tl, Hl, L, Kw]
+        rw, r, Tu, Hu, Tl, Hl, L, Kw = [X[..., i] for i in range(8)]
 
         # SFU implementation
         log_term = torch.log(r / rw)
