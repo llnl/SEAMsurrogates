@@ -33,6 +33,11 @@ dependencies = [
   "imageio"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/LLNL/SEAMsurrogates"
 Source = "https://github.com/llnl/SEAMsurrogates/tree/main/surmod"
