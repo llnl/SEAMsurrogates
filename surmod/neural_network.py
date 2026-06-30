@@ -169,7 +169,7 @@ def train_neural_net(
     test_losses = []
 
     # Set a random number generator seed for reproducibility
-    torch.manual_seed(seed)  # TODO double check
+    torch.manual_seed(seed)
 
     # Training loop
     for epoch in range(num_epochs):

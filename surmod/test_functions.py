@@ -49,7 +49,7 @@ class Parabola_synth_test_func(SyntheticTestFunction):
             raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
 
         return -result if self.negate else result
-    
+
 class Borehole_synth_test_func(SyntheticTestFunction):
     """
     Borehole test function.
