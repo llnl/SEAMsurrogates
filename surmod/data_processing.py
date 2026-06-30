@@ -48,7 +48,7 @@ def load_data(
     n_samples: int = 10000,
     random: bool = True,
     path_to_csv: Optional[str] = None,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Load a subset of a dataset from CSV.
@@ -73,8 +73,7 @@ def load_data(
     """
     if dataset not in DATASET_CONFIG:
         raise ValueError(
-            f"Unsupported dataset '{dataset}'. "
-            f"Supported: {list(DATASET_CONFIG.keys())}"
+            f"Unsupported dataset '{dataset}'. Supported: {list(DATASET_CONFIG.keys())}"
         )
 
     cfg = DATASET_CONFIG[dataset]
@@ -82,10 +81,10 @@ def load_data(
     if path_to_csv is None:
         path_to_csv = cfg["path"]
 
-    if not os.path.isfile(path_to_csv): # type: ignore
+    if not os.path.isfile(path_to_csv):  # type: ignore
         raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
 
-    df = pd.read_csv(path_to_csv) # type: ignore
+    df = pd.read_csv(path_to_csv)  # type: ignore
 
     if dataset == "JAG":
         df.columns = ["x0", "x1", "x2", "x3", "x4", "y"]
@@ -147,8 +146,7 @@ def split_data(
     # Ensure n_train is not greater than total_samples
     if n_train > n_total:
         raise ValueError(
-            f"n_train cannot be greater than the total number of samples "
-            f"({n_total})."
+            f"n_train cannot be greater than the total number of samples ({n_total})."
         )
 
     if LHD:

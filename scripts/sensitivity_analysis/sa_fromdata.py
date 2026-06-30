@@ -28,6 +28,7 @@ chmod +x ./sa_fromdata.py
 #  excluding columns 1 and 2, and save results to log file
 ./sa_fromdata.py -tr 150 -e 1 2 --log
 """
+
 import argparse
 import os
 
@@ -214,7 +215,9 @@ def main():
     )
 
     # Bounds for SALib (use observed range of the (possibly scaled) x_train)
-    bounds = [[float(np.min(x_train[:, i])), float(np.max(x_train[:, i]))] for i in range(dim)]
+    bounds = [
+        [float(np.min(x_train[:, i])), float(np.max(x_train[:, i]))] for i in range(dim)
+    ]
 
     problem = {
         "num_vars": dim,
@@ -250,7 +253,9 @@ def main():
     print(log_message)
 
     if do_log:
-        log_results(log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt"))
+        log_results(
+            log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt")
+        )
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
     sa.plot_test_predictions(x_test, y_test_1d, gp_model, data)

@@ -129,13 +129,13 @@ def run_bayesian_optimization(
         gp_mean_max_value = snapshot["gp_mean_max_value"]
 
         print(
-            f"\nIter. {i+1}: acquired f(x)={y_next_scalar:.3g} at x=({x_next[0]:.3g},{x_next[1]:.3g})"
+            f"\nIter. {i + 1}: acquired f(x)={y_next_scalar:.3g} at x=({x_next[0]:.3g},{x_next[1]:.3g})"
         )
         print(
-            f"Iter. {i+1}: max f(x)={y_max:.3g} at x=({x_best[0]:.3g},{x_best[1]:.3g})"
+            f"Iter. {i + 1}: max f(x)={y_max:.3g} at x=({x_best[0]:.3g},{x_best[1]:.3g})"
         )
         print(
-            f"Iter. {i+1}: max GP mean={gp_mean_max_value:.3g} "
+            f"Iter. {i + 1}: max GP mean={gp_mean_max_value:.3g} "
             f"at x=({gp_mean_max_location[0]:.3g},{gp_mean_max_location[1]:.3g})"
         )
 
@@ -164,7 +164,6 @@ def setup_figure(
     n_iteration: int,
     gp_initial: object,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
-
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
         f"Bayesian Optimization of {objective_function} w/ {kernel} kernel\n",

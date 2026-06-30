@@ -1,7 +1,8 @@
 import numpy as np
 import numpy.typing as npt
 import torch
-from botorch.test_functions.synthetic import (SyntheticTestFunction,
+from botorch.test_functions.synthetic import (
+    SyntheticTestFunction,
     Ackley,
     Branin,
     Griewank,
@@ -49,6 +50,7 @@ class Parabola_synth_test_func(SyntheticTestFunction):
             raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
 
         return -result if self.negate else result
+
 
 class Borehole_synth_test_func(SyntheticTestFunction):
     """
@@ -162,7 +164,9 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         # SFU implementation
         log_r_rw = torch.log(r / rw)
         numerator = 2.0 * np.pi * Tu * (Hu - Hl)
-        denominator = log_r_rw * (1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl)
+        denominator = log_r_rw * (
+            1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl
+        )
         y = numerator / denominator
 
         if self.negate:
@@ -498,6 +502,7 @@ def load_test_function(objective_function: str):
             " or 'HolderTable'."
         )
     return test_function
+
 
 def simulate_data(
     objective_function: str,

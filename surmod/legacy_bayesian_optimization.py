@@ -453,7 +453,6 @@ class BayesianOptimizer:
                 raise ValueError("Invalid acquisition function.")
 
         for x0 in starting_points:
-
             res = minimize(
                 fun=acq_wrap,
                 x0=x0,

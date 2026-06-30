@@ -394,7 +394,6 @@ def main():
         raise ValueError("Choose either normalize_x or scale_x, not both.")
 
     if normalize_x or scale_x:
-
         # Create the scaler and fit it on training data
         if normalize_x:
             print(
