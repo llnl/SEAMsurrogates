@@ -24,7 +24,7 @@ def nugget_to_bounds(nugget: float) -> tuple[float, float]:
     return (low, high)
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on dataset data.",
@@ -98,7 +98,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
     data = args.data
     kernel = args.kernel

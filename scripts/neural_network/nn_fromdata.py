@@ -32,7 +32,7 @@ import torch
 from surmod import neural_network as nn, data_processing
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         description="Train neural network on JAG ICF data.",
@@ -124,7 +124,7 @@ def parse_arguments():
     return args
 
 
-def main():
+def main() -> None:
     # Parse command line arguments
     args = parse_arguments()
     data = args.data
