@@ -176,6 +176,7 @@ def main():
         objective_function,
         num_train,
         num_test,
+        seed=seed,
     )
 
     y_train_1d = np.asarray(y_train).reshape(-1)
