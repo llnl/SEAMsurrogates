@@ -158,7 +158,6 @@ def nugget_to_bounds(nugget: float) -> tuple[float, float]:
 def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
-
     objective_function = args.objective_function
     kernels = args.kernels
     num_train = args.num_train

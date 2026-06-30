@@ -154,7 +154,6 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-
     data = args.data
     num_train = args.num_train
     num_test = args.num_test
