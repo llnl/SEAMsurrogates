@@ -454,14 +454,10 @@ def borehole(
     rw, r, Tu, Hu, Tl, Hl, L, Kw = x_scaled.T
 
     # Compute borehole flow rate
-    frac1 = 2 * np.pi * Tu * (Hu - Hl)
-    frac2a = 2 * L * Tu / (np.log(r / rw) * rw**2 * Kw)
-    frac2b = Tu / Tl
-    frac2 = np.log(r / rw) * (1 + frac2a + frac2b)
-
-    flow_rate = frac1 / frac2
-
-    return flow_rate
+    log_r_rw = np.log(r / rw)
+    numerator = 2 * np.pi * Tu * (Hu - Hl)
+    denominator = log_r_rw * (1 + 2 * L * Tu / (log_r_rw * rw**2 * Kw) + Tu / Tl)
+    return numerator / denominator
 
 
 def load_test_function(objective_function: str):
