@@ -11,9 +11,9 @@ Usage examples:
 """
 
 import argparse
-import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -141,10 +141,10 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def log_results(log_message: str, path_to_log: str) -> None:
-    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
+def log_results(log_message: str, path_to_log: Path) -> None:
+    path_to_log.parent.mkdir(parents=True, exist_ok=True)
     with open(path_to_log, "a", encoding="utf-8") as f:
-        f.write(log_message + "\n")
+        f.write(log_message)
 
 
 def main():
@@ -255,7 +255,7 @@ def main():
     if do_log:
         log_results(
             log_message,
-            path_to_log=os.path.join("output_log", f"{data}_Results.txt"),
+            path_to_log=Path("results") / f"{data}.txt",
         )
 
     if do_plot:
