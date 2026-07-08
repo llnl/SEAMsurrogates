@@ -154,7 +154,6 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-
     data = args.data
     num_train = args.num_train
     num_test = args.num_test
@@ -209,11 +208,11 @@ def main():
     pred_test_mean, pred_test_std = gp_model.predict(x_test)
 
     # Metrics (match your previous ones, plus coverage from GPSurrogate.evaluate)
-    train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
-    test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
+    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
+    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-    train_mse = float(mean_squared_error(y_train_1d, pred_train_mean))
-    test_mse = float(mean_squared_error(y_test_1d, pred_test_mean))
+    train_mse = mean_squared_error(y_train_1d, pred_train_mean)
+    test_mse = mean_squared_error(y_test_1d, pred_test_mean)
 
     # Max absolute error locations
     train_max_abserr, train_max_input = gp_model.compute_max_error(
@@ -223,10 +222,10 @@ def main():
         pred_test_mean, y_test_1d, x_test
     )
 
-    # 95 percent interval coverage on test using your model's std
+    # 95% confidence interval coverage on test data
     lower = pred_test_mean - 1.96 * pred_test_std
     upper = pred_test_mean + 1.96 * pred_test_std
-    coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
+    coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
 
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [

@@ -233,7 +233,7 @@ class GPSurrogate:
             lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
             outputscale_bounds: Bounds on the variance scale parameter, current option is for output scaled to mean 0, variance1. Defaults to [1e-3,1e3]
             noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-8,1e-1]
-            optimization_restrats: Number of times to randomly initialize the hyperparamter optimization. Defaults to 5
+            optimization_restarts: Number of times to randomly initialize the hyperparameter optimization. Defaults to 5
         """
         self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
         self.y_train: torch.Tensor = torch.as_tensor(
@@ -407,11 +407,11 @@ class GPSurrogate:
         mean, std = self.predict(self.x_test, include_nugget=include_nugget)
         y_true = self.y_test.squeeze(-1).cpu().numpy()
 
-        mse = float(np.mean((y_true - mean) ** 2))
-        rmse = float(np.sqrt(mse))
+        mse = np.mean((y_true - mean) ** 2)
+        rmse = np.sqrt(mse)
         lower = mean - 1.96 * std
         upper = mean + 1.96 * std
-        coverage = float(np.mean((y_true >= lower) & (y_true <= upper)))
+        coverage = np.mean((y_true >= lower) & (y_true <= upper))
 
         return {
             "mse": mse,

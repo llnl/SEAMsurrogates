@@ -30,7 +30,6 @@ chmod +x ./gp_sandbox.py
 """
 
 import argparse
-import itertools
 import os
 import time
 from datetime import datetime
@@ -147,19 +146,9 @@ def log_results(log_message: str, path_to_log: str) -> None:
         f.write(log_message + "\n")
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = 1e-16
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
-
     objective_function = args.objective_function
     kernels = args.kernels
     num_train = args.num_train
@@ -177,18 +166,19 @@ def main():
         objective_function,
         num_train,
         num_test,
+        seed=seed,
     )
 
     y_train_1d = np.asarray(y_train).reshape(-1)
     y_test_1d = np.asarray(y_test).reshape(-1)
 
-    noise_bounds = (1e-8, 1e-1)
-    fixed_noise = None
-
     if fixed_nugget is not None:
         fixed_noise = float(fixed_nugget)
         eps = max(1e-8, abs(fixed_noise) * 1e-6)
         noise_bounds = (fixed_noise - eps, fixed_noise + eps)
+    else:
+        fixed_noise = None
+        noise_bounds = (1e-8, 1e-1)
 
     for kernel in kernels:
         gp_model = GPSurrogate(
@@ -200,7 +190,7 @@ def main():
             isotropic=isotropic,
             scale_inputs=scale_x,
             scale_outputs=normalize_y,
-            fixed_noise=float(fixed_nugget) if fixed_nugget is not None else None,
+            fixed_noise=fixed_noise,
             noise_bounds=noise_bounds,
         )
 
@@ -211,11 +201,11 @@ def main():
         pred_train_mean, _pred_train_std = gp_model.predict(x_train)
         pred_test_mean, pred_test_std = gp_model.predict(x_test)
 
-        train_mae = float(mean_absolute_error(y_train_1d, pred_train_mean))
-        test_mae = float(mean_absolute_error(y_test_1d, pred_test_mean))
+        train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
+        test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-        train_mse = float(mean_squared_error(y_train_1d, pred_train_mean))
-        test_mse = float(mean_squared_error(y_test_1d, pred_test_mean))
+        train_mse = mean_squared_error(y_train_1d, pred_train_mean)
+        test_mse = mean_squared_error(y_test_1d, pred_test_mean)
 
         train_max_abserr, train_max_input = gp_model.compute_max_error(
             pred_train_mean, y_train_1d, x_train
@@ -226,7 +216,7 @@ def main():
         fitted_params = gp_model.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
-        coverage = float(np.mean((y_test_1d >= lower) & (y_test_1d <= upper)))
+        coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [

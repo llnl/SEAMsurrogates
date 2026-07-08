@@ -13,6 +13,7 @@ Borehole:
 from typing import Optional, Tuple
 import warnings
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -22,30 +23,31 @@ from scipy.stats import qmc
 
 from sklearn.model_selection import train_test_split
 
+# Paths relative to this file's location
+_MODULE_DIR = Path(__file__).parent
+_DATA_DIR = _MODULE_DIR.parent / "data"
 
 # Dataset configuration
 DATASET_CONFIG = {
     "JAG": {
-        "path": "../../data/JAG_10k.csv",
+        "path": str(_DATA_DIR / "JAG_10k.csv"),
         "n_inputs": 5,
         "n_outputs": 1,
     },
     "borehole": {
-        "path": "../../data/borehole_10k.csv",
+        "path": str(_DATA_DIR / "borehole_10k.csv"),
         "n_inputs": 8,
         "n_outputs": 1,
     },
 }
 
 
-# Loading data
-
 def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
     random: bool = True,
     path_to_csv: Optional[str] = None,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Load a subset of a dataset from CSV.
@@ -70,8 +72,7 @@ def load_data(
     """
     if dataset not in DATASET_CONFIG:
         raise ValueError(
-            f"Unsupported dataset '{dataset}'. "
-            f"Supported: {list(DATASET_CONFIG.keys())}"
+            f"Unsupported dataset '{dataset}'. Supported: {list(DATASET_CONFIG.keys())}"
         )
 
     cfg = DATASET_CONFIG[dataset]
@@ -79,10 +80,10 @@ def load_data(
     if path_to_csv is None:
         path_to_csv = cfg["path"]
 
-    if not os.path.isfile(path_to_csv): # type: ignore
+    if not os.path.isfile(path_to_csv):  # type: ignore
         raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
 
-    df = pd.read_csv(path_to_csv) # type: ignore
+    df = pd.read_csv(path_to_csv)  # type: ignore
 
     if dataset == "JAG":
         df.columns = ["x0", "x1", "x2", "x3", "x4", "y"]
@@ -99,9 +100,7 @@ def load_data(
 
     # Select rows
     if random:
-        print(
-            f"Selecting {n_samples} samples at random from the {dataset} dataset (seed={seed}).\n"
-        )
+        print(f"Selecting {n_samples} random samples from the {dataset} dataset.\n")
         df = df.sample(n=n_samples, random_state=seed)
     else:
         print(f"Selecting the first {n_samples} samples from the {dataset} dataset.\n")
@@ -109,8 +108,6 @@ def load_data(
 
     return df
 
-
-# Splitting data
 
 def split_data(
     df: pd.DataFrame,
@@ -146,8 +143,7 @@ def split_data(
     # Ensure n_train is not greater than total_samples
     if n_train > n_total:
         raise ValueError(
-            f"n_train cannot be greater than the total number of samples "
-            f"({n_total})."
+            f"n_train cannot be greater than the total number of samples ({n_total})."
         )
 
     if LHD:
@@ -160,10 +156,9 @@ def split_data(
         x_lhd = LHD_gen.random(n=n_train)
 
         # Scale LHD points to the range of x
-        for i in range(k):
-            x_lhd[:, i] = x_lhd[:, i] * (np.max(x[:, i]) - np.min(x[:, i])) + np.min(
-                x[:, i]
-            )
+        x_min = x.min(axis=0)
+        x_range = x.ptp(axis=0)  # ptp = peak-to-peak = max - min
+        x_lhd = x_lhd * x_range + x_min
 
         # Build KDTree for nearest neighbor search
         tree = cKDTree(x)
@@ -211,8 +206,6 @@ def split_data(
 
     return x_train, x_test, y_train, y_test
 
-
-# Convenience wrapper
 
 def load_and_split(
     dataset: str = "JAG",

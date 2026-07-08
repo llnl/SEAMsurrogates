@@ -32,7 +32,7 @@ import torch
 from surmod import neural_network as nn, data_processing
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         description="Train neural network on JAG ICF data.",
@@ -44,8 +44,8 @@ def parse_arguments():
         "--data",
         type=str,
         choices=["JAG", "borehole"],
-        default = "JAG",
-        help="Which dataset to use (defualt: JAG)."
+        default="JAG",
+        help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
@@ -124,7 +124,7 @@ def parse_arguments():
     return args
 
 
-def main():
+def main() -> None:
     # Parse command line arguments
     args = parse_arguments()
     data = args.data
@@ -150,7 +150,7 @@ def main():
     initialize_weights_normal = True
 
     # Load data into data frame and split into train and test sets
-    df = data_processing.load_data(dataset= data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df, LHD=LHD, n_train=num_train, seed=seed

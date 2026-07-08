@@ -24,7 +24,7 @@ def nugget_to_bounds(nugget: float) -> tuple[float, float]:
     return (low, high)
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on dataset data.",
@@ -98,7 +98,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
     data = args.data
     kernel = args.kernel
@@ -229,18 +229,18 @@ def main():
         init_design_kwargs=init_design_kwargs,
     )
 
-    max_yield_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
-    max_yield_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
-    max_yield_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
-    max_yield_history_PV = bayes_opt_PV.bayes_opt(df, num_init)[2]
-    max_yield_history_random = bayes_opt_rand.bayes_opt(df, num_init)[2]
+    max_y_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
+    max_y_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
+    max_y_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
+    max_y_history_PV = bayes_opt_PV.bayes_opt(df, num_init)[2]
+    max_y_history_random = bayes_opt_rand.bayes_opt(df, num_init)[2]
 
     bo.plot_acquisition_comparison(
-        max_yield_history_EI,
-        max_yield_history_PI,
-        max_yield_history_UCB,
-        max_yield_history_PV,
-        max_yield_history_random,
+        max_y_history_EI,
+        max_y_history_PI,
+        max_y_history_UCB,
+        max_y_history_PV,
+        max_y_history_random,
         kernel,
         num_iter,
         num_init,

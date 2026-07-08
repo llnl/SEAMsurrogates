@@ -72,7 +72,7 @@ The datasets in the `data` directory are from different sources:
 
 ## License
 
-This software is distributed under the terms of the BSD-Commercial license. 
+This software is distributed under the terms of the BSD-Commercial license.
 
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
 

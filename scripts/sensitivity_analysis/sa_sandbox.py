@@ -47,7 +47,9 @@ def parse_arguments():
 
     parser.add_argument("--b1", type=float, default=1, help="parabola beta_1 parameter")
     parser.add_argument("--b2", type=float, default=1, help="parabola beta_2 parameter")
-    parser.add_argument("--b12", type=float, default=1, help="parabola beta_12 parameter")
+    parser.add_argument(
+        "--b12", type=float, default=1, help="parabola beta_12 parameter"
+    )
 
     parser.add_argument(
         "-e",
@@ -161,8 +163,8 @@ def main():
         y_test=np.asarray(y_test).reshape(-1),
         kernel="matern",
         isotropic=isotropic,
-        scale_inputs=False,   # your SA data are already in [0,1]
-        scale_outputs=True,   # matches old normalize_y=True intent
+        scale_inputs=False,  # your SA data are already in [0,1]
+        scale_outputs=True,  # matches old normalize_y=True intent
         noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
     )
 
@@ -176,11 +178,11 @@ def main():
     y_train_1d = np.asarray(y_train).reshape(-1)
     y_test_1d = np.asarray(y_test).reshape(-1)
 
-    train_mae = float(mean_absolute_error(y_train_1d, pred_train))
-    test_mae = float(mean_absolute_error(y_test_1d, pred_test))
+    train_mae = mean_absolute_error(y_train_1d, pred_train)
+    test_mae = mean_absolute_error(y_test_1d, pred_test)
 
-    train_mse = float(mean_squared_error(y_train_1d, pred_train))
-    test_mse = float(mean_squared_error(y_test_1d, pred_test))
+    train_mse = mean_squared_error(y_train_1d, pred_train)
+    test_mse = mean_squared_error(y_test_1d, pred_test)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
         pred_train, y_train_1d, x_train
@@ -191,7 +193,16 @@ def main():
 
     if objective_function == "wingweight":
         variable_names = [
-            "S_w", "W_fw", "A", "Lambda", "q", "lambda", "t_c", "N_z", "W_dg", "W_p"
+            "S_w",
+            "W_fw",
+            "A",
+            "Lambda",
+            "q",
+            "lambda",
+            "t_c",
+            "N_z",
+            "W_dg",
+            "W_p",
         ]
     elif objective_function == "borehole":
         variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
@@ -203,7 +214,9 @@ def main():
         variable_names = [f"x{i}" for i in range(1, regular_dim + 1)]
 
     if exclude is not None:
-        variable_names = list(np.delete(np.array(variable_names, dtype=object), exclude))
+        variable_names = list(
+            np.delete(np.array(variable_names, dtype=object), exclude)
+        )
 
     bounds = [[0.0, 1.0]] * dim
     problem = {"num_vars": dim, "names": variable_names, "bounds": bounds}
@@ -271,7 +284,9 @@ def main():
         os.makedirs("plots", exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plt.savefig(
-            os.path.join("plots", f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png")
+            os.path.join(
+                "plots", f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
+            )
         )
 
 

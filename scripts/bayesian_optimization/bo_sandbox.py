@@ -5,6 +5,13 @@ This script creates an animation of Bayesian Optimization on a chosen
 synthetic objective function and plots performance of the chosen acquisition
 function: Expected Improvement (EI), Probability of Improvement (PI),
 Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
+
+Usage examples:
+
+./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=Parabola
+./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=Ackley --beta=3.0
+./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
+./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
 """
 
 import argparse
@@ -122,13 +129,13 @@ def run_bayesian_optimization(
         gp_mean_max_value = snapshot["gp_mean_max_value"]
 
         print(
-            f"\nIter. {i+1}: acquired f(x)={y_next_scalar:.3g} at x=({x_next[0]:.3g},{x_next[1]:.3g})"
+            f"\nIter. {i + 1}: acquired f(x)={y_next_scalar:.3g} at x=({x_next[0]:.3g},{x_next[1]:.3g})"
         )
         print(
-            f"Iter. {i+1}: max f(x)={y_max:.3g} at x=({x_best[0]:.3g},{x_best[1]:.3g})"
+            f"Iter. {i + 1}: max f(x)={y_max:.3g} at x=({x_best[0]:.3g},{x_best[1]:.3g})"
         )
         print(
-            f"Iter. {i+1}: max GP mean={gp_mean_max_value:.3g} "
+            f"Iter. {i + 1}: max GP mean={gp_mean_max_value:.3g} "
             f"at x=({gp_mean_max_location[0]:.3g},{gp_mean_max_location[1]:.3g})"
         )
 
@@ -157,7 +164,6 @@ def setup_figure(
     n_iteration: int,
     gp_initial: object,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
-
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
         f"Bayesian Optimization of {objective_function} w/ {kernel} kernel\n",
@@ -216,7 +222,7 @@ def setup_figure(
 
     mu_init, _ = gp_initial.predict(x_grid)
     mu_init = mu_init.reshape(x1_grid.shape)
-    gp_mean_max_val = float(np.max(mu_init))
+    gp_mean_max_val = np.max(mu_init)
     gp_mean_max_loc = x_grid[np.argmax(mu_init), :]
     gp_surface = ax3.plot_surface(x1_grid, x2_grid, mu_init, cmap="viridis", alpha=0.6)
     gp_mean_dot = ax3.scatter(

@@ -1,7 +1,8 @@
 import numpy as np
 import numpy.typing as npt
 import torch
-from botorch.test_functions.synthetic import (SyntheticTestFunction,
+from botorch.test_functions.synthetic import (
+    SyntheticTestFunction,
     Ackley,
     Branin,
     Griewank,
@@ -49,7 +50,8 @@ class Parabola_synth_test_func(SyntheticTestFunction):
             raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
 
         return -result if self.negate else result
-    
+
+
 class Borehole_synth_test_func(SyntheticTestFunction):
     """
     Borehole test function.
@@ -156,25 +158,16 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         if X.shape[-1] != 8:
             raise ValueError(f"Borehole expects input dimension 8, got {X.shape[-1]}")
 
-        # xx = [rw, r, Tu, Hu, Tl, Hl, L, Kw]
-        rw = X[..., 0]
-        r = X[..., 1]
-        Tu = X[..., 2]
-        Hu = X[..., 3]
-        Tl = X[..., 4]
-        Hl = X[..., 5]
-        L = X[..., 6]
-        Kw = X[..., 7]
+        # Unpack input variables: [rw, r, Tu, Hu, Tl, Hl, L, Kw]
+        rw, r, Tu, Hu, Tl, Hl, L, Kw = [X[..., i] for i in range(8)]
 
         # SFU implementation
-        log_term = torch.log(r / rw)
-
-        frac1 = 2.0 * np.pi * Tu * (Hu - Hl)
-        frac2a = 2.0 * L * Tu / (log_term * rw.pow(2) * Kw)
-        frac2b = Tu / Tl
-        frac2 = log_term * (1.0 + frac2a + frac2b)
-
-        y = frac1 / frac2
+        log_r_rw = torch.log(r / rw)
+        numerator = 2.0 * np.pi * Tu * (Hu - Hl)
+        denominator = log_r_rw * (
+            1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl
+        )
+        y = numerator / denominator
 
         if self.negate:
             y = -y
@@ -256,7 +249,6 @@ def scale_inputs(
 
 def otlcircuit(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the midpoint voltage of output transformerless (OTL)
@@ -312,7 +304,6 @@ def otlcircuit(
 
 def piston(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the time it takes a piston to complete one cycle.
@@ -365,7 +356,6 @@ def piston(
 
 def wingweight(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the weight of a light aircraft wing.
@@ -425,7 +415,6 @@ def wingweight(
 
 def borehole(
     x: npt.NDArray,
-    *args,
 ) -> npt.NDArray:
     """
     This function computes the water flow rate through a borehole.
@@ -465,14 +454,10 @@ def borehole(
     rw, r, Tu, Hu, Tl, Hl, L, Kw = x_scaled.T
 
     # Compute borehole flow rate
-    frac1 = 2 * np.pi * Tu * (Hu - Hl)
-    frac2a = 2 * L * Tu / (np.log(r / rw) * rw**2 * Kw)
-    frac2b = Tu / Tl
-    frac2 = np.log(r / rw) * (1 + frac2a + frac2b)
-
-    flow_rate = frac1 / frac2
-
-    return flow_rate
+    log_r_rw = np.log(r / rw)
+    numerator = 2 * np.pi * Tu * (Hu - Hl)
+    denominator = log_r_rw * (1 + 2 * L * Tu / (log_r_rw * rw**2 * Kw) + Tu / Tl)
+    return numerator / denominator
 
 
 def load_test_function(objective_function: str):
@@ -514,7 +499,13 @@ def load_test_function(objective_function: str):
         )
     return test_function
 
-def simulate_data(objective_function: str, num_train: int, num_test: int):
+
+def simulate_data(
+    objective_function: str,
+    num_train: int,
+    num_test: int,
+    seed: int = 1,
+):
     """
     Simulates training and testing data from a specified test function.
 
@@ -524,6 +515,7 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
             "Branin", and "HolderTable".
         num_train (int): Number of training samples to generate.
         num_test (int): Number of testing samples to generate.
+        seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -543,8 +535,8 @@ def simulate_data(objective_function: str, num_train: int, num_test: int):
     bounds_high = [b[1] for b in test_function._bounds]
 
     # Sample random data from test function
-    np.random.seed(1)
-    x_data = np.random.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    rng = np.random.default_rng(seed)
+    x_data = rng.uniform(bounds_low, bounds_high, size=(num_total, 2))
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets

@@ -169,7 +169,7 @@ def train_neural_net(
     test_losses = []
 
     # Set a random number generator seed for reproducibility
-    torch.manual_seed(seed)  # TODO double check
+    torch.manual_seed(seed)
 
     # Training loop
     for epoch in range(num_epochs):
@@ -242,7 +242,6 @@ def plot_losses(
     filename = f"loss_vs_epoch_{objective_data}_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
 
-    # Calculate final test RMSE
     final_test_rmse = np.sqrt(test_losses[-1])
 
     num_epochs = len(train_losses)
@@ -304,7 +303,6 @@ def plot_losses_verbose(
     filename = f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
     filepath = os.path.join(plots_dir, filename)
 
-    # Calculate final test RMSE
     final_test_rmse = np.sqrt(test_losses[-1])
 
     num_epochs = len(train_losses)
@@ -440,7 +438,6 @@ def plot_predictions(
         [y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--"
     )  # Line for perfect prediction
 
-    # Calculate final test RMSE
     final_test_rmse = np.sqrt(final_test_mse)
 
     plt.title(
