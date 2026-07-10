@@ -236,7 +236,7 @@ def main():
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
         f"Scale inputs: {scale_inputs}",
-        f"Standardize outputs (normalize_y): {normalize_y}",
+        f"Normalize y: {normalize_y}",
         f"Lengthscale bounds: {lengthscale_bounds}",
         f"Noise bounds: {noise_bounds}",
         f"Train MSE: {train_mse:.5e}",
@@ -246,7 +246,7 @@ def main():
         f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
         f"Train Mean abs err: {train_mae:.5e}",
         f"Test Mean abs err:  {test_mae:.5e}",
-        f"Elapsed time for training GP: {elapsed_time:.3f} seconds",
+        f"Training time: {elapsed_time:.3f} seconds",
     ]
     log_message = "\n".join(log_lines) + "\n"
 
