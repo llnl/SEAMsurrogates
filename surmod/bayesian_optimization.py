@@ -1,5 +1,5 @@
-import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, Sequence, Union, Tuple, List
 
 import matplotlib.pyplot as plt
@@ -536,11 +536,11 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = os.path.join(
-        "plots",
-        f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png",
+    filepath = (
+        Path("plots")
+        / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")
     print(f"Figure saved to {filepath}")
