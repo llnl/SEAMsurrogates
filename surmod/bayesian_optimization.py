@@ -169,8 +169,8 @@ def select_initial_dataset_indices(
     for target in target_design:
         remaining_list = np.array(sorted(remaining))
         x_remaining = x[remaining_list]
-        dists = np.sum((x_remaining - target) ** 2, axis=1)
-        best_local_idx = int(np.argmin(dists))
+        dists = np.linalg.norm(x_remaining - target, axis=1)
+        best_local_idx = np.argmin(dists)
         chosen_idx = int(remaining_list[best_local_idx])
         selected.append(chosen_idx)
         remaining.remove(chosen_idx)
