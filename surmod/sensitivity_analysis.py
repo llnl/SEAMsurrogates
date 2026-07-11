@@ -11,7 +11,6 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from sklearn.metrics import mean_squared_error as mse
 
 from surmod.test_functions import (
     parabola,

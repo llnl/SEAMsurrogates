@@ -17,7 +17,6 @@ from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
-from matplotlib.tri import Triangulation
 
 from botorch.test_functions.synthetic import (
     Ackley,
