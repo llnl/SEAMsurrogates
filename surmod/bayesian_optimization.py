@@ -430,8 +430,6 @@ class BayesianOptimizer:
         df: Optional[pd.DataFrame] = None,
         n_init: int = 10,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        rng = np.random.RandomState(self.seed)
-
         if df is not None:
             df = df.copy()
 
