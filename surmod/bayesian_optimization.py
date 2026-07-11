@@ -515,20 +515,15 @@ def plot_acquisition_comparison(
     plt.xlabel("Iteration")
     plt.ylabel("Best Observed Value")
 
-    y_min = min(
-        np.min(max_output_EI),
-        np.min(max_output_PI),
-        np.min(max_output_UCB),
-        np.min(max_output_PV),
-        np.min(max_output_random),
-    )
-    y_max = max(
-        np.max(max_output_EI),
-        np.max(max_output_PI),
-        np.max(max_output_UCB),
-        np.max(max_output_PV),
-        np.max(max_output_random),
-    )
+    all_outputs = [
+        max_output_EI,
+        max_output_PI,
+        max_output_UCB,
+        max_output_PV,
+        max_output_random,
+    ]
+    y_min = np.min(all_outputs)
+    y_max = np.max(all_outputs)
 
     if np.isfinite(y_min) and np.isfinite(y_max) and y_min != y_max:
         plt.ylim(0.95 * y_min, 1.05 * y_max)
