@@ -163,7 +163,7 @@ def main() -> None:
     y_test = torch.tensor(y_test, dtype=torch.float32)
 
     # Train the neural net
-    model, train_losses, test_losses = nn.train_neural_net(
+    model, train_losses, test_losses = nn.train(
         x_train,
         y_train,
         x_test,

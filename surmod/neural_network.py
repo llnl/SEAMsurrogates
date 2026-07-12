@@ -118,7 +118,7 @@ def load_test_function(objective_function: str) -> SyntheticTestFunction:
     return test_function
 
 
-def train_neural_net(
+def train(
     x_train: torch.Tensor,
     y_train: torch.Tensor,
     x_test: torch.Tensor,

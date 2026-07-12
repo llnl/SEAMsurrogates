@@ -476,7 +476,7 @@ def main():
         for i, hid_sz in enumerate(multi_hidden_sizes):
             for j, lr in enumerate(multi_learning_rates):
                 hidden_sizes = [hid_sz, hid_sz]
-                model, train_losses, test_losses = nn.train_neural_net(
+                model, train_losses, test_losses = nn.train(
                     x_train,
                     y_train,
                     x_test,
@@ -508,7 +508,7 @@ def main():
     # Default: Do one train/test run and plot loss over epochs results
     else:
         # Train and test FFNN
-        model, train_losses, test_losses = nn.train_neural_net(
+        model, train_losses, test_losses = nn.train(
             x_train,
             y_train,
             x_test,
