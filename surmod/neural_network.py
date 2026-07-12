@@ -371,7 +371,6 @@ def plot_losses_multiplot(
             String identifier for the data/objective function, used in the saved
             filename.
     """
-
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
             ax = axs[i][j]
@@ -431,7 +430,6 @@ def plot_predictions(
             Identifier for the data/objective, used in the filename. Defaults
             to "___ data".
     """
-
     plt.figure(figsize=(10, 5))
     plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
     plt.plot(

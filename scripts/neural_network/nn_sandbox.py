@@ -49,7 +49,6 @@ from surmod import neural_network as nn
 
 def parse_arguments():
     """Get command line arguments."""
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="A script to train NN surrogate models on synthetic test "
@@ -242,7 +241,6 @@ def plot_surface_3d(
         output_scaler: Optional sklearn.preprocessing scaler with an
             .inverse_transform method to apply to model predictions.
     """
-
     # Generate a grid of points within the bounds of the test function
     bounds_low = [b[0] for b in synthetic_function._bounds]
     bounds_high = [b[1] for b in synthetic_function._bounds]
