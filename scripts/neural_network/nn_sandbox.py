@@ -342,7 +342,6 @@ def main():
     neural network surrogate model, and plots training/testing loss curves.
     Supports single or multiple training runs with varying hyperparameters.
     """
-
     # Parse command line arguments
     args = parse_arguments()
     objective_function = args.objective_function
