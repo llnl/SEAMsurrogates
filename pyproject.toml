@@ -45,3 +45,12 @@ Issues = "https://github.com/LLNL/SEAMsurrogates/issues"
 
 [tool.setuptools]
 packages = ["surmod"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+    "W",    # pycodestyle warnings
+    "D202", # no-blank-line-after-function
+]
