@@ -33,7 +33,7 @@ chmod +x ./nn_sandbox.py
 
 import argparse
 from datetime import datetime
-import os
+from pathlib import Path
 from typing import Tuple
 
 import matplotlib
@@ -329,11 +329,9 @@ def plot_surface_3d(
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
     # Create plots directory if it doesn't exist and save plot
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    Path("plots").mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"surface_plot_{title}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = Path("plots") / f"surface_plot_{title}_{timestamp}.png"
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
 
