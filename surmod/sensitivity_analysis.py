@@ -151,8 +151,8 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
         alpha=0.7,
     )
 
-    max_value = max(np.max(observed), np.max(upper_bounds)) + 0.1
-    min_value = min(np.min(observed), np.min(lower_bounds)) - 0.1
+    max_value = max(observed.max(), upper_bounds.max()) + 0.1
+    min_value = min(observed.min(), lower_bounds.min()) - 0.1
     plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
     plt.ylabel("Predicted", fontsize=14)
