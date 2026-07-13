@@ -4,9 +4,9 @@ sensitivity analysis experiments using benchmark engineering test problems.
 """
 
 import copy
-import os
 from typing import Tuple, Callable, List, Sequence
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -167,10 +167,10 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = os.path.join(
-        "plots", f"test_predictions_{objective_function}_{timestamp}.png"
+    path_to_plot = (
+        Path("plots") / f"test_predictions_{objective_function}_{timestamp}.png"
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
@@ -223,10 +223,8 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = os.path.join(
-        "plots", f"sensitivity_{objective_function}_{timestamp}.png"
-    )
+    path_to_plot = Path("plots") / f"sensitivity_{objective_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
