@@ -154,7 +154,7 @@ def select_initial_dataset_indices(
     if method == "random":
         return rng.choice(n_rows, size=n_init, replace=False)
 
-    target_design = generate_initial_design(
+    targets = generate_initial_design(
         bounds_low=np.zeros(dim),
         bounds_high=np.ones(dim),
         n_samples=n_init,
@@ -166,8 +166,8 @@ def select_initial_dataset_indices(
     remaining = set(range(n_rows))
     selected = []
 
-    for target in target_design:
-        remaining_list = np.array(sorted(remaining))
+    for target in targets:
+        remaining_list = np.sort(list(remaining))
         x_remaining = x[remaining_list]
         dists = np.linalg.norm(x_remaining - target, axis=1)
         best_local_idx = np.argmin(dists)
