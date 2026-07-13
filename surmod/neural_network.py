@@ -239,8 +239,7 @@ def plot_losses(
     plots_dir.mkdir(exist_ok=True)
     # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = plots_dir / filename
+    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -300,8 +299,7 @@ def plot_losses_verbose(
     plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
-    filepath = plots_dir / filename
+    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -397,8 +395,7 @@ def plot_losses_multiplot(
     plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = plots_dir / filename
+    filepath = plots_dir / f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
@@ -460,8 +457,7 @@ def plot_predictions(
     plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"prediction_vs_test_{objective_data}_{timestamp}.png"
-    filepath = plots_dir / filename
+    filepath = plots_dir / f"prediction_vs_test_{objective_data}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
