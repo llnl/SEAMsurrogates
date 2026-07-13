@@ -411,8 +411,8 @@ def main():
         x_test = scaler_x_train.transform(x_test)  # type: ignore
 
         # Convert back to torch tensors
-        x_train = torch.from_numpy(x_train).float()
-        x_test = torch.from_numpy(x_test).float()
+        x_train = torch.as_tensor(x_train, dtype=torch.float32)
+        x_test = torch.as_tensor(x_test, dtype=torch.float32)
 
     if normalize_y and scale_y:
         raise ValueError("Choose either normalize_y or scale_y, not both.")
@@ -450,8 +450,8 @@ def main():
         y_test = scaler_y_train.transform(y_test)  # type: ignore
 
         # Convert back to torch tensors
-        y_train = torch.from_numpy(y_train).float()
-        y_test = torch.from_numpy(y_test).float()
+        y_train = torch.as_tensor(y_train, dtype=torch.float32)
+        y_test = torch.as_tensor(y_test, dtype=torch.float32)
 
     # Do multiple train/test runs with various learning rates & hidden layers
     #   size and plot loss over epochs results
