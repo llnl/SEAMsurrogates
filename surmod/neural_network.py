@@ -3,7 +3,7 @@ Functions for neural network surrogates.
 """
 
 from datetime import datetime
-import os
+from pathlib import Path
 from typing import List, Sequence, Tuple
 
 import matplotlib.axes
@@ -235,12 +235,12 @@ def plot_losses(
             function or dataset. Used in the plot title and filename. Defaults
             to "___ data".
     """
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / filename
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -297,11 +297,11 @@ def plot_losses_verbose(
             function or dataset. Used in the plot title and filename. Defaults
             to "___ data".
     """
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / filename
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -394,11 +394,11 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / filename
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
@@ -457,11 +457,11 @@ def plot_predictions(
     plt.ylim(limits)
     plt.axis("square")
 
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filename = f"prediction_vs_test_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / filename
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
