@@ -271,23 +271,20 @@ class BayesianOptimizer:
         acquisition_name = self.acquisition.upper()
 
         if acquisition_name == "EI":
-            best_f = float(np.max(self.y_all_data))
+            best_f = self.y_all_data.max()
             return LogExpectedImprovement(model=model, best_f=best_f)
-
-        if acquisition_name == "PI":
-            best_f = float(np.max(self.y_all_data))
+        elif acquisition_name == "PI":
+            best_f = self.y_all_data.max()
             return ProbabilityOfImprovement(model=model, best_f=best_f)
-
-        if acquisition_name == "UCB":
-            beta = float(self.acquisition_kwargs.get("beta", 2.0))
+        elif acquisition_name == "UCB":
+            beta = self.acquisition_kwargs.get("beta", 2.0)
             return UpperConfidenceBound(model=model, beta=beta)
-
-        if acquisition_name == "PV":
+        elif acquisition_name == "PV":
             return PosteriorStandardDeviation(model=model)
-
-        raise ValueError(
-            "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
-        )
+        else:
+            raise ValueError(
+                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
+            )
 
     def propose_location(
         self,
