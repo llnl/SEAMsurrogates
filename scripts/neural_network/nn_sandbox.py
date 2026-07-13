@@ -310,8 +310,6 @@ def plot_surface_3d(
     # Set the viewing angle
     ax.view_init(angle[0], angle[1])  # type: ignore
 
-    # Create proxy artists for the legend
-    # Get the colormap object
     viridis_cmap = matplotlib.colormaps["viridis"]
     coolwarm_cmap = matplotlib.colormaps["coolwarm"]
 
