@@ -133,10 +133,8 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
 
     lower_bounds = prediction_mean - Zscore * std_dev
     upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = float(np.mean((observed >= lower_bounds) & (observed <= upper_bounds)))
-
-    # RMSE (NumPy)
-    test_rmse = float(np.sqrt(np.mean((observed - prediction_mean) ** 2)))
+    coverage = np.mean((observed >= lower_bounds) & (observed <= upper_bounds))
+    test_rmse = np.sqrt(np.mean(np.square(observed - prediction_mean)))
 
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.figure()
