@@ -30,9 +30,9 @@ chmod +x ./gp_sandbox.py
 """
 
 import argparse
-import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -140,8 +140,8 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def log_results(log_message: str, path_to_log: str) -> None:
-    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
+def log_results(log_message: str, path_to_log: Path) -> None:
+    path_to_log.parent.mkdir(parents=True, exist_ok=True)
     with open(path_to_log, "a", encoding="utf-8") as f:
         f.write(log_message + "\n")
 
@@ -248,10 +248,8 @@ def main():
         if do_log:
             log_results(
                 log_message,
-                path_to_log=os.path.join(
-                    "output_log",
-                    f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
-                ),
+                path_to_log=Path("output_log")
+                / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
             )
 
         if plots:

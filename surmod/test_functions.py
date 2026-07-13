@@ -102,7 +102,6 @@ class Borehole_synth_test_func(SyntheticTestFunction):
                 in the order documented in the class docstring. If None, uses
                 the standard SFU Borehole bounds.
         """
-
         # Borehole has fixed dimension 8
         self.dim = 8
 
@@ -143,7 +142,6 @@ class Borehole_synth_test_func(SyntheticTestFunction):
             TypeError: If `X` is not a `torch.Tensor` or `np.ndarray`.
             ValueError: If the last dimension of `X` is not 8.
         """
-
         # Convert numpy to torch if needed
         if isinstance(X, np.ndarray):
             X = torch.from_numpy(X.astype(np.float32))

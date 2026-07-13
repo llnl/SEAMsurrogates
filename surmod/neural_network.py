@@ -3,7 +3,7 @@ Functions for neural network surrogates.
 """
 
 from datetime import datetime
-import os
+from pathlib import Path
 from typing import List, Sequence, Tuple
 
 import matplotlib.axes
@@ -118,7 +118,7 @@ def load_test_function(objective_function: str) -> SyntheticTestFunction:
     return test_function
 
 
-def train_neural_net(
+def train(
     x_train: torch.Tensor,
     y_train: torch.Tensor,
     x_test: torch.Tensor,
@@ -235,12 +235,11 @@ def plot_losses(
             function or dataset. Used in the plot title and filename. Defaults
             to "___ data".
     """
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -297,11 +296,10 @@ def plot_losses_verbose(
             function or dataset. Used in the plot title and filename. Defaults
             to "___ data".
     """
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -371,7 +369,6 @@ def plot_losses_multiplot(
             String identifier for the data/objective function, used in the saved
             filename.
     """
-
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
             ax = axs[i][j]
@@ -395,11 +392,10 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
@@ -431,7 +427,6 @@ def plot_predictions(
             Identifier for the data/objective, used in the filename. Defaults
             to "___ data".
     """
-
     plt.figure(figsize=(10, 5))
     plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
     plt.plot(
@@ -459,11 +454,10 @@ def plot_predictions(
     plt.ylim(limits)
     plt.axis("square")
 
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    plots_dir = Path("plots")
+    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"prediction_vs_test_{objective_data}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = plots_dir / f"prediction_vs_test_{objective_data}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")

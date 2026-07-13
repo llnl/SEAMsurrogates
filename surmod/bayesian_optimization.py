@@ -154,7 +154,7 @@ def select_initial_dataset_indices(
     if method == "random":
         return rng.choice(n_rows, size=n_init, replace=False)
 
-    target_design = generate_initial_design(
+    targets = generate_initial_design(
         bounds_low=np.zeros(dim),
         bounds_high=np.ones(dim),
         n_samples=n_init,
@@ -166,8 +166,8 @@ def select_initial_dataset_indices(
     remaining = set(range(n_rows))
     selected = []
 
-    for target in target_design:
-        remaining_list = np.array(sorted(remaining))
+    for target in targets:
+        remaining_list = np.sort(list(remaining))
         x_remaining = x[remaining_list]
         dists = np.linalg.norm(x_remaining - target, axis=1)
         best_local_idx = np.argmin(dists)
@@ -271,23 +271,20 @@ class BayesianOptimizer:
         acquisition_name = self.acquisition.upper()
 
         if acquisition_name == "EI":
-            best_f = float(np.max(self.y_all_data))
+            best_f = self.y_all_data.max()
             return LogExpectedImprovement(model=model, best_f=best_f)
-
-        if acquisition_name == "PI":
-            best_f = float(np.max(self.y_all_data))
+        elif acquisition_name == "PI":
+            best_f = self.y_all_data.max()
             return ProbabilityOfImprovement(model=model, best_f=best_f)
-
-        if acquisition_name == "UCB":
-            beta = float(self.acquisition_kwargs.get("beta", 2.0))
+        elif acquisition_name == "UCB":
+            beta = self.acquisition_kwargs.get("beta", 2.0)
             return UpperConfidenceBound(model=model, beta=beta)
-
-        if acquisition_name == "PV":
+        elif acquisition_name == "PV":
             return PosteriorStandardDeviation(model=model)
-
-        raise ValueError(
-            "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
-        )
+        else:
+            raise ValueError(
+                "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
+            )
 
     def propose_location(
         self,

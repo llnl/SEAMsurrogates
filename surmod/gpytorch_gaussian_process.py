@@ -547,8 +547,8 @@ class GPSurrogate:
         lower_bounds = prediction_mean.flatten() - 1.96 * std_dev.flatten()
         upper_bounds = prediction_mean.flatten() + 1.96 * std_dev.flatten()
 
-        max_value = max(np.max(observed), np.max(upper_bounds))
-        min_value = min(np.min(observed), np.min(lower_bounds))
+        max_value = max(observed.max(), upper_bounds.max())
+        min_value = min(observed.min(), lower_bounds.min())
         plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
         plt.ylabel("Predicted", fontsize=14)

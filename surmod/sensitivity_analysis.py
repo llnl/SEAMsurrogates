@@ -4,9 +4,9 @@ sensitivity analysis experiments using benchmark engineering test problems.
 """
 
 import copy
-import os
 from typing import Tuple, Callable, List, Sequence
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -133,10 +133,8 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
 
     lower_bounds = prediction_mean - Zscore * std_dev
     upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = float(np.mean((observed >= lower_bounds) & (observed <= upper_bounds)))
-
-    # RMSE (NumPy)
-    test_rmse = float(np.sqrt(np.mean((observed - prediction_mean) ** 2)))
+    coverage = np.mean((observed >= lower_bounds) & (observed <= upper_bounds))
+    test_rmse = np.sqrt(np.mean(np.square(observed - prediction_mean)))
 
     plt.style.use("seaborn-v0_8-whitegrid")
     plt.figure()
@@ -151,8 +149,8 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
         alpha=0.7,
     )
 
-    max_value = max(np.max(observed), np.max(upper_bounds)) + 0.1
-    min_value = min(np.min(observed), np.min(lower_bounds)) - 0.1
+    max_value = max(observed.max(), upper_bounds.max()) + 0.1
+    min_value = min(observed.min(), lower_bounds.min()) - 0.1
     plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
     plt.ylabel("Predicted", fontsize=14)
@@ -167,10 +165,10 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = os.path.join(
-        "plots", f"test_predictions_{objective_function}_{timestamp}.png"
+    path_to_plot = (
+        Path("plots") / f"test_predictions_{objective_function}_{timestamp}.png"
     )
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
@@ -223,10 +221,8 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = os.path.join(
-        "plots", f"sensitivity_{objective_function}_{timestamp}.png"
-    )
+    path_to_plot = Path("plots") / f"sensitivity_{objective_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

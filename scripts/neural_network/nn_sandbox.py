@@ -33,7 +33,7 @@ chmod +x ./nn_sandbox.py
 
 import argparse
 from datetime import datetime
-import os
+from pathlib import Path
 from typing import Tuple
 
 import matplotlib
@@ -49,7 +49,6 @@ from surmod import neural_network as nn
 
 def parse_arguments():
     """Get command line arguments."""
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="A script to train NN surrogate models on synthetic test "
@@ -242,7 +241,6 @@ def plot_surface_3d(
         output_scaler: Optional sklearn.preprocessing scaler with an
             .inverse_transform method to apply to model predictions.
     """
-
     # Generate a grid of points within the bounds of the test function
     bounds_low = [b[0] for b in synthetic_function._bounds]
     bounds_high = [b[1] for b in synthetic_function._bounds]
@@ -312,8 +310,6 @@ def plot_surface_3d(
     # Set the viewing angle
     ax.view_init(angle[0], angle[1])  # type: ignore
 
-    # Create proxy artists for the legend
-    # Get the colormap object
     viridis_cmap = matplotlib.colormaps["viridis"]
     coolwarm_cmap = matplotlib.colormaps["coolwarm"]
 
@@ -329,11 +325,9 @@ def plot_surface_3d(
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
     # Create plots directory if it doesn't exist and save plot
-    plots_dir = "plots"
-    os.makedirs(plots_dir, exist_ok=True)
+    Path("plots").mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filename = f"surface_plot_{title}_{timestamp}.png"
-    filepath = os.path.join(plots_dir, filename)
+    filepath = Path("plots") / f"surface_plot_{title}_{timestamp}.png"
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
 
@@ -344,7 +338,6 @@ def main():
     neural network surrogate model, and plots training/testing loss curves.
     Supports single or multiple training runs with varying hyperparameters.
     """
-
     # Parse command line arguments
     args = parse_arguments()
     objective_function = args.objective_function
@@ -416,8 +409,8 @@ def main():
         x_test = scaler_x_train.transform(x_test)  # type: ignore
 
         # Convert back to torch tensors
-        x_train = torch.from_numpy(x_train).float()
-        x_test = torch.from_numpy(x_test).float()
+        x_train = torch.as_tensor(x_train, dtype=torch.float32)
+        x_test = torch.as_tensor(x_test, dtype=torch.float32)
 
     if normalize_y and scale_y:
         raise ValueError("Choose either normalize_y or scale_y, not both.")
@@ -455,8 +448,8 @@ def main():
         y_test = scaler_y_train.transform(y_test)  # type: ignore
 
         # Convert back to torch tensors
-        y_train = torch.from_numpy(y_train).float()
-        y_test = torch.from_numpy(y_test).float()
+        y_train = torch.as_tensor(y_train, dtype=torch.float32)
+        y_test = torch.as_tensor(y_test, dtype=torch.float32)
 
     # Do multiple train/test runs with various learning rates & hidden layers
     #   size and plot loss over epochs results
@@ -478,7 +471,7 @@ def main():
         for i, hid_sz in enumerate(multi_hidden_sizes):
             for j, lr in enumerate(multi_learning_rates):
                 hidden_sizes = [hid_sz, hid_sz]
-                model, train_losses, test_losses = nn.train_neural_net(
+                model, train_losses, test_losses = nn.train(
                     x_train,
                     y_train,
                     x_test,
@@ -510,7 +503,7 @@ def main():
     # Default: Do one train/test run and plot loss over epochs results
     else:
         # Train and test FFNN
-        model, train_losses, test_losses = nn.train_neural_net(
+        model, train_losses, test_losses = nn.train(
             x_train,
             y_train,
             x_test,

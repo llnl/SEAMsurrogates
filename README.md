@@ -38,6 +38,11 @@ Please send correspondence about this code to seam@llnl.gov.
     pip install -e .
 ```
 
+6. **For development (optional)**: Install development dependencies for testing and linting
+```bash
+    pip install -e ".[dev]"
+```
+
 ## Datasets
 
 The datasets in the `data` directory are from different sources:
