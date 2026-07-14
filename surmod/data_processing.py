@@ -12,7 +12,6 @@ Borehole:
 
 from typing import Optional, Tuple
 import warnings
-import os
 from pathlib import Path
 
 import numpy as np
@@ -80,7 +79,7 @@ def load_data(
     if path_to_csv is None:
         path_to_csv = cfg["path"]
 
-    if not os.path.isfile(path_to_csv):  # type: ignore
+    if not Path(path_to_csv).is_file():
         raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
 
     df = pd.read_csv(path_to_csv)  # type: ignore
