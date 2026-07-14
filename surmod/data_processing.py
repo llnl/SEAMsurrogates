@@ -29,12 +29,12 @@ _DATA_DIR = _MODULE_DIR.parent / "data"
 # Dataset configuration
 DATASET_CONFIG = {
     "JAG": {
-        "path": str(_DATA_DIR / "JAG_10k.csv"),
+        "path": _DATA_DIR / "JAG_10k.csv",
         "n_inputs": 5,
         "n_outputs": 1,
     },
     "borehole": {
-        "path": str(_DATA_DIR / "borehole_10k.csv"),
+        "path": _DATA_DIR / "borehole_10k.csv",
         "n_inputs": 8,
         "n_outputs": 1,
     },
@@ -45,7 +45,7 @@ def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
     random: bool = True,
-    path_to_csv: Optional[str] = None,
+    path_to_csv: Optional[str | Path] = None,
     seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -79,7 +79,10 @@ def load_data(
     if path_to_csv is None:
         path_to_csv = cfg["path"]
 
-    if not Path(path_to_csv).is_file():
+    # Convert to Path for consistent internal handling
+    path_to_csv = Path(path_to_csv)
+
+    if not path_to_csv.is_file():
         raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
 
     df = pd.read_csv(path_to_csv)  # type: ignore
@@ -208,7 +211,7 @@ def split_data(
 
 def load_and_split(
     dataset: str = "JAG",
-    path_to_csv: Optional[str] = None,
+    path_to_csv: Optional[str | Path] = None,
     n_samples: int = 10000,
     random_rows: bool = True,
     seed: int = 42,
