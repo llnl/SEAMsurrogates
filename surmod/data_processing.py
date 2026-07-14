@@ -182,11 +182,11 @@ def split_data(
         # Query for unique nearest neighbors
         _, index = query_unique(tree, x_lhd)
 
-        x_train = x[index, :]
+        x_train = x[index]
         y_train = y[index].reshape(-1, 1)
         mask = np.ones(n_total, dtype=bool)
         mask[index] = False
-        x_test = x[mask, :]
+        x_test = x[mask]
         y_test = y[mask].reshape(-1, 1)
     else:
         # Standard random split with exact n_train samples
