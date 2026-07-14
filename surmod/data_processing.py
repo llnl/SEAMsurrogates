@@ -94,7 +94,7 @@ def load_data(
     if n_samples > len(df):
         warnings.warn(
             "n_samples is greater than the number of rows in the dataset "
-            f"({len(df)}). Using the full 10k dataset instead."
+            f"({len(df)}). Using the full dataset instead."
         )
         n_samples = len(df)
 
