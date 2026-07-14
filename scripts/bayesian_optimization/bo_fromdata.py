@@ -123,8 +123,11 @@ def main() -> None:
         raise ValueError(
             f"num_init + num_iter ({num_init + num_iter}) exceeds dataset size ({len(df)})."
         )
-    x = df.iloc[:, :-1].to_numpy()
-    y = df.iloc[:, -1].to_numpy()
+
+    data = df.to_numpy()
+    x = data[:, :-1]
+    y = data[:, -1]
+
     # Keep maximin-LHD settings internal, not exposed on CLI
     init_design_kwargs = {}
     if args.init_design == "maximin_lhd":
