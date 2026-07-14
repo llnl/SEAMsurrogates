@@ -32,11 +32,13 @@ DATASET_CONFIG = {
         "path": _DATA_DIR / "JAG_10k.csv",
         "n_inputs": 5,
         "n_outputs": 1,
+        "columns": ["x0", "x1", "x2", "x3", "x4", "y"],
     },
     "borehole": {
         "path": _DATA_DIR / "borehole_10k.csv",
         "n_inputs": 8,
         "n_outputs": 1,
+        "columns": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw", "y"],
     },
 }
 
@@ -86,11 +88,7 @@ def load_data(
         raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
 
     df = pd.read_csv(path_to_csv)  # type: ignore
-
-    if dataset == "JAG":
-        df.columns = ["x0", "x1", "x2", "x3", "x4", "y"]
-    elif dataset == "borehole":
-        df.columns = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw", "y"]
+    df.columns = cfg["columns"]
 
     # Check and warn if n_samples is too large
     if n_samples > len(df):
