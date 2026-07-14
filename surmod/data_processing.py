@@ -136,8 +136,9 @@ def split_data(
         ValueError: If n_train is greater than the total number of samples in df.
     """
     # Split the data into features (x) and labels (y)
-    x = df.iloc[:, :-1].to_numpy()
-    y = df.iloc[:, -1].to_numpy()
+    data = df.to_numpy()
+    x = data[:, :-1]
+    y = data[:, -1]
     n_total, k = x.shape
 
     # Ensure n_train is not greater than total_samples
