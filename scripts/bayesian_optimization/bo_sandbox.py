@@ -18,6 +18,7 @@ import argparse
 import io
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Generator
 
 import imageio.v2 as imageio
@@ -356,9 +357,9 @@ def plot_convergence(
     plt.tight_layout()
 
     if save_animation:
-        os.makedirs("plots", exist_ok=True)
+        Path("plots").mkdir(exist_ok=True)
         ts = datetime.now().strftime("%m%d_%H%M%S")
-        path = os.path.join("plots", f"track_max_{title_lines[0].split()[0]}_{ts}.png")
+        path = Path("plots") / f"track_max_{title_lines[0].split()[0]}_{ts}.png"
         plt.savefig(path)
         print(f"Convergence figure saved to {path}")
     else:
@@ -366,16 +367,16 @@ def plot_convergence(
 
 
 def save_gif(frames: list, objective_function: str) -> None:
-    os.makedirs("plots", exist_ok=True)
+    Path("plots").mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
-    path = os.path.join("plots", f"bayes_opt_animation_{objective_function}_{ts}.gif")
+    path = Path("plots") / f"bayes_opt_animation_{objective_function}_{ts}.gif"
     imageio.mimsave(path, frames, fps=2)
     print(f"Animation saved as {path}")
 
 
 def main() -> None:
     args = parse_arguments()
-    os.environ["MPLCONFIGDIR"] = os.getcwd()
+    os.environ["MPLCONFIGDIR"] = str(Path.cwd())
     np.random.seed(args.seed)
 
     synth_function = load_test_function(args.objective_function)
