@@ -30,7 +30,7 @@ chmod +x ./sa_fromdata.py
 """
 
 import argparse
-import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -112,9 +112,10 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def log_results(log_message: str, path_to_log: str) -> None:
-    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
-    with open(path_to_log, "a", encoding="utf-8") as f:
+def log_results(log_message: str, path_to_log: Path | str) -> None:
+    path = Path(path_to_log)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
         f.write(log_message + "\n")
 
 
@@ -253,9 +254,7 @@ def main():
     print(log_message)
 
     if do_log:
-        log_results(
-            log_message, path_to_log=os.path.join("output_log", f"{data}_Results.txt")
-        )
+        log_results(log_message, path_to_log=Path("output_log") / f"{data}_Results.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
     sa.plot_test_predictions(x_test, y_test_1d, gp_model, data)
