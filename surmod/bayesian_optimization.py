@@ -26,11 +26,13 @@ def sample_parabola(
     bounds_high: Union[float, Sequence[float], np.ndarray],
     input_size: int,
     radius: float = 7,
+    seed: int = 1,
 ) -> np.ndarray:
+    rng = np.random.default_rng(seed)
     samples = []
 
     while len(samples) < n_initial:
-        x_point = np.random.uniform(bounds_low, bounds_high, size=input_size)
+        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
         if np.linalg.norm(x_point) > radius:
             samples.append(x_point)
 
@@ -68,7 +70,9 @@ def sample_data(
     test_function = load_test_function(objective_function)
 
     if objective_function == "Parabola" and init_design == "random":
-        x_data = sample_parabola(n_initial, bounds_low, bounds_high, input_size)
+        x_data = sample_parabola(
+            n_initial, bounds_low, bounds_high, input_size, seed=seed
+        )
     else:
         x_data = generate_initial_design(
             bounds_low=bounds_low,
