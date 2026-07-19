@@ -129,7 +129,6 @@ def main() -> None:
     y = data[:, -1]
 
     # Keep maximin-LHD settings internal, not exposed on CLI
-    init_design_kwargs = {}
     if args.init_design == "maximin_lhd":
         init_design_kwargs = dict(
             T0=10.0,
@@ -140,6 +139,8 @@ def main() -> None:
             Imax=100,
             jitter=False,
         )
+    else:
+        init_design_kwargs = {}
 
     # If user does not specify, keep nugget small by default
     default_noise_bounds = (1e-8, 1e-6)
