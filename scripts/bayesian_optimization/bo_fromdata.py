@@ -11,10 +11,10 @@ performance across acquisition functions:
 
 Usage examples:
 
-./bo_fromdata.py --data=JAG --num_iter=15 --num_init=10
-./bo_fromdata.py --data=borehole --num_iter=20 --kernel=rbf --seed=123
-./bo_fromdata.py --data=JAG --kernel=matern --beta=2.0 --init_design=lhd -s 3
-./bo_fromdata.py --data=borehole --init_design=maximin_lhd --fixed_nugget=1e-7
+./bo_fromdata.py --dataset=JAG --num_iter=15 --num_init=10
+./bo_fromdata.py --dataset=borehole --num_iter=20 --kernel=rbf --seed=123
+./bo_fromdata.py --dataset=JAG --kernel=matern --beta=2.0 --init_design=lhd
+./bo_fromdata.py --dataset=borehole --init_design=maximin_lhd --fixed_nugget=1e-7
 """
 
 import argparse
@@ -39,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-d",
-        "--data",
+        "--dataset",
         type=str,
         choices=["JAG", "borehole"],
         default="JAG",
@@ -107,7 +107,7 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_arguments()
-    dataset_name = args.data
+    dataset = args.dataset
     kernel = args.kernel
     num_init = args.num_init
     num_iter = args.num_iter
@@ -119,7 +119,7 @@ def main() -> None:
             f"Total samples ({num_samples}) exceed existing dataset size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=dataset_name, n_samples=10000, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=10000, random=False)
 
     if num_init > len(df):
         raise ValueError(
@@ -255,7 +255,7 @@ def main() -> None:
         kernel,
         num_iter,
         num_init,
-        f"{dataset_name}_{args.init_design}",
+        f"{dataset}_{args.init_design}",
         beta=args.beta,
     )
 
