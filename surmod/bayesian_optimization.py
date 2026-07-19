@@ -46,7 +46,7 @@ def sample_data(
     n_initial: int,
     input_size: int = 2,
     init_design: str = "random",
-    seed: Optional[int] = None,
+    seed: int = 1,
     **design_kwargs,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -59,7 +59,7 @@ def sample_data(
         n_initial: Number of initial points.
         input_size: Input dimension.
         init_design: One of 'random', 'lhd', 'maximin_lhd'.
-        seed: Random seed.
+        seed: Random seed (default: 1).
         design_kwargs: Extra kwargs forwarded to generate_initial_design().
 
     Returns:
