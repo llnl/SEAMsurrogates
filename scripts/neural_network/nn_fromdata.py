@@ -41,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-d",
-        "--data",
+        "--dataset",
         type=str,
         choices=["JAG", "borehole"],
         default="JAG",
@@ -127,7 +127,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     # Parse command line arguments
     args = parse_arguments()
-    data = args.data
+    dataset = args.dataset
     num_train = args.num_train
     num_test = args.num_test
     seed = args.seed
@@ -150,7 +150,7 @@ def main() -> None:
     initialize_weights_normal = True
 
     # Load data into data frame and split into train and test sets
-    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df, LHD=LHD, n_train=num_train, seed=seed
@@ -191,18 +191,18 @@ def main() -> None:
             scale_y=False,
             train_data_size=num_train,
             test_data_size=x_test.shape[0],
-            objective_data=data,
+            objective_data=dataset,
         )
 
     else:
         # Plot train and test loss over epochs
-        nn.plot_losses(train_losses, test_losses, data)
+        nn.plot_losses(train_losses, test_losses, dataset)
 
     # Get neural network predictions
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
         predictions = model(x_test)
-    nn.plot_predictions(y_test, predictions, test_losses[-1], data)
+    nn.plot_predictions(y_test, predictions, test_losses[-1], dataset)
 
 
 if __name__ == "__main__":

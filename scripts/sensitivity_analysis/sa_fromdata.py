@@ -53,7 +53,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-d",
-        "--data",
+        "--dataset",
         type=str,
         choices=["JAG", "borehole"],
         default="JAG",
@@ -134,7 +134,7 @@ def main():
     performs Sobol sensitivity analysis, and generates plots/logs.
     """
     args = parse_arguments()
-    data = args.data
+    dataset = args.dataset
     normalize_x = args.normalize_x
     num_train = args.num_train
     num_test = args.num_test
@@ -148,16 +148,16 @@ def main():
             f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=num_train)
 
     # Initial variable names per dataset
-    if data == "JAG":
+    if dataset == "JAG":
         variable_names = np.array(["x1", "x2", "x3", "x4", "x5"])
-    elif data == "borehole":
+    elif dataset == "borehole":
         variable_names = np.array(["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"])
     else:
-        raise ValueError(f"Unknown dataset: {data}")
+        raise ValueError(f"Unknown dataset: {dataset}")
 
     # Apply exclusions consistently
     if exclude is not None:
@@ -254,10 +254,12 @@ def main():
     print(log_message)
 
     if do_log:
-        log_results(log_message, path_to_log=Path("output_log") / f"{data}_Results.txt")
+        log_results(
+            log_message, path_to_log=Path("output_log") / f"{dataset}_Results.txt"
+        )
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
-    sa.plot_test_predictions(x_test, y_test_1d, gp_model, data)
+    sa.plot_test_predictions(x_test, y_test_1d, gp_model, dataset)
 
     plt.figure()
     sa.sobol_plot(
@@ -266,7 +268,7 @@ def main():
         problem["names"],
         Si["S1_conf"],
         Si["ST_conf"],
-        data,
+        dataset,
     )
 
 

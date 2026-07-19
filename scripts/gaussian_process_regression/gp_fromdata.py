@@ -31,7 +31,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-d",
-        "--data",
+        "--dataset",
         type=str,
         choices=["JAG", "borehole"],
         default="JAG",
@@ -154,7 +154,7 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-    data = args.data
+    dataset = args.dataset
     num_train = args.num_train
     num_test = args.num_test
     normalize_y = args.normalize_y
@@ -176,7 +176,7 @@ def main():
         )
 
     # Load and split data
-    df = data_processing.load_data(dataset=data, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df=df, LHD=use_lhd, n_train=num_train, seed=seed
     )
@@ -230,7 +230,7 @@ def main():
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
-        f"Test Function: {data}",
+        f"Test Function: {dataset}",
         f"Number of training points: {num_train}",
         f"Number of testing points: {num_test}",
         f"Kernel: {kernel}",
@@ -255,12 +255,12 @@ def main():
     if do_log:
         log_results(
             log_message,
-            path_to_log=Path("results") / f"{data}.txt",
+            path_to_log=Path("results") / f"{dataset}.txt",
         )
 
     if do_plot:
         # Uses your class method that calls evaluate() internally
-        gp_model.plot_test_predictions(objective_data_name=data)
+        gp_model.plot_test_predictions(objective_data_name=dataset)
 
 
 if __name__ == "__main__":
