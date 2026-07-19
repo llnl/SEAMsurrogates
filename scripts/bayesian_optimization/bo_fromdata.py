@@ -164,94 +164,39 @@ def main() -> None:
                 max(high, fixed_noise + margin),
             )
 
-    bayes_opt_EI = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="EI",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    acquisition_functions = ["EI", "PI", "UCB", "PV", "random"]
 
-    bayes_opt_PI = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="PI",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    base_kwargs = {
+        "isotropic": False,
+        "n_acquire": num_iter,
+        "seed": seed,
+        "noise_bounds": noise_bounds,
+        "fixed_noise": fixed_noise,
+        "init_design": args.init_design,
+        "init_design_kwargs": init_design_kwargs,
+    }
 
-    bayes_opt_UCB = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="UCB",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-        beta=args.beta,
-    )
+    optimizers = {}
+    max_y_histories = {}
 
-    bayes_opt_PV = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="PV",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    for acq_func in acquisition_functions:
+        kwargs = base_kwargs.copy()
+        kwargs["acquisition_function"] = acq_func
+        if acq_func == "UCB":
+            kwargs["beta"] = args.beta
 
-    bayes_opt_rand = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="random",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+        optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
+        max_y_history = optimizer.bayes_opt(df, num_init)[2]
 
-    max_y_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
-    max_y_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
-    max_y_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
-    max_y_history_PV = bayes_opt_PV.bayes_opt(df, num_init)[2]
-    max_y_history_random = bayes_opt_rand.bayes_opt(df, num_init)[2]
+        optimizers[acq_func] = optimizer
+        max_y_histories[acq_func] = max_y_history
 
     bo.plot_acquisition_comparison(
-        max_y_history_EI,
-        max_y_history_PI,
-        max_y_history_UCB,
-        max_y_history_PV,
-        max_y_history_random,
+        max_y_histories["EI"],
+        max_y_histories["PI"],
+        max_y_histories["UCB"],
+        max_y_histories["PV"],
+        max_y_histories["random"],
         kernel,
         num_iter,
         num_init,
