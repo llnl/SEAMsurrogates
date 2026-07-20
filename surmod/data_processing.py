@@ -1,17 +1,8 @@
 """
-General data loading and splitting utilities for JAG, borehole, and hst_H datasets.
+Data loading and splitting utilities.
 
-JAG:
-    - 5 inputs, 1 output
-    - default path: "../../data/JAG_10k.csv"
-
-Borehole:
-    - 8 inputs, 1 output
-    - default path: "../../data/borehole_10k.csv"
-
-hst_H:
-    - 8 inputs, 1 output
-    - default path: "../../data/hst_H_10k.csv"
+Supported datasets: JAG, borehole, hst_H
+See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
 """
 
 from typing import Optional, Tuple
