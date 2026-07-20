@@ -23,9 +23,9 @@ chmod +x ./sa_sandbox.py
 """
 
 import argparse
-import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -108,9 +108,10 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def log_results(log_message: str, path_to_log: str) -> None:
-    os.makedirs(os.path.dirname(path_to_log), exist_ok=True)
-    with open(path_to_log, "a", encoding="utf-8") as f:
+def log_results(log_message: str, path_to_log: Path | str) -> None:
+    path = Path(path_to_log)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
         f.write(log_message + "\n")
 
 
@@ -252,7 +253,7 @@ def main():
     if do_log:
         log_results(
             log_message,
-            path_to_log=os.path.join("output_log", f"{objective_function}.txt"),
+            path_to_log=Path("output_log") / f"{objective_function}.txt",
         )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
@@ -281,12 +282,10 @@ def main():
         )
         plt.title("GP Model Prediction for Parabola")
 
-        os.makedirs("plots", exist_ok=True)
+        Path("plots").mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plt.savefig(
-            os.path.join(
-                "plots", f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
-            )
+            Path("plots") / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
         )
 
 

@@ -26,11 +26,13 @@ def sample_parabola(
     bounds_high: Union[float, Sequence[float], np.ndarray],
     input_size: int,
     radius: float = 7,
+    seed: int = 1,
 ) -> np.ndarray:
+    rng = np.random.default_rng(seed)
     samples = []
 
     while len(samples) < n_initial:
-        x_point = np.random.uniform(bounds_low, bounds_high, size=input_size)
+        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
         if np.linalg.norm(x_point) > radius:
             samples.append(x_point)
 
@@ -44,7 +46,7 @@ def sample_data(
     n_initial: int,
     input_size: int = 2,
     init_design: str = "random",
-    seed: Optional[int] = None,
+    seed: int = 1,
     **design_kwargs,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -57,7 +59,7 @@ def sample_data(
         n_initial: Number of initial points.
         input_size: Input dimension.
         init_design: One of 'random', 'lhd', 'maximin_lhd'.
-        seed: Random seed.
+        seed: Random seed (default: 1).
         design_kwargs: Extra kwargs forwarded to generate_initial_design().
 
     Returns:
@@ -68,7 +70,9 @@ def sample_data(
     test_function = load_test_function(objective_function)
 
     if objective_function == "Parabola" and init_design == "random":
-        x_data = sample_parabola(n_initial, bounds_low, bounds_high, input_size)
+        x_data = sample_parabola(
+            n_initial, bounds_low, bounds_high, input_size, seed=seed
+        )
     else:
         x_data = generate_initial_design(
             bounds_low=bounds_low,
@@ -500,6 +504,7 @@ def plot_acquisition_comparison(
     n_init: int = 5,
     objective_data: str = "___ data",
     beta: float = 2.0,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     plt.figure(figsize=(10, 6))
     plt.plot(max_output_EI, marker="o", c="blue", label="EI")
@@ -528,10 +533,10 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    Path("plots").mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
-        Path("plots")
+        plots_dir
         / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")

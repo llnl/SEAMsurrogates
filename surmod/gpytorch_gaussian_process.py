@@ -1,6 +1,6 @@
 # wrapper for gpytoch GP fitting
-import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -517,6 +517,7 @@ class GPSurrogate:
         objective_data_name: str = "GP Test Predictions",
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
@@ -565,10 +566,9 @@ class GPSurrogate:
         plt.tight_layout()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        if not os.path.exists("plots"):
-            os.makedirs("plots")
-        path_to_plot = os.path.join(
-            "plots", f"{objective_data_name}_test_predictions_{timestamp}.png"
+        plots_dir.mkdir(exist_ok=True)
+        path_to_plot = (
+            plots_dir / f"{objective_data_name}_test_predictions_{timestamp}.png"
         )
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
@@ -653,11 +653,8 @@ class GPSurrogate:
         ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        if not os.path.exists("plots"):
-            os.makedirs("plots")
-        path_to_plot = os.path.join(
-            "plots", f"{objective_data_name}_gp_mean_{timestamp}.png"
-        )
+        Path("plots").mkdir(exist_ok=True)
+        path_to_plot = Path("plots") / f"{objective_data_name}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -737,10 +734,9 @@ class GPSurrogate:
         fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        if not os.path.exists("plots"):
-            os.makedirs("plots")
-        path_to_plot = os.path.join(
-            "plots", f"{objective_data_name}_gp_std_dev_{timestamp}.png"
+        Path("plots").mkdir(exist_ok=True)
+        path_to_plot = (
+            Path("plots") / f"{objective_data_name}_gp_std_dev_{timestamp}.png"
         )
         plt.tight_layout()
         plt.savefig(path_to_plot)

@@ -7,10 +7,18 @@ performance across acquisition functions:
 - Probability of Improvement (PI)
 - Upper Confidence Bound (UCB)
 - Predictive Variance (PV)
-- random
+- Random
+
+Usage examples:
+
+./bo_fromdata.py --dataset=JAG --num_iter=15 --num_init=10
+./bo_fromdata.py --dataset=borehole --num_iter=20 --kernel=rbf --seed=123
+./bo_fromdata.py --dataset=JAG --kernel=matern --beta=2.0 --init_design=lhd
+./bo_fromdata.py --dataset=borehole --init_design=maximin_lhd --fixed_nugget=1e-7
 """
 
 import argparse
+from pathlib import Path
 
 from surmod import bayesian_optimization as bo, data_processing
 
@@ -32,9 +40,9 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-d",
-        "--data",
+        "--dataset",
         type=str,
-        choices=["JAG", "borehole"],
+        choices=["JAG", "borehole", "hst_H"],
         default="JAG",
         help="Which dataset to use.",
     )
@@ -100,11 +108,14 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_arguments()
-    data = args.data
+    dataset = args.dataset
     kernel = args.kernel
     num_init = args.num_init
     num_iter = args.num_iter
     seed = args.seed
+
+    # Set plots directory relative to this script
+    plots_dir = Path(__file__).parent / "plots"
 
     num_samples = num_init + num_iter
     if num_samples > 10000:
@@ -112,7 +123,7 @@ def main() -> None:
             f"Total samples ({num_samples}) exceed existing dataset size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=data, n_samples=10000, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=10000, random=False)
 
     if num_init > len(df):
         raise ValueError(
@@ -123,10 +134,12 @@ def main() -> None:
         raise ValueError(
             f"num_init + num_iter ({num_init + num_iter}) exceeds dataset size ({len(df)})."
         )
-    x = df.iloc[:, :-1].to_numpy()
-    y = df.iloc[:, -1].to_numpy()
+
+    data = df.to_numpy()
+    x = data[:, :-1]
+    y = data[:, -1]
+
     # Keep maximin-LHD settings internal, not exposed on CLI
-    init_design_kwargs = {}
     if args.init_design == "maximin_lhd":
         init_design_kwargs = dict(
             T0=10.0,
@@ -137,6 +150,8 @@ def main() -> None:
             Imax=100,
             jitter=False,
         )
+    else:
+        init_design_kwargs = {}
 
     # If user does not specify, keep nugget small by default
     default_noise_bounds = (1e-8, 1e-6)
@@ -153,99 +168,45 @@ def main() -> None:
                 max(high, fixed_noise + margin),
             )
 
-    bayes_opt_EI = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="EI",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    acquisition_functions = ["EI", "PI", "UCB", "PV", "random"]
 
-    bayes_opt_PI = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="PI",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    base_kwargs = {
+        "isotropic": False,
+        "n_acquire": num_iter,
+        "seed": seed,
+        "noise_bounds": noise_bounds,
+        "fixed_noise": fixed_noise,
+        "init_design": args.init_design,
+        "init_design_kwargs": init_design_kwargs,
+    }
 
-    bayes_opt_UCB = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="UCB",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-        beta=args.beta,
-    )
+    optimizers = {}
+    max_y_histories = {}
 
-    bayes_opt_PV = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="PV",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+    for acq_func in acquisition_functions:
+        kwargs = base_kwargs.copy()
+        kwargs["acquisition_function"] = acq_func
+        if acq_func == "UCB":
+            kwargs["beta"] = args.beta
 
-    bayes_opt_rand = bo.BayesianOptimizer(
-        data,
-        x,
-        y,
-        kernel,
-        isotropic=False,
-        acquisition_function="random",
-        n_acquire=num_iter,
-        seed=seed,
-        noise_bounds=noise_bounds,
-        fixed_noise=fixed_noise,
-        init_design=args.init_design,
-        init_design_kwargs=init_design_kwargs,
-    )
+        optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
+        max_y_history = optimizer.bayes_opt(df, num_init)[2]
 
-    max_y_history_EI = bayes_opt_EI.bayes_opt(df, num_init)[2]
-    max_y_history_PI = bayes_opt_PI.bayes_opt(df, num_init)[2]
-    max_y_history_UCB = bayes_opt_UCB.bayes_opt(df, num_init)[2]
-    max_y_history_PV = bayes_opt_PV.bayes_opt(df, num_init)[2]
-    max_y_history_random = bayes_opt_rand.bayes_opt(df, num_init)[2]
+        optimizers[acq_func] = optimizer
+        max_y_histories[acq_func] = max_y_history
 
     bo.plot_acquisition_comparison(
-        max_y_history_EI,
-        max_y_history_PI,
-        max_y_history_UCB,
-        max_y_history_PV,
-        max_y_history_random,
+        max_y_histories["EI"],
+        max_y_histories["PI"],
+        max_y_histories["UCB"],
+        max_y_histories["PV"],
+        max_y_histories["random"],
         kernel,
         num_iter,
         num_init,
-        f"{data}_{args.init_design}",
+        f"{dataset}_{args.init_design}",
         beta=args.beta,
+        plots_dir=plots_dir,
     )
 
 
