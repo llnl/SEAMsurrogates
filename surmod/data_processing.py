@@ -5,7 +5,7 @@ Supported datasets: JAG, borehole, hst_H
 See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
 """
 
-from typing import Optional, Tuple
+from typing import Tuple
 import warnings
 from pathlib import Path
 
@@ -58,7 +58,7 @@ def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
     random: bool = True,
-    seed: Optional[int] = None,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Load a subset of a dataset from CSV.
