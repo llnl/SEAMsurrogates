@@ -326,6 +326,7 @@ def plot_convergence(
     global_optimum_value: float,
     title_lines: list[str],
     save_animation: bool,
+    plots_dir: Path,
 ) -> None:
     fig, ax = plt.subplots(figsize=(18, 6))
     ax.plot(
@@ -357,19 +358,19 @@ def plot_convergence(
     plt.tight_layout()
 
     if save_animation:
-        Path("plots").mkdir(exist_ok=True)
+        plots_dir.mkdir(exist_ok=True)
         ts = datetime.now().strftime("%m%d_%H%M%S")
-        path = Path("plots") / f"track_max_{title_lines[0].split()[0]}_{ts}.png"
+        path = plots_dir / f"track_max_{title_lines[0].split()[0]}_{ts}.png"
         plt.savefig(path)
         print(f"Convergence figure saved to {path}")
     else:
         plt.show()
 
 
-def save_gif(frames: list, objective_function: str) -> None:
-    Path("plots").mkdir(exist_ok=True)
+def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
+    plots_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
-    path = Path("plots") / f"bayes_opt_animation_{objective_function}_{ts}.gif"
+    path = plots_dir / f"bayes_opt_animation_{objective_function}_{ts}.gif"
     imageio.mimsave(path, frames, fps=2)
     print(f"Animation saved as {path}")
 
@@ -378,6 +379,9 @@ def main() -> None:
     args = parse_arguments()
     os.environ["MPLCONFIGDIR"] = str(Path.cwd())
     np.random.seed(args.seed)
+
+    # Set plots directory relative to this script
+    plots_dir = Path(__file__).parent / "plots"
 
     synth_function = load_test_function(args.objective_function)
     bounds_low = [b[0] for b in synth_function._bounds]
@@ -465,7 +469,7 @@ def main() -> None:
     )
 
     if args.save_animation and frames:
-        save_gif(frames, args.objective_function)
+        save_gif(frames, args.objective_function, plots_dir)
 
     plot_convergence(
         acquired_maxima,
@@ -473,6 +477,7 @@ def main() -> None:
         global_optimum_value,
         title_lines=meta["title_lines"],
         save_animation=args.save_animation,
+        plots_dir=plots_dir,
     )
 
 

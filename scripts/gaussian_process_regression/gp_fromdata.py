@@ -168,6 +168,11 @@ def main():
     seed = args.seed
     use_lhd = args.LHD
 
+    # Set output directories relative to this script
+    script_dir = Path(__file__).parent
+    results_dir = script_dir / "results"
+    plots_dir = script_dir / "plots"
+
     # Check data availability
     num_samples = num_test + num_train
     if num_samples > 10000:
@@ -255,12 +260,12 @@ def main():
     if do_log:
         log_results(
             log_message,
-            path_to_log=Path("results") / f"{dataset}.txt",
+            path_to_log=results_dir / f"{dataset}.txt",
         )
 
     if do_plot:
         # Uses your class method that calls evaluate() internally
-        gp_model.plot_test_predictions(objective_data_name=dataset)
+        gp_model.plot_test_predictions(objective_data_name=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":

@@ -517,6 +517,7 @@ class GPSurrogate:
         objective_data_name: str = "GP Test Predictions",
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
@@ -565,9 +566,9 @@ class GPSurrogate:
         plt.tight_layout()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        Path("plots").mkdir(exist_ok=True)
+        plots_dir.mkdir(exist_ok=True)
         path_to_plot = (
-            Path("plots") / f"{objective_data_name}_test_predictions_{timestamp}.png"
+            plots_dir / f"{objective_data_name}_test_predictions_{timestamp}.png"
         )
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")

@@ -504,6 +504,7 @@ def plot_acquisition_comparison(
     n_init: int = 5,
     objective_data: str = "___ data",
     beta: float = 2.0,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     plt.figure(figsize=(10, 6))
     plt.plot(max_output_EI, marker="o", c="blue", label="EI")
@@ -532,10 +533,10 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    Path("plots").mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
-        Path("plots")
+        plots_dir
         / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")

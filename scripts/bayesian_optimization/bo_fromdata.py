@@ -18,6 +18,7 @@ Usage examples:
 """
 
 import argparse
+from pathlib import Path
 
 from surmod import bayesian_optimization as bo, data_processing
 
@@ -113,6 +114,9 @@ def main() -> None:
     num_iter = args.num_iter
     seed = args.seed
 
+    # Set plots directory relative to this script
+    plots_dir = Path(__file__).parent / "plots"
+
     num_samples = num_init + num_iter
     if num_samples > 10000:
         raise ValueError(
@@ -202,6 +206,7 @@ def main() -> None:
         num_init,
         f"{dataset}_{args.init_design}",
         beta=args.beta,
+        plots_dir=plots_dir,
     )
 
 
