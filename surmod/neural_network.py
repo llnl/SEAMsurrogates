@@ -221,7 +221,7 @@ def train(
 def plot_losses(
     train_losses: List[float],
     test_losses: List[float],
-    objective_data: str,
+    dataset: str,
     plots_dir: Path,
 ) -> None:
     """
@@ -232,14 +232,12 @@ def plot_losses(
             epoch.
         test_losses (List[float]): List of testing loss values (MSE) for each
             epoch.
-        objective_data (str): Name or description of the objective
-            function or dataset. Used in the plot title and filename.
+        dataset (str): Name of the dataset. Used in the plot title and filename.
         plots_dir (Path): Directory where plots will be saved.
     """
     plots_dir.mkdir(exist_ok=True)
-    # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"loss_vs_epoch_{dataset}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -249,7 +247,7 @@ def plot_losses(
     plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     plt.title(
-        f"Training and Testing Losses - {objective_data}\n"
+        f"Training and Testing Losses - {dataset}\n"
         f"Final Test Loss (RMSE): {final_test_rmse:.5f}"
     )
     plt.xlabel("Epochs")
@@ -272,7 +270,7 @@ def plot_losses_verbose(
     scale_y: bool,
     train_data_size: int,
     test_data_size: int,
-    objective_data: str,
+    dataset: str,
     plots_dir: Path,
 ) -> None:
     """
@@ -293,13 +291,12 @@ def plot_losses_verbose(
         scale_y (bool): Whether target values (y) were scaled.
         train_data_size (int): Number of samples in the training set.
         test_data_size (int): Number of samples in the testing set.
-        objective_data (str): Name or description of the objective
-            function or dataset. Used in the plot title and filename.
+        dataset (str): Name of the dataset. Used in the plot title and filename.
         plots_dir (Path): Directory where plots will be saved.
     """
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
+    filepath = plots_dir / f"loss_vs_epoch_{dataset}_verbose_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
@@ -309,7 +306,7 @@ def plot_losses_verbose(
     plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     title = (
-        f"{objective_data} \n "
+        f"{dataset} \n "
         f"Train size: {train_data_size} | Test size: {test_data_size} | "
         f"LR: {learning_rate:.2e} | "
         f"Batch: {batch_size} | "
@@ -405,7 +402,7 @@ def plot_predictions(
     y_test: torch.Tensor,
     predictions: torch.Tensor,
     final_test_mse: float,
-    objective_data: str,
+    dataset: str,
     plots_dir: Path,
 ) -> None:
     """
@@ -414,8 +411,8 @@ def plot_predictions(
     This function creates a parity plot comparing the true test values to the
     model's predictions. A reference line for perfect prediction is included.
     The final test loss (RMSE) is displayed in the plot title. The plot is saved
-    in the specified plots directory, with a filename that includes the objective
-    data and a timestamp.
+    in the specified plots directory, with a filename that includes the dataset
+    name and a timestamp.
 
     Args:
         y_test (torch.Tensor):
@@ -424,8 +421,8 @@ def plot_predictions(
             The predicted values from the model for the test set.
         final_test_mse (float):
             The final mean squared error on the test set.
-        objective_data (str):
-            Identifier for the data/objective, used in the filename.
+        dataset (str):
+            Name of the dataset, used in the filename.
         plots_dir (Path):
             Directory where plots will be saved.
     """
@@ -458,7 +455,7 @@ def plot_predictions(
 
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"prediction_vs_test_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"prediction_vs_test_{dataset}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")

@@ -196,21 +196,19 @@ def main() -> None:
             scale_y=False,
             train_data_size=num_train,
             test_data_size=x_test.shape[0],
-            objective_data=dataset,
+            dataset=dataset,
             plots_dir=plots_dir,
         )
 
     else:
         # Plot train and test loss over epochs
-        nn.plot_losses(train_losses, test_losses, dataset, plots_dir=plots_dir)
+        nn.plot_losses(train_losses, test_losses, dataset, plots_dir)
 
     # Get neural network predictions
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
         predictions = model(x_test)
-    nn.plot_predictions(
-        y_test, predictions, test_losses[-1], dataset, plots_dir=plots_dir
-    )
+    nn.plot_predictions(y_test, predictions, test_losses[-1], dataset, plots_dir)
 
 
 if __name__ == "__main__":
