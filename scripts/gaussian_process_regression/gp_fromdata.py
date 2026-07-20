@@ -33,7 +33,7 @@ def parse_arguments():
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole"],
+        choices=["JAG", "borehole", "hst_H"],
         default="JAG",
         help="Which dataset to use (default: JAG).",
     )

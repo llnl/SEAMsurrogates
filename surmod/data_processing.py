@@ -1,5 +1,5 @@
 """
-General data loading and splitting utilities for JAG and borehole datasets.
+General data loading and splitting utilities for JAG, borehole, and hst_H datasets.
 
 JAG:
     - 5 inputs, 1 output
@@ -8,6 +8,10 @@ JAG:
 Borehole:
     - 8 inputs, 1 output
     - default path: "../../data/borehole_10k.csv"
+
+hst_H:
+    - 8 inputs, 1 output
+    - default path: "../../data/hst_H_10k.csv"
 """
 
 from typing import Optional, Tuple
@@ -40,6 +44,22 @@ DATASET_CONFIG = {
         "n_outputs": 1,
         "columns": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw", "y"],
     },
+    "hst_H": {
+        "path": _DATA_DIR / "hst_H_10k.csv",
+        "n_inputs": 8,
+        "n_outputs": 1,
+        "columns": [
+            "Umag",
+            "Ts",
+            "Ta",
+            "alphan",
+            "sigmat",
+            "theta",
+            "phi",
+            "panang",
+            "Cd",
+        ],
+    },
 }
 
 
@@ -47,7 +67,6 @@ def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
     random: bool = True,
-    path_to_csv: Optional[str | Path] = None,
     seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """
@@ -58,8 +77,7 @@ def load_data(
         - No header, or any header will be ignored and replaced
 
     Args:
-        dataset: Which dataset to load, "JAG" or "borehole".
-        path_to_csv: Optional explicit path; if None, use default from config.
+        dataset: Which dataset to load, "JAG", "borehole", or "hst_H".
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
@@ -70,6 +88,8 @@ def load_data(
                 columns: [x0, x1, x2, x3, x4, y]
             For borehole:
                 columns: [rw, r, Tu, Hu, Tl, Hl, L, Kw, y]
+            For hst_H:
+                columns: [Umag, Ts, Ta, alphan, sigmat, theta, phi, panang, Cd]
     """
     if dataset not in DATASET_CONFIG:
         raise ValueError(
@@ -77,17 +97,12 @@ def load_data(
         )
 
     cfg = DATASET_CONFIG[dataset]
+    csv_path = cfg["path"]
 
-    if path_to_csv is None:
-        path_to_csv = cfg["path"]
+    if not csv_path.is_file():
+        raise FileNotFoundError(f"CSV file not found at: {csv_path}")
 
-    # Convert to Path for consistent internal handling
-    path_to_csv = Path(path_to_csv)
-
-    if not path_to_csv.is_file():
-        raise FileNotFoundError(f"CSV file not found at: {path_to_csv}")
-
-    df = pd.read_csv(path_to_csv)  # type: ignore
+    df = pd.read_csv(csv_path)  # type: ignore
     df.columns = cfg["columns"]
 
     # Check and warn if n_samples is too large
@@ -210,7 +225,6 @@ def split_data(
 
 def load_and_split(
     dataset: str = "JAG",
-    path_to_csv: Optional[str | Path] = None,
     n_samples: int = 10000,
     random_rows: bool = True,
     seed: int = 42,
@@ -221,8 +235,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: "JAG" or "borehole".
-        path_to_csv: Optional explicit path, overrides default.
+        dataset: "JAG", "borehole", or "hst_H".
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.
@@ -234,7 +247,6 @@ def load_and_split(
     """
     df = load_data(
         dataset=dataset,
-        path_to_csv=path_to_csv,
         n_samples=n_samples,
         random=random_rows,
         seed=seed,

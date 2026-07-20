@@ -41,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole"],
+        choices=["JAG", "borehole", "hst_H"],
         default="JAG",
         help="Which dataset to use.",
     )
