@@ -68,7 +68,7 @@ def load_data(
         - No header, or any header will be ignored and replaced
 
     Args:
-        dataset: Which dataset to load, "JAG", "borehole", or "hst_H".
+        dataset: Dataset name (see DATASET_CONFIG for supported options).
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
@@ -220,7 +220,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: "JAG", "borehole", or "hst_H".
+        dataset: Dataset name (see DATASET_CONFIG for supported options).
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.
