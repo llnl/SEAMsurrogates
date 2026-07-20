@@ -253,18 +253,18 @@ def main():
             )
 
         if plots:
-            gp_model.plot_test_predictions(objective_data_name=objective_function)
+            gp_model.plot_test_predictions(dataset=objective_function)
 
         gp_model.plot_gp_mean_prediction(
             test_mse=test_mse,
-            objective_data_name=objective_function,
+            objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
         )
 
         gp_model.plot_gp_std_dev_prediction(
             test_mse=test_mse,
-            objective_data_name=objective_function,
+            objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
         )

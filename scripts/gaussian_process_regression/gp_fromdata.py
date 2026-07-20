@@ -265,7 +265,7 @@ def main():
 
     if do_plot:
         # Uses your class method that calls evaluate() internally
-        gp_model.plot_test_predictions(objective_data_name=dataset, plots_dir=plots_dir)
+        gp_model.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":

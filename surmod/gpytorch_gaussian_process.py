@@ -514,7 +514,7 @@ class GPSurrogate:
 
     def plot_test_predictions(
         self,
-        objective_data_name: str = "GP Test Predictions",
+        dataset: str = "GP Test Predictions",
         scale_x: bool = False,
         normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
@@ -554,7 +554,7 @@ class GPSurrogate:
 
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
-        plt.title(f"{objective_data_name} \n {self.get_fitted_kernel_label()}")
+        plt.title(f"{dataset} \n {self.get_fitted_kernel_label()}")
         plt.text(
             0.3,
             0.95,
@@ -567,16 +567,14 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = (
-            plots_dir / f"{objective_data_name}_test_predictions_{timestamp}.png"
-        )
+        path_to_plot = plots_dir / f"{dataset}_test_predictions_{timestamp}.png"
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
 
     def plot_gp_mean_prediction(
         self,
         test_mse: float,
-        objective_data_name: str,
+        objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
     ) -> None:
@@ -592,7 +590,7 @@ class GPSurrogate:
 
         test_rmse = np.sqrt(test_mse)
 
-        test_function = load_test_function(objective_data_name)
+        test_function = load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -637,7 +635,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_data_name} Test Function and GP Mean",
+            f"{objective_function} Test Function and GP Mean",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -654,7 +652,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         Path("plots").mkdir(exist_ok=True)
-        path_to_plot = Path("plots") / f"{objective_data_name}_gp_mean_{timestamp}.png"
+        path_to_plot = Path("plots") / f"{objective_function}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -662,7 +660,7 @@ class GPSurrogate:
     def plot_gp_std_dev_prediction(
         self,
         test_mse: float,
-        objective_data_name: str,
+        objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
     ) -> None:
@@ -678,7 +676,7 @@ class GPSurrogate:
 
         test_rmse = np.sqrt(test_mse)
 
-        test_function = load_test_function(objective_data_name)
+        test_function = load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -715,7 +713,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_data_name} GP Predictive Standard Deviation",
+            f"{objective_function} GP Predictive Standard Deviation",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -736,7 +734,7 @@ class GPSurrogate:
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         Path("plots").mkdir(exist_ok=True)
         path_to_plot = (
-            Path("plots") / f"{objective_data_name}_gp_std_dev_{timestamp}.png"
+            Path("plots") / f"{objective_function}_gp_std_dev_{timestamp}.png"
         )
         plt.tight_layout()
         plt.savefig(path_to_plot)
