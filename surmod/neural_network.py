@@ -124,7 +124,7 @@ def train(
     x_test: torch.Tensor,
     y_test: torch.Tensor,
     hidden_sizes: List[int],
-    num_epochs: int,
+    n_epochs: int,
     learning_rate: float,
     batch_size: int,
     seed: int,
@@ -139,7 +139,7 @@ def train(
         x_test (torch.Tensor): Test input features of shape (n_test_samples, n_features).
         y_test (torch.Tensor): Test target values of shape (n_test_samples,) or (n_test_samples, 1).
         hidden_sizes (List[int]): List specifying the number of units in each hidden layer.
-        num_epochs (int): Number of epochs to train the network.
+        n_epochs (int): Number of epochs to train the network.
         learning_rate (float): Learning rate for the optimizer.
         batch_size (int): Number of samples per training batch.
         seed (int): Random seed for reproducibility.
@@ -172,7 +172,7 @@ def train(
     torch.manual_seed(seed)
 
     # Training loop
-    for epoch in range(num_epochs):
+    for epoch in range(n_epochs):
         model.train()  # Set the model to training mode
         epoch_loss = 0.0
 
@@ -208,7 +208,7 @@ def train(
         # Print the loss every 10 epochs
         if (epoch + 1) % 10 == 0:
             print(
-                f"Epoch [{epoch + 1}/{num_epochs}], "
+                f"Epoch [{epoch + 1}/{n_epochs}], "
                 f"Training Loss (MSE): {avg_train_loss:.5f}, "
                 f"Testing Loss (MSE): {test_loss.item():.5f}"
             )
@@ -241,10 +241,10 @@ def plot_losses(
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
-    num_epochs = len(train_losses)
+    n_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
-    plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     plt.title(
         f"Training and Testing Losses - {dataset}\n"
@@ -300,10 +300,10 @@ def plot_losses_verbose(
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
-    num_epochs = len(train_losses)
+    n_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
-    plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     title = (
         f"{dataset} \n "
@@ -373,13 +373,13 @@ def plot_losses_multiplot(
             ax = axs[i][j]
             train_losses = train_losses_grid[i][j]
             test_losses = test_losses_grid[i][j]
-            num_epochs = len(train_losses)
+            n_epochs = len(train_losses)
 
             # Calculate final test RMSE
             final_test_rmse = np.sqrt(test_losses[-1])
 
-            ax.plot(range(1, num_epochs + 1), train_losses, label="Train Loss")
-            ax.plot(range(1, num_epochs + 1), test_losses, label="Test Loss")
+            ax.plot(range(1, n_epochs + 1), train_losses, label="Train Loss")
+            ax.plot(range(1, n_epochs + 1), test_losses, label="Test Loss")
             ax.set_yscale("log")
             ax.set_title(
                 f"hid_dim={hid_sz}, lr={lr}\nFinal Test Loss (RMSE): "

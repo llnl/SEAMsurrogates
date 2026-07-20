@@ -67,8 +67,8 @@ def load_test_settings(
 
 def simulate_data(
     objective_function: str,
-    num_train: int,
-    num_test: int,
+    n_train: int,
+    n_test: int,
     b1: float,
     b2: float,
     b12: float,
@@ -80,8 +80,8 @@ def simulate_data(
     Args:
         objective_function (str): Name of the objective function to use.
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
-        num_train (int): Number of training samples to generate.
-        num_test (int): Number of testing samples to generate.
+        n_train (int): Number of training samples to generate.
+        n_test (int): Number of testing samples to generate.
         b1 (float): First coefficient parameter for the test function.
         b2 (float): Second coefficient parameter for the test function.
         b12 (float): Interaction coefficient parameter for the test function.
@@ -89,29 +89,29 @@ def simulate_data(
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-            - x_train (np.ndarray): Training input data of shape (num_train, input_dim).
-            - x_test (np.ndarray): Testing input data of shape (num_test, input_dim).
+            - x_train (np.ndarray): Training input data of shape (n_train, input_dim).
+            - x_test (np.ndarray): Testing input data of shape (n_test, input_dim).
             - y_train (np.ndarray): Training output data.
             - y_test (np.ndarray): Testing output data.
     """
     # Set-up simulation
-    num_total = num_train + num_test
+    n_total = n_train + n_test
     out_dim, test_function = load_test_settings(objective_function)
 
     # Sample random data from test function
     rng = np.random.default_rng(seed)
-    x_data = rng.uniform(0, 1, size=(num_total, out_dim))
+    x_data = rng.uniform(0, 1, size=(n_total, out_dim))
     if objective_function == "parabola":
         y_data = test_function(x_data, b1, b2, b12)
     else:
         y_data = test_function(x_data)
 
     # Split data into training and testing sets
-    x_train = x_data.copy()[:num_train]
-    y_train = y_data.copy()[:num_train]
+    x_train = x_data.copy()[:n_train]
+    y_train = y_data.copy()[:n_train]
 
-    x_test = x_data.copy()[num_train:]
-    y_test = y_data.copy()[num_train:]
+    x_test = x_data.copy()[n_train:]
+    y_test = y_data.copy()[n_train:]
 
     return x_train, x_test, y_train, y_test
 

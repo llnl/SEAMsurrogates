@@ -60,7 +60,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=100,
         help="Number of points to have in training data set.",
@@ -68,7 +68,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
@@ -151,8 +151,8 @@ def main():
     args = parse_arguments()
     objective_function = args.objective_function
     kernels = args.kernels
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
@@ -164,8 +164,8 @@ def main():
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
         objective_function,
-        num_train,
-        num_test,
+        n_train,
+        n_test,
         seed=seed,
     )
 
@@ -222,8 +222,8 @@ def main():
         log_lines = [
             f"Run timestamp (%m%d_%H%M%S): {timestamp}",
             f"Test Function: {objective_function}",
-            f"Number of training points: {num_train}",
-            f"Number of testing points: {num_test}",
+            f"Number of training points: {n_train}",
+            f"Number of testing points: {n_test}",
             f"Kernel: {kernel}",
             f"Isotropic kernel: {isotropic}",
             f"Learned noise: {fitted_params.get('noise')}",

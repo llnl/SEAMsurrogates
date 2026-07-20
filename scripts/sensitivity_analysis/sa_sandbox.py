@@ -70,7 +70,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=100,
         help="Number of points to have in training data set.",
@@ -78,7 +78,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
@@ -132,8 +132,8 @@ def main():
     """
     args = parse_arguments()
     objective_function = args.objective_function
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     do_log = args.log
     b1 = args.b1
     b2 = args.b2
@@ -144,7 +144,7 @@ def main():
     regular_dim, __ = sa.load_test_settings(objective_function)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
-        objective_function, num_train, num_test, b1, b2, b12
+        objective_function, n_train, n_test, b1, b2, b12
     )
 
     if exclude is not None:
@@ -220,7 +220,7 @@ def main():
         )
 
     bounds = [[0.0, 1.0]] * dim
-    problem = {"num_vars": dim, "names": variable_names, "bounds": bounds}
+    problem = {"n_vars": dim, "names": variable_names, "bounds": bounds}
 
     param_values = saltelli.sample(problem, 2**13, calc_second_order=False)
 
@@ -233,8 +233,8 @@ def main():
     log_message = (
         f"Run timestamp (%m%d_%H%M%S): {timestamp}\n"
         f"Test Function: {objective_function}\n"
-        f"Number of training points: {num_train}\n"
-        f"Number of testing points: {num_test}\n"
+        f"Number of training points: {n_train}\n"
+        f"Number of testing points: {n_test}\n"
         f"Kernel: matern\n"
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"

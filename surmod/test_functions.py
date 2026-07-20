@@ -500,8 +500,8 @@ def load_test_function(objective_function: str):
 
 def simulate_data(
     objective_function: str,
-    num_train: int,
-    num_test: int,
+    n_train: int,
+    n_test: int,
     seed: int = 1,
 ):
     """
@@ -511,37 +511,37 @@ def simulate_data(
         objective_function (str): The name of the objective function to simulate
             data from. Supported values are "Parabola", "Ackley", "Griewank",
             "Branin", and "HolderTable".
-        num_train (int): Number of training samples to generate.
-        num_test (int): Number of testing samples to generate.
+        n_train (int): Number of training samples to generate.
+        n_test (int): Number of testing samples to generate.
         seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
             A tuple containing:
-                - x_train (np.ndarray): Training input data of shape (num_train, 2).
-                - x_test (np.ndarray): Testing input data of shape (num_test, 2).
-                - y_train (np.ndarray): Training target data of shape (num_train,).
-                - y_test (np.ndarray): Testing target data of shape (num_test,).
+                - x_train (np.ndarray): Training input data of shape (n_train, 2).
+                - x_test (np.ndarray): Testing input data of shape (n_test, 2).
+                - y_train (np.ndarray): Training target data of shape (n_train,).
+                - y_test (np.ndarray): Testing target data of shape (n_test,).
 
     Raises:
         ValueError: If the specified objective function name is not recognized.
     """
     # Set-up simulation
-    num_total = num_train + num_test
+    n_total = n_train + n_test
     test_function = load_test_function(objective_function)
     bounds_low = [b[0] for b in test_function._bounds]
     bounds_high = [b[1] for b in test_function._bounds]
 
     # Sample random data from test function
     rng = np.random.default_rng(seed)
-    x_data = rng.uniform(bounds_low, bounds_high, size=(num_total, 2))
+    x_data = rng.uniform(bounds_low, bounds_high, size=(n_total, 2))
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets
-    x_train = x_data.copy()[:num_train]
-    y_train = y_data.copy()[:num_train]
+    x_train = x_data.copy()[:n_train]
+    y_train = y_data.copy()[:n_train]
 
-    x_test = x_data.copy()[num_train:]
-    y_test = y_data.copy()[num_train:]
+    x_test = x_data.copy()[n_train:]
+    y_test = y_data.copy()[n_train:]
 
     return x_train, x_test, y_train, y_test

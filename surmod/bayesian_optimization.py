@@ -292,7 +292,7 @@ class BayesianOptimizer:
 
     def propose_location(
         self,
-        num_restarts: int = 30,
+        n_restarts: int = 30,
         raw_samples: int = 1000,
     ) -> np.ndarray:
         rng = np.random.RandomState(self.seed)
@@ -311,7 +311,7 @@ class BayesianOptimizer:
             acq_function=acq_func,
             bounds=bounds_t,
             q=1,
-            num_restarts=num_restarts,
+            num_restarts=n_restarts,
             raw_samples=raw_samples,
         )
 

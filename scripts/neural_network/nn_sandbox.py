@@ -110,7 +110,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-n",
-        "--num_epochs",
+        "--n_epochs",
         type=int,
         default=100,
         help="Number of epochs for training.",
@@ -346,7 +346,7 @@ def main():
     normalize_y = args.normalize_y
     scale_y = args.scale_y
     seed = args.seed
-    num_epochs = args.num_epochs
+    n_epochs = args.n_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -481,7 +481,7 @@ def main():
                     x_test,
                     y_test,
                     hidden_sizes,
-                    num_epochs,
+                    n_epochs,
                     lr,
                     batch_size,
                     seed,
@@ -514,7 +514,7 @@ def main():
             x_test,
             y_test,
             hidden_sizes,
-            num_epochs,
+            n_epochs,
             learning_rate,
             batch_size,
             seed,

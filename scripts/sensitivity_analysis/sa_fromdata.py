@@ -82,7 +82,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
@@ -90,7 +90,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
@@ -136,20 +136,20 @@ def main():
     args = parse_arguments()
     dataset = args.dataset
     normalize_x = args.normalize_x
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     do_log = args.log
     exclude = args.exclude
 
     # Check data availability
-    num_samples = num_test + num_train
-    if num_samples > 10000:
+    n_samples = n_test + n_train
+    if n_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
+            f"Requested samples ({n_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
-    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=num_train)
+    df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
+    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=n_train)
 
     # Initial variable names per dataset
     if dataset == "JAG":
@@ -221,7 +221,7 @@ def main():
     ]
 
     problem = {
-        "num_vars": dim,
+        "n_vars": dim,
         "names": list(variable_names),  # type: ignore
         "bounds": bounds,
     }
@@ -237,8 +237,8 @@ def main():
 
     # Log message
     log_message = (
-        f"Number of training points: {num_train}\n"
-        f"Number of testing points: {num_test}\n"
+        f"Number of training points: {n_train}\n"
+        f"Number of testing points: {n_test}\n"
         f"Kernel: matern\n"
         f"Isotropic: True\n"
         f"Normalize x values: {normalize_x}\n"

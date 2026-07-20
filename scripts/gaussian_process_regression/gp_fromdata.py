@@ -4,10 +4,10 @@ Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurroga
 
 Usage examples:
 
-./gp_fromdata.py --num_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py --num_train=200 --kernel=matern
-./gp_fromdata.py --num_train=200 --kernel=matern --normalize_y --plot
-./gp_fromdata.py --num_train=300 --kernel=matern --log
+./gp_fromdata.py --n_train=200 --kernel=rbf --isotropic
+./gp_fromdata.py --n_train=200 --kernel=matern
+./gp_fromdata.py --n_train=200 --kernel=matern --normalize_y --plot
+./gp_fromdata.py --n_train=300 --kernel=matern --log
 """
 
 import argparse
@@ -40,7 +40,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=50,
         help="Number of train samples.",
@@ -48,7 +48,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=500,
         help="Number of test samples.",
@@ -155,8 +155,8 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     normalize_y = args.normalize_y
     kernel = args.kernel
     isotropic = args.isotropic
@@ -174,16 +174,16 @@ def main():
     plots_dir = script_dir / "plots"
 
     # Check data availability
-    num_samples = num_test + num_train
-    if num_samples > 10000:
+    n_samples = n_test + n_train
+    if n_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
+            f"Requested samples ({n_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
     # Load and split data
-    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(
-        df=df, LHD=use_lhd, n_train=num_train, seed=seed
+        df=df, LHD=use_lhd, n_train=n_train, seed=seed
     )
 
     # Ensure y is 1D float array for metrics
@@ -236,8 +236,8 @@ def main():
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
         f"Test Function: {dataset}",
-        f"Number of training points: {num_train}",
-        f"Number of testing points: {num_test}",
+        f"Number of training points: {n_train}",
+        f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
         f"Scale inputs: {scale_inputs}",
