@@ -221,7 +221,8 @@ def train(
 def plot_losses(
     train_losses: List[float],
     test_losses: List[float],
-    objective_data: str = "___ data",
+    objective_data: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plot and save the training and testing loss curves across epochs.
@@ -231,11 +232,10 @@ def plot_losses(
             epoch.
         test_losses (List[float]): List of testing loss values (MSE) for each
             epoch.
-        objective_data (str, optional): Name or description of the objective
-            function or dataset. Used in the plot title and filename. Defaults
-            to "___ data".
+        objective_data (str): Name or description of the objective
+            function or dataset. Used in the plot title and filename.
+        plots_dir (Path): Directory where plots will be saved.
     """
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
@@ -272,7 +272,8 @@ def plot_losses_verbose(
     scale_y: bool,
     train_data_size: int,
     test_data_size: int,
-    objective_data: str = "___ data",
+    objective_data: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plot and save training and testing loss curves across epochs, with
@@ -292,11 +293,10 @@ def plot_losses_verbose(
         scale_y (bool): Whether target values (y) were scaled.
         train_data_size (int): Number of samples in the training set.
         test_data_size (int): Number of samples in the testing set.
-        objective_data (str, optional): Name or description of the objective
-            function or dataset. Used in the plot title and filename. Defaults
-            to "___ data".
+        objective_data (str): Name or description of the objective
+            function or dataset. Used in the plot title and filename.
+        plots_dir (Path): Directory where plots will be saved.
     """
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
@@ -405,7 +405,8 @@ def plot_predictions(
     y_test: torch.Tensor,
     predictions: torch.Tensor,
     final_test_mse: float,
-    objective_data: str = "___ data",
+    objective_data: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plots the actual test values against the predicted values.
@@ -413,8 +414,8 @@ def plot_predictions(
     This function creates a parity plot comparing the true test values to the
     model's predictions. A reference line for perfect prediction is included.
     The final test loss (RMSE) is displayed in the plot title. The plot is saved
-    in the 'plots' directory, with a filename that includes the objective data
-    and a timestamp.
+    in the specified plots directory, with a filename that includes the objective
+    data and a timestamp.
 
     Args:
         y_test (torch.Tensor):
@@ -423,9 +424,10 @@ def plot_predictions(
             The predicted values from the model for the test set.
         final_test_mse (float):
             The final mean squared error on the test set.
-        objective_data (str, optional):
-            Identifier for the data/objective, used in the filename. Defaults
-            to "___ data".
+        objective_data (str):
+            Identifier for the data/objective, used in the filename.
+        plots_dir (Path):
+            Directory where plots will be saved.
     """
     plt.figure(figsize=(10, 5))
     plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
@@ -454,7 +456,6 @@ def plot_predictions(
     plt.ylim(limits)
     plt.axis("square")
 
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"prediction_vs_test_{objective_data}_{timestamp}.png"
