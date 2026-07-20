@@ -361,6 +361,10 @@ def main():
     # Weight initialization (default PyTorch)
     initialize_weights_normal = False
 
+    # Set output directory relative to this script
+    script_dir = Path(__file__).parent
+    plots_dir = script_dir / "plots"
+
     # Generate random data from test function
     synthetic_function = nn.load_test_function(objective_function)
     input_size = synthetic_function.dim
@@ -498,6 +502,7 @@ def main():
             multi_hidden_sizes,
             axs,
             objective_function,
+            plots_dir,
         )
 
     # Default: Do one train/test run and plot loss over epochs results
@@ -532,11 +537,12 @@ def main():
                 n_train,
                 n_test,
                 objective_function,
+                plots_dir,
             )
 
         else:
             # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, objective_function)
+            nn.plot_losses(train_losses, test_losses, objective_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(

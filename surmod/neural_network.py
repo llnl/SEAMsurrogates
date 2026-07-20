@@ -336,7 +336,8 @@ def plot_losses_multiplot(
     learning_rates: List[float],
     hid_dims: List[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
-    objective_data: str = "___ data",
+    dataset: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plots training and test losses for multiple runs on a grid of subplots.
@@ -344,8 +345,8 @@ def plot_losses_multiplot(
     Each subplot corresponds to a specific combination of hidden dimension and
     learning rate, displaying the training and test loss curves over epochs.
     The final test loss (RMSE) is shown in each subplot title. The resulting
-    multiplot figure is saved to 'plots' directory with a filename that includes
-    the objective data and a timestamp.
+    multiplot figure is saved to the specified plots directory with a filename
+    that includes the dataset name and a timestamp.
 
     Args:
         train_losses_grid (Sequence[Sequence[List[float]]]):
@@ -362,9 +363,10 @@ def plot_losses_multiplot(
             grid.
         axs (Sequence[Sequence[matplotlib.axes.Axes]]):
             2D grid of matplotlib Axes objects for plotting.
-        objective_data (str, optional):
-            String identifier for the data/objective function, used in the saved
-            filename.
+        dataset (str):
+            Name of the dataset, used in the saved filename.
+        plots_dir (Path):
+            Directory where plots will be saved.
     """
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
@@ -389,10 +391,9 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"multi_loss_vs_epoch_{dataset}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
