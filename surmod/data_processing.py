@@ -83,13 +83,7 @@ def load_data(
         seed: Random seed for reproducibility (used if random is True).
 
     Returns:
-        pd.DataFrame:
-            For JAG:
-                columns: [x0, x1, x2, x3, x4, y]
-            For borehole:
-                columns: [rw, r, Tu, Hu, Tl, Hl, L, Kw, y]
-            For hst_H:
-                columns: [Umag, Ts, Ta, alphan, sigmat, theta, phi, panang, Cd]
+        pd.DataFrame with input features and output column for the selected dataset.
     """
     if dataset not in DATASET_CONFIG:
         raise ValueError(
