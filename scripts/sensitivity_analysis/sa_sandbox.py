@@ -220,7 +220,7 @@ def main():
         )
 
     bounds = [[0.0, 1.0]] * dim
-    problem = {"n_vars": dim, "names": variable_names, "bounds": bounds}
+    problem = {"num_vars": dim, "names": variable_names, "bounds": bounds}
 
     param_values = saltelli.sample(problem, 2**13, calc_second_order=False)
 
