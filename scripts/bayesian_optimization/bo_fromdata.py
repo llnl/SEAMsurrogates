@@ -42,7 +42,7 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole", "hst_H"],
+        choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
         help="Which dataset to use.",
     )
