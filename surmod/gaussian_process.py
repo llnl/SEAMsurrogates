@@ -569,7 +569,7 @@ class GPSurrogate:
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_mean_prediction(
+    def plot_predictive_mean(
         self,
         test_mse: float,
         objective_function: str,
@@ -584,7 +584,7 @@ class GPSurrogate:
             raise ValueError("Model has not been built.")
 
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_mean_prediction only supports 2D inputs.")
+            raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
         test_rmse = np.sqrt(test_mse)
 
@@ -655,7 +655,7 @@ class GPSurrogate:
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_std_dev_prediction(
+    def plot_predictive_std_dev(
         self,
         test_mse: float,
         objective_function: str,
@@ -670,7 +670,7 @@ class GPSurrogate:
             raise ValueError("Model has not been built.")
 
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_std_dev_prediction only supports 2D inputs.")
+            raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
         test_rmse = np.sqrt(test_mse)
 

@@ -255,14 +255,14 @@ def main():
         if plots:
             gp.plot_test_predictions(dataset=objective_function)
 
-        gp.plot_gp_mean_prediction(
+        gp.plot_predictive_mean(
             test_mse=test_mse,
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
         )
 
-        gp.plot_gp_std_dev_prediction(
+        gp.plot_predictive_std_dev(
             test_mse=test_mse,
             objective_function=objective_function,
             scale_x=scale_x,
