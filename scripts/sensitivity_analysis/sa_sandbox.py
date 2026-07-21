@@ -35,7 +35,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from surmod import sensitivity_analysis as sa
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 
 
 def parse_arguments():

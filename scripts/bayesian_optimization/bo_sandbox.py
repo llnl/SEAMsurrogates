@@ -28,7 +28,7 @@ import numpy as np
 import torch
 
 from surmod import bayesian_optimization as bo
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import load_test_function
 
 

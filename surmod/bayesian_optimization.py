@@ -16,7 +16,7 @@ from botorch.acquisition.analytic import (
 from botorch.optim import optimize_acqf
 
 from surmod.test_functions import load_test_function
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
 
 

@@ -515,8 +515,6 @@ class GPSurrogate:
     def plot_test_predictions(
         self,
         dataset: str = "GP Test Predictions",
-        scale_x: bool = False,
-        normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
