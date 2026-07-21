@@ -3,14 +3,13 @@
 """
 This script performs a sensitivity analysis on a chosen dataset by training a
 Gaussian Process (GP) surrogate model. It allows for flexible kernel selection,
-length scale adjustment, and exclusion of specific input columns.
+length scale adjustment, and exclusion of specific input variables.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
 Note:
-- For JAG data there are 5 input variables
-- For borehole data there are 8 input variables
-- Column exclusion uses zero-based indexing
+- For JAG data there are 5 input variables: x1, x2, x3, x4, x5
+- For borehole data there are 8 input variables: rw, r, Tu, Hu, Tl, Hl, L, Kw
 
 Usage:
 
@@ -21,12 +20,12 @@ chmod +x ./sa_fromdata.py
 ./sa_fromdata.py -h
 
 # Perform sensitivity analysis with 200 training points, 150 testing points,
-# excluding columns 3 and 4
-./sa_fromdata.py -tr 200 -te 150 --exclude 3 4
+# excluding variables x4 and x5
+./sa_fromdata.py -tr 200 -te 150 --exclude x4 x5
 
 # Perform sensitivity analysis with 150 training points, 100 testing points,
-#  excluding columns 1 and 2, and save results to log file
-./sa_fromdata.py -tr 150 -e 1 2 --log
+# excluding variables x2 and x3, and save results to log file
+./sa_fromdata.py -tr 150 -e x2 x3 --log
 """
 
 import argparse
@@ -71,12 +70,12 @@ def parse_arguments():
     parser.add_argument(
         "-e",
         "--exclude",
-        type=int,
+        type=str,
         nargs="+",
         help=(
-            "Zero-based column indices to exclude from fitting the surrogate model. "
-            "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5."
-            "Valid values for borehole dataset: 0=rw, 1=r, 2=Tu, 3=Hu, 4=Tl, 5=Hl, 6=L, 7=Kw."
+            "Variable names to exclude from fitting the surrogate model. "
+            "Valid values for JAG dataset: x1, x2, x3, x4, x5. "
+            "Valid values for borehole dataset: rw, r, Tu, Hu, Tl, Hl, L, Kw."
         ),
     )
 
@@ -151,19 +150,24 @@ def main():
     df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=n_train)
 
-    # Initial variable names per dataset
-    if dataset == "JAG":
-        variable_names = np.array(["x1", "x2", "x3", "x4", "x5"])
-    elif dataset == "borehole":
-        variable_names = np.array(["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"])
-    else:
-        raise ValueError(f"Unknown dataset: {dataset}")
+    # Get variable names from dataset config (all columns except the last one which is 'y')
+    variable_names = data_processing.DATASET_CONFIG[dataset]["columns"][:-1]
 
     # Apply exclusions consistently
     if exclude is not None:
-        x_train = np.delete(x_train, exclude, axis=1)
-        x_test = np.delete(x_test, exclude, axis=1)
-        variable_names = np.delete(variable_names, exclude)  # type: ignore
+        # Convert variable names to indices
+        exclude_indices = []
+        for var_name in exclude:
+            if var_name not in variable_names:
+                raise ValueError(
+                    f"Variable '{var_name}' not found in dataset '{dataset}'. "
+                    f"Valid variables: {variable_names}"
+                )
+            exclude_indices.append(variable_names.index(var_name))
+
+        x_train = np.delete(x_train, exclude_indices, axis=1)
+        x_test = np.delete(x_test, exclude_indices, axis=1)
+        variable_names = [name for name in variable_names if name not in exclude]
 
     _, dim = x_train.shape
 
@@ -221,7 +225,7 @@ def main():
     ]
 
     problem = {
-        "n_vars": dim,
+        "num_vars": dim,
         "names": list(variable_names),  # type: ignore
         "bounds": bounds,
     }

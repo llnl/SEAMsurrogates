@@ -27,7 +27,7 @@ DATASET_CONFIG = {
         "path": _DATA_DIR / "JAG_10k.csv",
         "n_inputs": 5,
         "n_outputs": 1,
-        "columns": ["x0", "x1", "x2", "x3", "x4", "y"],
+        "columns": ["x1", "x2", "x3", "x4", "x5", "y"],
     },
     "borehole": {
         "path": _DATA_DIR / "borehole_10k.csv",
