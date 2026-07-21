@@ -191,7 +191,7 @@ def main():
     y_test_1d = np.asarray(y_test).reshape(-1)
 
     # Build and fit BoTorch GP surrogate
-    gp_model = GPSurrogate(
+    gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train_1d,
         x_test=x_test,
@@ -205,12 +205,12 @@ def main():
     )
 
     start_time = time.perf_counter()
-    gp_model.fit()
+    gp.fit()
     elapsed_time = time.perf_counter() - start_time
 
     # Predict on train/test
-    pred_train_mean, _pred_train_std = gp_model.predict(x_train)
-    pred_test_mean, pred_test_std = gp_model.predict(x_test)
+    pred_train_mean, _pred_train_std = gp.predict(x_train)
+    pred_test_mean, pred_test_std = gp.predict(x_test)
 
     # Metrics (match your previous ones, plus coverage from GPSurrogate.evaluate)
     train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
@@ -220,10 +220,10 @@ def main():
     test_mse = mean_squared_error(y_test_1d, pred_test_mean)
 
     # Max absolute error locations
-    train_max_abserr, train_max_input = gp_model.compute_max_error(
+    train_max_abserr, train_max_input = gp.compute_max_error(
         pred_train_mean, y_train_1d, x_train
     )
-    test_max_abserr, test_max_input = gp_model.compute_max_error(
+    test_max_abserr, test_max_input = gp.compute_max_error(
         pred_test_mean, y_test_1d, x_test
     )
 
@@ -265,7 +265,7 @@ def main():
 
     if do_plot:
         # Uses your class method that calls evaluate() internally
-        gp_model.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
+        gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":
