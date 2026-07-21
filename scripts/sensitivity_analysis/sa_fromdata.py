@@ -98,7 +98,7 @@ def parse_arguments():
     parser.add_argument(
         "--log",
         action="store_true",
-        help="Append results to output_log/<data>_Results.txt",
+        help="Append results to results/<dataset>.txt",
     )
 
     parser.add_argument(
@@ -258,9 +258,8 @@ def main():
     print(log_message)
 
     if do_log:
-        log_results(
-            log_message, path_to_log=Path("output_log") / f"{dataset}_Results.txt"
-        )
+        results_dir = Path(__file__).parent / "results"
+        log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
     sa.plot_test_predictions(x_test, y_test_1d, gp_model, dataset)

@@ -165,11 +165,12 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plt.tight_layout()
 
-    Path("plots").mkdir(exist_ok=True)
-    timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = (
-        Path("plots") / f"test_predictions_{objective_function}_{timestamp}.png"
+    plot_dir = (
+        Path(__file__).parent.parent / "scripts" / "sensitivity_analysis" / "plots"
     )
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    path_to_plot = plot_dir / f"test_predictions_{objective_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
 
@@ -221,8 +222,11 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    Path("plots").mkdir(exist_ok=True)
+    plot_dir = (
+        Path(__file__).parent.parent / "scripts" / "sensitivity_analysis" / "plots"
+    )
+    plot_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = Path("plots") / f"sensitivity_{objective_function}_{timestamp}.png"
+    path_to_plot = plot_dir / f"sensitivity_{objective_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

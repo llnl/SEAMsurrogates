@@ -251,9 +251,10 @@ def main():
     print(log_message)
 
     if do_log:
+        results_dir = Path(__file__).parent / "results"
         log_results(
             log_message,
-            path_to_log=Path("output_log") / f"{objective_function}.txt",
+            path_to_log=results_dir / f"{objective_function}.txt",
         )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)

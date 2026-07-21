@@ -246,9 +246,10 @@ def main():
         print(log_message)
 
         if do_log:
+            results_dir = Path(__file__).parent / "results"
             log_results(
                 log_message,
-                path_to_log=Path("output_log")
+                path_to_log=results_dir
                 / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
             )
 
