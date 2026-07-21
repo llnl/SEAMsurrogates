@@ -181,7 +181,7 @@ def main():
         noise_bounds = (1e-8, 1e-1)
 
     for kernel in kernels:
-        gp_model = GPSurrogate(
+        gp = GPSurrogate(
             x_train=x_train,
             y_train=y_train_1d,
             x_test=x_test,
@@ -195,11 +195,11 @@ def main():
         )
 
         start_time = time.perf_counter()
-        gp_model.fit()
+        gp.fit()
         elapsed_time = time.perf_counter() - start_time
 
-        pred_train_mean, _pred_train_std = gp_model.predict(x_train)
-        pred_test_mean, pred_test_std = gp_model.predict(x_test)
+        pred_train_mean, _pred_train_std = gp.predict(x_train)
+        pred_test_mean, pred_test_std = gp.predict(x_test)
 
         train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
         test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
@@ -207,13 +207,13 @@ def main():
         train_mse = mean_squared_error(y_train_1d, pred_train_mean)
         test_mse = mean_squared_error(y_test_1d, pred_test_mean)
 
-        train_max_abserr, train_max_input = gp_model.compute_max_error(
+        train_max_abserr, train_max_input = gp.compute_max_error(
             pred_train_mean, y_train_1d, x_train
         )
-        test_max_abserr, test_max_input = gp_model.compute_max_error(
+        test_max_abserr, test_max_input = gp.compute_max_error(
             pred_test_mean, y_test_1d, x_test
         )
-        fitted_params = gp_model.get_fitted_parameters()
+        fitted_params = gp.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
         coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
@@ -253,16 +253,16 @@ def main():
             )
 
         if plots:
-            gp_model.plot_test_predictions(dataset=objective_function)
+            gp.plot_test_predictions(dataset=objective_function)
 
-        gp_model.plot_gp_mean_prediction(
+        gp.plot_gp_mean_prediction(
             test_mse=test_mse,
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
         )
 
-        gp_model.plot_gp_std_dev_prediction(
+        gp.plot_gp_std_dev_prediction(
             test_mse=test_mse,
             objective_function=objective_function,
             scale_x=scale_x,
