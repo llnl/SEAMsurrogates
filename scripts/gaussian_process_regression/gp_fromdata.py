@@ -26,7 +26,7 @@ from surmod.gaussian_process import GPSurrogate
 def parse_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train GP surrogate models for the JAG dataset (BoTorch GPSurrogate).",
+        description="Train GP surrogate models on various datasets using GPSurrogate.",
     )
 
     parser.add_argument(
