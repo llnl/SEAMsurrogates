@@ -194,7 +194,7 @@ def test_plot_test_predictions_raises_without_test_data(train_data):
     gp = GPSurrogate(x_train=x_train, y_train=y_train)
 
     with pytest.raises(ValueError, match="x_test and y_test must be provided"):
-        gp.plot_test_predictions()
+        gp.plot_test_predictions("test_dataset")
 
 
 def test_fit_runs_on_small_dataset(train_data, test_data):

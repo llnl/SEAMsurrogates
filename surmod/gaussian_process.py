@@ -514,7 +514,7 @@ class GPSurrogate:
 
     def plot_test_predictions(
         self,
-        dataset: str = "GP Test Predictions",
+        dataset: str,
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
