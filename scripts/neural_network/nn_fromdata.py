@@ -28,6 +28,7 @@ chmod +x ./nn_fromdata.py
 import argparse
 from pathlib import Path
 
+import numpy as np
 import torch
 
 from surmod import neural_network as nn, data_processing
@@ -151,11 +152,17 @@ def main() -> None:
             "limit (10000)."
         )
 
+    # Set random seeds for reproducibility
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
     # Weight initialization (normal with mean = 0, sd = 0.1)
     initialize_weights_normal = True
 
     # Load data into data frame and split into train and test sets
-    df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
+    df = data_processing.load_data(
+        dataset=dataset, n_samples=n_samples, random=True, seed=seed
+    )
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df, LHD=LHD, n_train=n_train, seed=seed
