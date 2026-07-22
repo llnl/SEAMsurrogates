@@ -169,7 +169,7 @@ def parse_arguments():
         type=int,
         nargs="+",
         default=[8, 12, 16],
-        help="List of sizes to apply to both (two) hidden layers. Must have -mt flagged.",
+        help="List of sizes to apply to both (two) hidden layers.",
     )
 
     parser.add_argument(
@@ -178,7 +178,7 @@ def parse_arguments():
         type=float,
         nargs="+",
         default=[1e-3, 1e-4, 1e-5],
-        help="List of learning rates to try. Must have -mt flagged.",
+        help="List of learning rates to try.",
     )
 
     parser.add_argument(
