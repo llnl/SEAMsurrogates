@@ -35,7 +35,7 @@ from surmod.test_functions import load_test_function
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform Bayesian optimization with GP surrogate models.",
+        description="Perform Bayesian optimization on synthetic test functions.",
     )
     parser.add_argument(
         "-it",

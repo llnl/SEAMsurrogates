@@ -42,7 +42,7 @@ def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform a sensitivity analysis with a GP surrogate model.",
+        description="Perform sensitivity analysis on synthetic test functions using GP surrogates.",
     )
 
     parser.add_argument("--b1", type=float, default=1, help="parabola beta_1 parameter")

@@ -46,7 +46,7 @@ def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train GP surrogate models on synthetic test functions (BoTorch GPSurrogate).",
+        description="Train GP surrogate models on synthetic test functions.",
     )
 
     parser.add_argument(

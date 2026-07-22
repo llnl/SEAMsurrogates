@@ -29,7 +29,7 @@ from surmod import bayesian_optimization as bo, data_processing
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform Bayesian optimization on dataset data.",
+        description="Perform Bayesian optimization on datasets from data/.",
     )
 
     parser.add_argument(
@@ -87,7 +87,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
         default="random",
-        help="Initial design strategy. For dataset BO, LHD-based designs are matched to nearest dataset rows.",
+        help="Initial design strategy for Bayesian optimization.",
     )
 
     parser.add_argument(
