@@ -161,6 +161,9 @@ def main():
     isotropic = args.isotropic
     seed = args.seed
 
+    # Define script-relative directories
+    plots_dir = Path(__file__).parent / "plots"
+
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
         objective_function,
@@ -254,13 +257,14 @@ def main():
             )
 
         if plots:
-            gp.plot_test_predictions(dataset=objective_function)
+            gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
 
         gp.plot_predictive_mean(
             test_rmse=test_rmse,
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
+            plots_dir=plots_dir,
         )
 
         gp.plot_predictive_std_dev(
@@ -268,6 +272,7 @@ def main():
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
+            plots_dir=plots_dir,
         )
 
 

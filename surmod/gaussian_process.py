@@ -528,6 +528,7 @@ class GPSurrogate:
         objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot GP mean surface in a style closely matching the legacy sklearn version.
@@ -600,8 +601,8 @@ class GPSurrogate:
         ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        Path("plots").mkdir(exist_ok=True)
-        path_to_plot = Path("plots") / f"{objective_function}_gp_mean_{timestamp}.png"
+        plots_dir.mkdir(exist_ok=True)
+        path_to_plot = plots_dir / f"{objective_function}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -612,6 +613,7 @@ class GPSurrogate:
         objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot GP predictive standard deviation in a style closely matching the legacy
@@ -679,10 +681,8 @@ class GPSurrogate:
         fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        Path("plots").mkdir(exist_ok=True)
-        path_to_plot = (
-            Path("plots") / f"{objective_function}_gp_std_dev_{timestamp}.png"
-        )
+        plots_dir.mkdir(exist_ok=True)
+        path_to_plot = plots_dir / f"{objective_function}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
