@@ -45,23 +45,22 @@ from botorch.test_functions.synthetic import SyntheticTestFunction
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
+from surmod.test_functions import load_test_function
 
 
 def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train NN surrogate models on synthetic test "
-        "functions.",
+        description="Train neural network surrogate models on synthetic test functions.",
     )
 
     parser.add_argument(
         "-f",
         "--objective_function",
         type=str,
-        choices=["Ackley", "SixHumpCamel", "Griewank"],
         default="Ackley",
-        help="Choose objective function (Ackley, SixHumpCamel, or Griewank).",
+        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
 
     parser.add_argument(
@@ -110,7 +109,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-n",
-        "--num_epochs",
+        "--n_epochs",
         type=int,
         default=100,
         help="Number of epochs for training.",
@@ -169,7 +168,7 @@ def parse_arguments():
         type=int,
         nargs="+",
         default=[8, 12, 16],
-        help="List of sizes to apply to both (two) hidden layers. Must have -mt flagged.",
+        help="List of sizes to apply to both (two) hidden layers.",
     )
 
     parser.add_argument(
@@ -178,7 +177,7 @@ def parse_arguments():
         type=float,
         nargs="+",
         default=[1e-3, 1e-4, 1e-5],
-        help="List of learning rates to try. Must have -mt flagged.",
+        help="List of learning rates to try.",
     )
 
     parser.add_argument(
@@ -208,6 +207,7 @@ def plot_surface_3d(
     synthetic_function: SyntheticTestFunction,
     model,
     title: str,
+    plots_dir: Path,
     resolution: int = 50,
     angle: Tuple[float, float] = (30, 120),
     input_scaler=None,
@@ -325,9 +325,9 @@ def plot_surface_3d(
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
     # Create plots directory if it doesn't exist and save plot
-    Path("plots").mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = Path("plots") / f"surface_plot_{title}_{timestamp}.png"
+    filepath = plots_dir / f"surface_plot_{title}_{timestamp}.png"
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
 
@@ -346,7 +346,7 @@ def main():
     normalize_y = args.normalize_y
     scale_y = args.scale_y
     seed = args.seed
-    num_epochs = args.num_epochs
+    n_epochs = args.n_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -361,8 +361,12 @@ def main():
     # Weight initialization (default PyTorch)
     initialize_weights_normal = False
 
+    # Set output directory relative to this script
+    script_dir = Path(__file__).parent
+    plots_dir = script_dir / "plots"
+
     # Generate random data from test function
-    synthetic_function = nn.load_test_function(objective_function)
+    synthetic_function = load_test_function(objective_function)
     input_size = synthetic_function.dim
     torch.manual_seed(seed)
 
@@ -477,7 +481,7 @@ def main():
                     x_test,
                     y_test,
                     hidden_sizes,
-                    num_epochs,
+                    n_epochs,
                     lr,
                     batch_size,
                     seed,
@@ -498,6 +502,7 @@ def main():
             multi_hidden_sizes,
             axs,
             objective_function,
+            plots_dir,
         )
 
     # Default: Do one train/test run and plot loss over epochs results
@@ -509,7 +514,7 @@ def main():
             x_test,
             y_test,
             hidden_sizes,
-            num_epochs,
+            n_epochs,
             learning_rate,
             batch_size,
             seed,
@@ -532,17 +537,19 @@ def main():
                 n_train,
                 n_test,
                 objective_function,
+                plots_dir,
             )
 
         else:
             # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, objective_function)
+            nn.plot_losses(train_losses, test_losses, objective_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(
                 synthetic_function,
                 model,
                 title=objective_function,
+                plots_dir=plots_dir,
                 resolution=50,
                 angle=(30, 120),
                 input_scaler=scaler_x_train,

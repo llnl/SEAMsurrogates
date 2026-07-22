@@ -22,11 +22,11 @@ chmod +x ./gp_sandbox.py
 
 # Smooth Ackley function with an RBF kernel, save results in log, 200 training
 #   points, 3 values of alpha.
-./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200 -a 0.001 0.01 0.1
+./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200
 
 # Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
 #   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
+./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l
 """
 
 import argparse
@@ -35,32 +35,31 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod.test_functions import simulate_data
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 
 
 def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train GP surrogate models on synthetic test functions (BoTorch GPSurrogate).",
+        description="Train GP surrogate models on synthetic test functions.",
     )
 
     parser.add_argument(
         "-f",
         "--objective_function",
         type=str,
-        choices=["Parabola", "Ackley", "Branin", "HolderTable", "Griewank"],
         default="Parabola",
-        help="Choose objective function.",
+        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=100,
         help="Number of points to have in training data set.",
@@ -68,7 +67,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
@@ -151,8 +150,8 @@ def main():
     args = parse_arguments()
     objective_function = args.objective_function
     kernels = args.kernels
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
@@ -161,16 +160,16 @@ def main():
     isotropic = args.isotropic
     seed = args.seed
 
+    # Define script-relative directories
+    plots_dir = Path(__file__).parent / "plots"
+
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
         objective_function,
-        num_train,
-        num_test,
+        n_train,
+        n_test,
         seed=seed,
     )
-
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
 
     if fixed_nugget is not None:
         fixed_noise = float(fixed_nugget)
@@ -181,11 +180,11 @@ def main():
         noise_bounds = (1e-8, 1e-1)
 
     for kernel in kernels:
-        gp_model = GPSurrogate(
+        gp = GPSurrogate(
             x_train=x_train,
-            y_train=y_train_1d,
+            y_train=y_train,
             x_test=x_test,
-            y_test=y_test_1d,
+            y_test=y_test,
             kernel=kernel,
             isotropic=isotropic,
             scale_inputs=scale_x,
@@ -195,35 +194,35 @@ def main():
         )
 
         start_time = time.perf_counter()
-        gp_model.fit()
+        gp.fit()
         elapsed_time = time.perf_counter() - start_time
 
-        pred_train_mean, _pred_train_std = gp_model.predict(x_train)
-        pred_test_mean, pred_test_std = gp_model.predict(x_test)
+        pred_train_mean, _pred_train_std = gp.predict(x_train)
+        pred_test_mean, pred_test_std = gp.predict(x_test)
 
-        train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-        test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+        train_mae = mean_absolute_error(y_train, pred_train_mean)
+        test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-        train_mse = mean_squared_error(y_train_1d, pred_train_mean)
-        test_mse = mean_squared_error(y_test_1d, pred_test_mean)
+        train_rmse = rmse(y_train, pred_train_mean)
+        test_rmse = rmse(y_test, pred_test_mean)
 
-        train_max_abserr, train_max_input = gp_model.compute_max_error(
-            pred_train_mean, y_train_1d, x_train
+        train_max_abserr, train_max_input = gp.compute_max_error(
+            pred_train_mean, y_train, x_train
         )
-        test_max_abserr, test_max_input = gp_model.compute_max_error(
-            pred_test_mean, y_test_1d, x_test
+        test_max_abserr, test_max_input = gp.compute_max_error(
+            pred_test_mean, y_test, x_test
         )
-        fitted_params = gp_model.get_fitted_parameters()
+        fitted_params = gp.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
-        coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
+        coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [
             f"Run timestamp (%m%d_%H%M%S): {timestamp}",
             f"Test Function: {objective_function}",
-            f"Number of training points: {num_train}",
-            f"Number of testing points: {num_test}",
+            f"Number of training points: {n_train}",
+            f"Number of testing points: {n_test}",
             f"Kernel: {kernel}",
             f"Isotropic kernel: {isotropic}",
             f"Learned noise: {fitted_params.get('noise')}",
@@ -233,8 +232,8 @@ def main():
             f"Standardize outputs (normalize_y): {normalize_y}",
             f"Fixed nugget: {fixed_nugget}",
             f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
-            f"Train MSE: {train_mse:.5e}",
-            f"Test MSE: {test_mse:.5e}",
+            f"Train RMSE: {train_rmse:.5e}",
+            f"Test RMSE: {test_rmse:.5e}",
             f"Test 95% interval coverage: {coverage:.2%}",
             f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
             f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
@@ -246,27 +245,30 @@ def main():
         print(log_message)
 
         if do_log:
+            results_dir = Path(__file__).parent / "results"
             log_results(
                 log_message,
-                path_to_log=Path("output_log")
+                path_to_log=results_dir
                 / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
             )
 
         if plots:
-            gp_model.plot_test_predictions(objective_data_name=objective_function)
+            gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
 
-        gp_model.plot_gp_mean_prediction(
-            test_mse=test_mse,
-            objective_data_name=objective_function,
+        gp.plot_predictive_mean(
+            test_rmse=test_rmse,
+            objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
+            plots_dir=plots_dir,
         )
 
-        gp_model.plot_gp_std_dev_prediction(
-            test_mse=test_mse,
-            objective_data_name=objective_function,
+        gp.plot_predictive_std_dev(
+            test_rmse=test_rmse,
+            objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
+            plots_dir=plots_dir,
         )
 
 

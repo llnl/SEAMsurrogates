@@ -4,10 +4,10 @@ Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurroga
 
 Usage examples:
 
-./gp_fromdata.py --num_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py --num_train=200 --kernel=matern
-./gp_fromdata.py --num_train=200 --kernel=matern --normalize_y --plot
-./gp_fromdata.py --num_train=300 --kernel=matern --log
+./gp_fromdata.py --n_train=200 --kernel=rbf --isotropic
+./gp_fromdata.py --n_train=200 --kernel=matern
+./gp_fromdata.py --n_train=200 --kernel=matern --normalize_y --plot
+./gp_fromdata.py --n_train=300 --kernel=matern --log
 """
 
 import argparse
@@ -16,31 +16,31 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import data_processing
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to train GP surrogate models for the JAG dataset (BoTorch GPSurrogate).",
+        description="Train GP surrogate models on datasets from data/.",
     )
 
     parser.add_argument(
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole", "hst_H"],
+        choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
         help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=50,
         help="Number of train samples.",
@@ -48,7 +48,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=500,
         help="Number of test samples.",
@@ -155,8 +155,8 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     normalize_y = args.normalize_y
     kernel = args.kernel
     isotropic = args.isotropic
@@ -174,28 +174,24 @@ def main():
     plots_dir = script_dir / "plots"
 
     # Check data availability
-    num_samples = num_test + num_train
-    if num_samples > 10000:
+    n_samples = n_test + n_train
+    if n_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
+            f"Requested samples ({n_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
     # Load and split data
-    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
+    df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
     x_train, x_test, y_train, y_test = data_processing.split_data(
-        df=df, LHD=use_lhd, n_train=num_train, seed=seed
+        df=df, LHD=use_lhd, n_train=n_train, seed=seed
     )
 
-    # Ensure y is 1D float array for metrics
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
-
     # Build and fit BoTorch GP surrogate
-    gp_model = GPSurrogate(
+    gp = GPSurrogate(
         x_train=x_train,
-        y_train=y_train_1d,
+        y_train=y_train,
         x_test=x_test,
-        y_test=y_test_1d,
+        y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
         scale_inputs=scale_inputs,
@@ -205,47 +201,47 @@ def main():
     )
 
     start_time = time.perf_counter()
-    gp_model.fit()
+    gp.fit()
     elapsed_time = time.perf_counter() - start_time
 
     # Predict on train/test
-    pred_train_mean, _pred_train_std = gp_model.predict(x_train)
-    pred_test_mean, pred_test_std = gp_model.predict(x_test)
+    pred_train_mean, _pred_train_std = gp.predict(x_train)
+    pred_test_mean, pred_test_std = gp.predict(x_test)
 
     # Metrics (match your previous ones, plus coverage from GPSurrogate.evaluate)
-    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+    train_mae = mean_absolute_error(y_train, pred_train_mean)
+    test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_mse = mean_squared_error(y_train_1d, pred_train_mean)
-    test_mse = mean_squared_error(y_test_1d, pred_test_mean)
+    train_rmse = rmse(y_train, pred_train_mean)
+    test_rmse = rmse(y_test, pred_test_mean)
 
     # Max absolute error locations
-    train_max_abserr, train_max_input = gp_model.compute_max_error(
-        pred_train_mean, y_train_1d, x_train
+    train_max_abserr, train_max_input = gp.compute_max_error(
+        pred_train_mean, y_train, x_train
     )
-    test_max_abserr, test_max_input = gp_model.compute_max_error(
-        pred_test_mean, y_test_1d, x_test
+    test_max_abserr, test_max_input = gp.compute_max_error(
+        pred_test_mean, y_test, x_test
     )
 
     # 95% confidence interval coverage on test data
     lower = pred_test_mean - 1.96 * pred_test_std
     upper = pred_test_mean + 1.96 * pred_test_std
-    coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
+    coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
         f"Test Function: {dataset}",
-        f"Number of training points: {num_train}",
-        f"Number of testing points: {num_test}",
+        f"Number of training points: {n_train}",
+        f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
         f"Scale inputs: {scale_inputs}",
         f"Normalize y: {normalize_y}",
         f"Lengthscale bounds: {lengthscale_bounds}",
         f"Noise bounds: {noise_bounds}",
-        f"Train MSE: {train_mse:.5e}",
-        f"Test MSE: {test_mse:.5e}",
+        f"Train RMSE: {train_rmse:.5e}",
+        f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
         f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
         f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
@@ -265,7 +261,7 @@ def main():
 
     if do_plot:
         # Uses your class method that calls evaluate() internally
-        gp_model.plot_test_predictions(objective_data_name=dataset, plots_dir=plots_dir)
+        gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":

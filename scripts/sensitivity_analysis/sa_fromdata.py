@@ -3,14 +3,13 @@
 """
 This script performs a sensitivity analysis on a chosen dataset by training a
 Gaussian Process (GP) surrogate model. It allows for flexible kernel selection,
-length scale adjustment, and exclusion of specific input columns.
+length scale adjustment, and exclusion of specific input variables.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
 Note:
-- For JAG data there are 5 input variables
-- For borehole data there are 8 input variables
-- Column exclusion uses zero-based indexing
+- For JAG data there are 5 input variables: x1, x2, x3, x4, x5
+- For borehole data there are 8 input variables: rw, r, Tu, Hu, Tl, Hl, L, Kw
 
 Usage:
 
@@ -21,12 +20,12 @@ chmod +x ./sa_fromdata.py
 ./sa_fromdata.py -h
 
 # Perform sensitivity analysis with 200 training points, 150 testing points,
-# excluding columns 3 and 4
-./sa_fromdata.py -tr 200 -te 150 --exclude 3 4
+# excluding variables x4 and x5
+./sa_fromdata.py -tr 200 -te 150 --exclude x4 x5
 
 # Perform sensitivity analysis with 150 training points, 100 testing points,
-#  excluding columns 1 and 2, and save results to log file
-./sa_fromdata.py -tr 150 -e 1 2 --log
+# excluding variables x2 and x3, and save results to log file
+./sa_fromdata.py -tr 150 -e x2 x3 --log
 """
 
 import argparse
@@ -37,25 +36,25 @@ import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error as mse
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa, data_processing
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
 
 
 def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to perform a sensitivity analysis of the JAG dataset.",
+        description="Perform sensitivity analysis on datasets from data/ using GP surrogates.",
     )
 
     parser.add_argument(
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole"],
+        choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
         help="Which dataset to use (default: JAG).",
     )
@@ -71,18 +70,18 @@ def parse_arguments():
     parser.add_argument(
         "-e",
         "--exclude",
-        type=int,
+        type=str,
         nargs="+",
         help=(
-            "Zero-based column indices to exclude from fitting the surrogate model. "
-            "Valid values for JAG dataset: 0=x1, 1=x2, 2=x3, 3=x4, 4=x5."
-            "Valid values for borehole dataset: 0=rw, 1=r, 2=Tu, 3=Hu, 4=Tl, 5=Hl, 6=L, 7=Kw."
+            "Variable names to exclude from fitting the surrogate model. "
+            "Valid values for JAG dataset: x1, x2, x3, x4, x5. "
+            "Valid values for borehole dataset: rw, r, Tu, Hu, Tl, Hl, L, Kw."
         ),
     )
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
@@ -90,7 +89,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
@@ -99,7 +98,7 @@ def parse_arguments():
     parser.add_argument(
         "--log",
         action="store_true",
-        help="Append results to output_log/<data>_Results.txt",
+        help="Append results to results/<dataset>.txt",
     )
 
     parser.add_argument(
@@ -119,15 +118,6 @@ def log_results(log_message: str, path_to_log: Path | str) -> None:
         f.write(log_message + "\n")
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = nugget / 10000.0
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def main():
     """
     Trains and evaluates a GP surrogate model on the chosen dataset,
@@ -136,34 +126,39 @@ def main():
     args = parse_arguments()
     dataset = args.dataset
     normalize_x = args.normalize_x
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     do_log = args.log
     exclude = args.exclude
 
     # Check data availability
-    num_samples = num_test + num_train
-    if num_samples > 10000:
+    n_samples = n_test + n_train
+    if n_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size limit (10000)."
+            f"Requested samples ({n_samples}) exceed existing dataset(s) size limit (10000)."
         )
 
-    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
-    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=num_train)
+    df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
+    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=n_train)
 
-    # Initial variable names per dataset
-    if dataset == "JAG":
-        variable_names = np.array(["x1", "x2", "x3", "x4", "x5"])
-    elif dataset == "borehole":
-        variable_names = np.array(["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"])
-    else:
-        raise ValueError(f"Unknown dataset: {dataset}")
+    # Get variable names from dataset config (all columns except the last one which is 'y')
+    variable_names = data_processing.DATASET_CONFIG[dataset]["columns"][:-1]
 
     # Apply exclusions consistently
     if exclude is not None:
-        x_train = np.delete(x_train, exclude, axis=1)
-        x_test = np.delete(x_test, exclude, axis=1)
-        variable_names = np.delete(variable_names, exclude)  # type: ignore
+        # Convert variable names to indices
+        exclude_indices = []
+        for var_name in exclude:
+            if var_name not in variable_names:
+                raise ValueError(
+                    f"Variable '{var_name}' not found in dataset '{dataset}'. "
+                    f"Valid variables: {variable_names}"
+                )
+            exclude_indices.append(variable_names.index(var_name))
+
+        x_train = np.delete(x_train, exclude_indices, axis=1)
+        x_test = np.delete(x_test, exclude_indices, axis=1)
+        variable_names = [name for name in variable_names if name not in exclude]
 
     _, dim = x_train.shape
 
@@ -181,9 +176,9 @@ def main():
     # Train GPSurrogate
     gp_model = GPSurrogate(
         x_train=x_train,
-        y_train=np.asarray(y_train).reshape(-1),
+        y_train=y_train,
         x_test=x_test,
-        y_test=np.asarray(y_test).reshape(-1),
+        y_test=y_test,
         kernel="matern",
         isotropic=True,
         # you already optionally StandardScaler'ed X above, avoid double scaling
@@ -198,21 +193,18 @@ def main():
     pred_train_mean, _ = gp_model.predict(x_train)
     pred_test_mean, _ = gp_model.predict(x_test)
 
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
-
     # Metrics
-    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+    train_mae = mean_absolute_error(y_train, pred_train_mean)
+    test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_mse = mse(y_train_1d, pred_train_mean)
-    test_mse = mse(y_test_1d, pred_test_mean)
+    train_rmse = rmse(y_train, pred_train_mean)
+    test_rmse = rmse(y_test, pred_test_mean)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
-        pred_train_mean, y_train_1d, x_train
+        pred_train_mean, y_train, x_train
     )
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
-        pred_test_mean, y_test_1d, x_test
+        pred_test_mean, y_test, x_test
     )
 
     # Bounds for SALib (use observed range of the (possibly scaled) x_train)
@@ -237,15 +229,15 @@ def main():
 
     # Log message
     log_message = (
-        f"Number of training points: {num_train}\n"
-        f"Number of testing points: {num_test}\n"
+        f"Number of training points: {n_train}\n"
+        f"Number of testing points: {n_test}\n"
         f"Kernel: matern\n"
         f"Isotropic: True\n"
         f"Normalize x values: {normalize_x}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
         f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
-        f"Train MSE: {train_mse:.3e}\n"
-        f"Test MSE: {test_mse:.3e}\n"
+        f"Train RMSE: {train_rmse:.3e}\n"
+        f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
         f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"
@@ -254,12 +246,11 @@ def main():
     print(log_message)
 
     if do_log:
-        log_results(
-            log_message, path_to_log=Path("output_log") / f"{dataset}_Results.txt"
-        )
+        results_dir = Path(__file__).parent / "results"
+        log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
-    sa.plot_test_predictions(x_test, y_test_1d, gp_model, dataset)
+    sa.plot_test_predictions(x_test, y_test, gp_model, dataset)
 
     plt.figure()
     sa.sobol_plot(

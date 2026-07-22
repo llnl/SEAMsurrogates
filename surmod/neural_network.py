@@ -12,12 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from botorch.test_functions.synthetic import (
-    Ackley,
-    Griewank,
-    SixHumpCamel,
-    SyntheticTestFunction,
-)
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -89,42 +83,13 @@ class NeuralNet(nn.Module):
         return x
 
 
-def load_test_function(objective_function: str) -> SyntheticTestFunction:
-    """
-    Load a test function instance for simulating data.
-
-    Args:
-        objective_function (str): Name of the test function to load.
-            Must be one of: "Ackley", "SixHumpCamel", "Griewank".
-
-    Returns:
-        SyntheticTestFunction: An instance of the requested BoTorch synthetic
-        test function.
-
-    Raises:
-        ValueError: If the objective_function name is not recognized.
-    """
-    if objective_function == "Ackley":
-        test_function = Ackley(dim=2)
-    elif objective_function == "SixHumpCamel":
-        test_function = SixHumpCamel()
-    elif objective_function == "Griewank":
-        test_function = Griewank(dim=2)
-    else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'Ackley', 'SixHumpCamel, or 'Griewank'."
-        )
-    return test_function
-
-
 def train(
     x_train: torch.Tensor,
     y_train: torch.Tensor,
     x_test: torch.Tensor,
     y_test: torch.Tensor,
     hidden_sizes: List[int],
-    num_epochs: int,
+    n_epochs: int,
     learning_rate: float,
     batch_size: int,
     seed: int,
@@ -139,7 +104,7 @@ def train(
         x_test (torch.Tensor): Test input features of shape (n_test_samples, n_features).
         y_test (torch.Tensor): Test target values of shape (n_test_samples,) or (n_test_samples, 1).
         hidden_sizes (List[int]): List specifying the number of units in each hidden layer.
-        num_epochs (int): Number of epochs to train the network.
+        n_epochs (int): Number of epochs to train the network.
         learning_rate (float): Learning rate for the optimizer.
         batch_size (int): Number of samples per training batch.
         seed (int): Random seed for reproducibility.
@@ -172,7 +137,7 @@ def train(
     torch.manual_seed(seed)
 
     # Training loop
-    for epoch in range(num_epochs):
+    for epoch in range(n_epochs):
         model.train()  # Set the model to training mode
         epoch_loss = 0.0
 
@@ -208,7 +173,7 @@ def train(
         # Print the loss every 10 epochs
         if (epoch + 1) % 10 == 0:
             print(
-                f"Epoch [{epoch + 1}/{num_epochs}], "
+                f"Epoch [{epoch + 1}/{n_epochs}], "
                 f"Training Loss (MSE): {avg_train_loss:.5f}, "
                 f"Testing Loss (MSE): {test_loss.item():.5f}"
             )
@@ -221,7 +186,8 @@ def train(
 def plot_losses(
     train_losses: List[float],
     test_losses: List[float],
-    objective_data: str = "___ data",
+    dataset: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plot and save the training and testing loss curves across epochs.
@@ -231,25 +197,22 @@ def plot_losses(
             epoch.
         test_losses (List[float]): List of testing loss values (MSE) for each
             epoch.
-        objective_data (str, optional): Name or description of the objective
-            function or dataset. Used in the plot title and filename. Defaults
-            to "___ data".
+        dataset (str): Name of the dataset. Used in the plot title and filename.
+        plots_dir (Path): Directory where plots will be saved.
     """
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
-    # objective_name = objective_data
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"loss_vs_epoch_{dataset}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
-    num_epochs = len(train_losses)
+    n_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
-    plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     plt.title(
-        f"Training and Testing Losses - {objective_data}\n"
+        f"Training and Testing Losses - {dataset}\n"
         f"Final Test Loss (RMSE): {final_test_rmse:.5f}"
     )
     plt.xlabel("Epochs")
@@ -272,7 +235,8 @@ def plot_losses_verbose(
     scale_y: bool,
     train_data_size: int,
     test_data_size: int,
-    objective_data: str = "___ data",
+    dataset: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plot and save training and testing loss curves across epochs, with
@@ -292,24 +256,22 @@ def plot_losses_verbose(
         scale_y (bool): Whether target values (y) were scaled.
         train_data_size (int): Number of samples in the training set.
         test_data_size (int): Number of samples in the testing set.
-        objective_data (str, optional): Name or description of the objective
-            function or dataset. Used in the plot title and filename. Defaults
-            to "___ data".
+        dataset (str): Name of the dataset. Used in the plot title and filename.
+        plots_dir (Path): Directory where plots will be saved.
     """
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"loss_vs_epoch_{objective_data}_verbose_{timestamp}.png"
+    filepath = plots_dir / f"loss_vs_epoch_{dataset}_verbose_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
-    num_epochs = len(train_losses)
+    n_epochs = len(train_losses)
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss (MSE)")
-    plt.plot(range(1, num_epochs + 1), test_losses, label="Testing Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
+    plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
     title = (
-        f"{objective_data} \n "
+        f"{dataset} \n "
         f"Train size: {train_data_size} | Test size: {test_data_size} | "
         f"LR: {learning_rate:.2e} | "
         f"Batch: {batch_size} | "
@@ -339,7 +301,8 @@ def plot_losses_multiplot(
     learning_rates: List[float],
     hid_dims: List[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
-    objective_data: str = "___ data",
+    dataset: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plots training and test losses for multiple runs on a grid of subplots.
@@ -347,8 +310,8 @@ def plot_losses_multiplot(
     Each subplot corresponds to a specific combination of hidden dimension and
     learning rate, displaying the training and test loss curves over epochs.
     The final test loss (RMSE) is shown in each subplot title. The resulting
-    multiplot figure is saved to 'plots' directory with a filename that includes
-    the objective data and a timestamp.
+    multiplot figure is saved to the specified plots directory with a filename
+    that includes the dataset name and a timestamp.
 
     Args:
         train_losses_grid (Sequence[Sequence[List[float]]]):
@@ -365,22 +328,23 @@ def plot_losses_multiplot(
             grid.
         axs (Sequence[Sequence[matplotlib.axes.Axes]]):
             2D grid of matplotlib Axes objects for plotting.
-        objective_data (str, optional):
-            String identifier for the data/objective function, used in the saved
-            filename.
+        dataset (str):
+            Name of the dataset, used in the saved filename.
+        plots_dir (Path):
+            Directory where plots will be saved.
     """
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
             ax = axs[i][j]
             train_losses = train_losses_grid[i][j]
             test_losses = test_losses_grid[i][j]
-            num_epochs = len(train_losses)
+            n_epochs = len(train_losses)
 
             # Calculate final test RMSE
             final_test_rmse = np.sqrt(test_losses[-1])
 
-            ax.plot(range(1, num_epochs + 1), train_losses, label="Train Loss")
-            ax.plot(range(1, num_epochs + 1), test_losses, label="Test Loss")
+            ax.plot(range(1, n_epochs + 1), train_losses, label="Train Loss")
+            ax.plot(range(1, n_epochs + 1), test_losses, label="Test Loss")
             ax.set_yscale("log")
             ax.set_title(
                 f"hid_dim={hid_sz}, lr={lr}\nFinal Test Loss (RMSE): "
@@ -392,10 +356,9 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"multi_loss_vs_epoch_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"multi_loss_vs_epoch_{dataset}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
@@ -405,7 +368,8 @@ def plot_predictions(
     y_test: torch.Tensor,
     predictions: torch.Tensor,
     final_test_mse: float,
-    objective_data: str = "___ data",
+    dataset: str,
+    plots_dir: Path,
 ) -> None:
     """
     Plots the actual test values against the predicted values.
@@ -413,8 +377,8 @@ def plot_predictions(
     This function creates a parity plot comparing the true test values to the
     model's predictions. A reference line for perfect prediction is included.
     The final test loss (RMSE) is displayed in the plot title. The plot is saved
-    in the 'plots' directory, with a filename that includes the objective data
-    and a timestamp.
+    in the specified plots directory, with a filename that includes the dataset
+    name and a timestamp.
 
     Args:
         y_test (torch.Tensor):
@@ -423,9 +387,10 @@ def plot_predictions(
             The predicted values from the model for the test set.
         final_test_mse (float):
             The final mean squared error on the test set.
-        objective_data (str, optional):
-            Identifier for the data/objective, used in the filename. Defaults
-            to "___ data".
+        dataset (str):
+            Name of the dataset, used in the filename.
+        plots_dir (Path):
+            Directory where plots will be saved.
     """
     plt.figure(figsize=(10, 5))
     plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
@@ -454,10 +419,9 @@ def plot_predictions(
     plt.ylim(limits)
     plt.axis("square")
 
-    plots_dir = Path("plots")
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = plots_dir / f"prediction_vs_test_{objective_data}_{timestamp}.png"
+    filepath = plots_dir / f"prediction_vs_test_{dataset}_{timestamp}.png"
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")

@@ -16,7 +16,7 @@ from botorch.acquisition.analytic import (
 from botorch.optim import optimize_acqf
 
 from surmod.test_functions import load_test_function
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
 
 
@@ -30,9 +30,20 @@ def sample_parabola(
 ) -> np.ndarray:
     rng = np.random.default_rng(seed)
     samples = []
+    attempts = 0
+    max_attempts = 100000
 
     while len(samples) < n_initial:
+        if attempts >= max_attempts:
+            raise RuntimeError(
+                f"Failed to generate {n_initial} samples with norm > {radius} "
+                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
+                f"Consider reducing radius or expanding bounds."
+            )
+
         x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
+        attempts += 1
+
         if np.linalg.norm(x_point) > radius:
             samples.append(x_point)
 
@@ -112,6 +123,10 @@ def get_synth_global_optima(
             19.2085,
         ),
         "Parabola": ([[0, 0]], 0.0),
+        "SixHumpCamel": (
+            [[0.0898, -0.7126], [-0.0898, 0.7126]],
+            -1.0316,
+        ),
     }
 
     if objective_function not in global_optima:
@@ -292,7 +307,7 @@ class BayesianOptimizer:
 
     def propose_location(
         self,
-        num_restarts: int = 30,
+        n_restarts: int = 30,
         raw_samples: int = 1000,
     ) -> np.ndarray:
         rng = np.random.RandomState(self.seed)
@@ -311,7 +326,7 @@ class BayesianOptimizer:
             acq_function=acq_func,
             bounds=bounds_t,
             q=1,
-            num_restarts=num_restarts,
+            num_restarts=n_restarts,
             raw_samples=raw_samples,
         )
 

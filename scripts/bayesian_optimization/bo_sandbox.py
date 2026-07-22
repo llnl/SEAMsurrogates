@@ -28,14 +28,14 @@ import numpy as np
 import torch
 
 from surmod import bayesian_optimization as bo
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import load_test_function
 
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform Bayesian optimization with GP surrogate models.",
+        description="Perform Bayesian optimization on synthetic test functions.",
     )
     parser.add_argument(
         "-it",
@@ -71,9 +71,8 @@ def parse_arguments() -> argparse.Namespace:
         "-f",
         "--objective_function",
         type=str,
-        choices=["Parabola", "Ackley", "Griewank", "Branin", "HolderTable"],
         default="Parabola",
-        help="Function to optimize.",
+        help="Function to optimize. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
     parser.add_argument(
         "--init_design",
@@ -378,7 +377,10 @@ def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
 def main() -> None:
     args = parse_arguments()
     os.environ["MPLCONFIGDIR"] = str(Path.cwd())
+
+    # Set random seeds for reproducibility
     np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"

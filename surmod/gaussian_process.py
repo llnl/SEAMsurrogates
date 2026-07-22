@@ -18,14 +18,36 @@ from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKerne
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
 
-from botorch.test_functions.synthetic import (
-    Ackley,
-    Branin,
-    Griewank,
-    HolderTable,
-)
-
 from surmod import test_functions
+
+
+def nugget_to_bounds(nugget: float) -> tuple[float, float]:
+    """
+    Convert a fixed nugget value to tight noise bounds for GP fitting.
+
+    This helper creates a narrow constraint interval around a desired nugget
+    value, useful when you want to fix the GP likelihood noise to a specific
+    value or keep it very close to one.
+
+    Args:
+        nugget: The target nugget (likelihood noise) value. Must be > 0.
+
+    Returns:
+        A tuple (low, high) suitable for passing as noise_bounds to GPSurrogate.
+
+    Raises:
+        ValueError: If nugget <= 0.
+
+    Examples:
+        >>> nugget_to_bounds(1e-6)
+        (9.999e-07, 1.0001e-06)
+    """
+    if nugget <= 0.0:
+        raise ValueError("nugget must be > 0.")
+    delta = nugget / 10000.0
+    low = max(nugget - delta, 1e-20)
+    high = nugget + delta
+    return (low, high)
 
 
 def fit_gpytorch_mll_multistart(
@@ -131,46 +153,6 @@ def fit_gpytorch_mll_multistart(
         raise RuntimeError("All multistart GP fits failed or produced invalid losses.")
 
     return best_model, best_mll, best_loss
-
-
-def load_test_function(objective_function: str):
-    """
-    Loads a test function instance for simulating data based on the given
-    objective function name.
-
-    Args:
-        objective_function (str): The name of the objective function to load.
-            Supported values are "Parabola", "Ackley", "Griewank", "Branin",
-            and "HolderTable".
-
-    Returns:
-        object: An instance of the requested test function, initialized with
-        standard parameters.
-
-    Raises:
-        ValueError: If the specified objective function name is not recognized.
-    """
-    if objective_function == "Parabola":
-        test_function = test_functions.Parabola_synth_test_func(
-            dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
-        )
-    elif objective_function == "Ackley":
-        test_function = Ackley(
-            dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
-        )
-    elif objective_function == "Griewank":
-        test_function = Griewank(dim=2, negate=True, bounds=[(-100, 45), (-100, 45)])
-    elif objective_function == "Branin":
-        test_function = Branin(negate=True)
-    elif objective_function == "HolderTable":
-        test_function = HolderTable(negate=True)
-    else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'Parabola', 'Ackley', 'Griewank', 'Branin',"
-            " or 'HolderTable'."
-        )
-    return test_function
 
 
 def _noise_is_fixed(model) -> bool:
@@ -514,9 +496,7 @@ class GPSurrogate:
 
     def plot_test_predictions(
         self,
-        objective_data_name: str = "GP Test Predictions",
-        scale_x: bool = False,
-        normalize_y: bool = False,
+        dataset: str,
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
@@ -554,7 +534,7 @@ class GPSurrogate:
 
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
-        plt.title(f"{objective_data_name} \n {self.get_fitted_kernel_label()}")
+        plt.title(f"{dataset} \n {self.get_fitted_kernel_label()}")
         plt.text(
             0.3,
             0.95,
@@ -567,18 +547,17 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = (
-            plots_dir / f"{objective_data_name}_test_predictions_{timestamp}.png"
-        )
+        path_to_plot = plots_dir / f"{dataset}_test_predictions_{timestamp}.png"
         plt.savefig(path_to_plot, bbox_inches="tight")
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_mean_prediction(
+    def plot_predictive_mean(
         self,
-        test_mse: float,
-        objective_data_name: str,
+        test_rmse: float,
+        objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot GP mean surface in a style closely matching the legacy sklearn version.
@@ -588,11 +567,9 @@ class GPSurrogate:
             raise ValueError("Model has not been built.")
 
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_mean_prediction only supports 2D inputs.")
+            raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
-        test_rmse = np.sqrt(test_mse)
-
-        test_function = load_test_function(objective_data_name)
+        test_function = test_functions.load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -637,7 +614,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_data_name} Test Function and GP Mean",
+            f"{objective_function} Test Function and GP Mean",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -653,18 +630,19 @@ class GPSurrogate:
         ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        Path("plots").mkdir(exist_ok=True)
-        path_to_plot = Path("plots") / f"{objective_data_name}_gp_mean_{timestamp}.png"
+        plots_dir.mkdir(exist_ok=True)
+        path_to_plot = plots_dir / f"{objective_function}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
 
-    def plot_gp_std_dev_prediction(
+    def plot_predictive_std_dev(
         self,
-        test_mse: float,
-        objective_data_name: str,
+        test_rmse: float,
+        objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
+        plots_dir: Path = Path("plots"),
     ) -> None:
         """
         Plot GP predictive standard deviation in a style closely matching the legacy
@@ -674,11 +652,9 @@ class GPSurrogate:
             raise ValueError("Model has not been built.")
 
         if self.x_train.shape[1] != 2:
-            raise ValueError("plot_gp_std_dev_prediction only supports 2D inputs.")
+            raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
-        test_rmse = np.sqrt(test_mse)
-
-        test_function = load_test_function(objective_data_name)
+        test_function = test_functions.load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -715,7 +691,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_data_name} GP Predictive Standard Deviation",
+            f"{objective_function} GP Predictive Standard Deviation",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -734,10 +710,8 @@ class GPSurrogate:
         fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        Path("plots").mkdir(exist_ok=True)
-        path_to_plot = (
-            Path("plots") / f"{objective_data_name}_gp_std_dev_{timestamp}.png"
-        )
+        plots_dir.mkdir(exist_ok=True)
+        path_to_plot = plots_dir / f"{objective_function}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")

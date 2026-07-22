@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 import torch
 
-from surmod import gpytorch_gaussian_process as gpgp
+from surmod.gaussian_process import (
+    GPSurrogate,
+    MaternKernel,
+    PeriodicKernel,
+    RBFKernel,
+    ScaleKernel,
+)
 
 
 @pytest.fixture
@@ -23,7 +29,7 @@ def test_data():
 def surrogate(train_data, test_data):
     x_train, y_train = train_data
     x_test, y_test = test_data
-    gp = gpgp.GPSurrogate(
+    gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
@@ -40,9 +46,7 @@ def test_init_shapes_and_types(train_data, test_data):
     x_train, y_train = train_data
     x_test, y_test = test_data
 
-    gp = gpgp.GPSurrogate(
-        x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test
-    )
+    gp = GPSurrogate(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
 
     assert isinstance(gp.x_train, torch.Tensor)
     assert isinstance(gp.y_train, torch.Tensor)
@@ -59,24 +63,24 @@ def test_init_shapes_and_types(train_data, test_data):
 @pytest.mark.parametrize(
     "kernel_name,expected_type",
     [
-        ("rbf", gpgp.RBFKernel),
-        ("matern", gpgp.MaternKernel),
-        ("periodic", gpgp.PeriodicKernel),
+        ("rbf", RBFKernel),
+        ("matern", MaternKernel),
+        ("periodic", PeriodicKernel),
     ],
 )
 def test_get_covar_module_kernel_types(train_data, kernel_name, expected_type):
     x_train, y_train = train_data
-    gp = gpgp.GPSurrogate(x_train=x_train, y_train=y_train, kernel=kernel_name)
+    gp = GPSurrogate(x_train=x_train, y_train=y_train, kernel=kernel_name)
     covar = gp._get_covar_module()
 
-    assert isinstance(covar, gpgp.ScaleKernel)
+    assert isinstance(covar, ScaleKernel)
     assert isinstance(covar.base_kernel, expected_type)
 
 
 def test_invalid_kernel_raises(train_data):
     x_train, y_train = train_data
     with pytest.raises(ValueError, match="kernel must be"):
-        gpgp.GPSurrogate(x_train=x_train, y_train=y_train, kernel="bad_kernel")
+        GPSurrogate(x_train=x_train, y_train=y_train, kernel="bad_kernel")
 
 
 def test_predict_uses_x_test_when_no_argument(surrogate):
@@ -107,7 +111,7 @@ def test_predict_with_explicit_x_tensor(surrogate):
 
 def test_predict_raises_without_any_inputs(train_data):
     x_train, y_train = train_data
-    gp = gpgp.GPSurrogate(x_train=x_train, y_train=y_train)
+    gp = GPSurrogate(x_train=x_train, y_train=y_train)
     gp.model.eval()
 
     with pytest.raises(ValueError, match="No prediction data provided"):
@@ -128,7 +132,7 @@ def test_evaluate_returns_metrics(surrogate):
 
 def test_evaluate_raises_without_test_data(train_data):
     x_train, y_train = train_data
-    gp = gpgp.GPSurrogate(x_train=x_train, y_train=y_train)
+    gp = GPSurrogate(x_train=x_train, y_train=y_train)
 
     with pytest.raises(ValueError, match="x_test and y_test must be provided"):
         gp.evaluate()
@@ -139,7 +143,7 @@ def test_compute_max_error():
     target = np.array([1.5, 1.0, 2.5])
     inputs = np.array([[10.0], [20.0], [30.0]])
 
-    max_err, x_at_max = gpgp.GPSurrogate.compute_max_error(output, target, inputs)
+    max_err, x_at_max = GPSurrogate.compute_max_error(output, target, inputs)
 
     assert max_err == pytest.approx(3.0)
     assert np.array_equal(x_at_max, np.array([20.0]))
@@ -160,7 +164,7 @@ def test_sample_posterior_uses_x_test(surrogate):
 
 def test_sample_posterior_raises_without_inputs(train_data):
     x_train, y_train = train_data
-    gp = gpgp.GPSurrogate(x_train=x_train, y_train=y_train)
+    gp = GPSurrogate(x_train=x_train, y_train=y_train)
 
     with pytest.raises(ValueError, match="No input data provided"):
         gp.sample_posterior()
@@ -187,17 +191,17 @@ def test_plot_test_predictions_saves_file(surrogate, tmp_path, monkeypatch):
 
 def test_plot_test_predictions_raises_without_test_data(train_data):
     x_train, y_train = train_data
-    gp = gpgp.GPSurrogate(x_train=x_train, y_train=y_train)
+    gp = GPSurrogate(x_train=x_train, y_train=y_train)
 
     with pytest.raises(ValueError, match="x_test and y_test must be provided"):
-        gp.plot_test_predictions()
+        gp.plot_test_predictions("test_dataset")
 
 
 def test_fit_runs_on_small_dataset(train_data, test_data):
     x_train, y_train = train_data
     x_test, y_test = test_data
 
-    gp = gpgp.GPSurrogate(
+    gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,

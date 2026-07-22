@@ -11,8 +11,8 @@ performance across acquisition functions:
 
 Usage examples:
 
-./bo_fromdata.py --dataset=JAG --num_iter=15 --num_init=10
-./bo_fromdata.py --dataset=borehole --num_iter=20 --kernel=rbf --seed=123
+./bo_fromdata.py --dataset=JAG --n_iter=15 --n_init=10
+./bo_fromdata.py --dataset=borehole --n_iter=20 --kernel=rbf --seed=123
 ./bo_fromdata.py --dataset=JAG --kernel=matern --beta=2.0 --init_design=lhd
 ./bo_fromdata.py --dataset=borehole --init_design=maximin_lhd --fixed_nugget=1e-7
 """
@@ -20,36 +20,30 @@ Usage examples:
 import argparse
 from pathlib import Path
 
+import numpy as np
+import torch
+
 from surmod import bayesian_optimization as bo, data_processing
-
-
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = 1e-16
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
 
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform Bayesian optimization on dataset data.",
+        description="Perform Bayesian optimization on datasets from data/.",
     )
 
     parser.add_argument(
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole", "hst_H"],
+        choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
         help="Which dataset to use.",
     )
 
     parser.add_argument(
         "-it",
-        "--num_iter",
+        "--n_iter",
         type=int,
         default=10,
         help="Number of BO iterations.",
@@ -57,7 +51,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-in",
-        "--num_init",
+        "--n_init",
         type=int,
         default=5,
         help="Number of initial sample points.",
@@ -93,7 +87,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
         default="random",
-        help="Initial design strategy. For dataset BO, LHD-based designs are matched to nearest dataset rows.",
+        help="Initial design strategy for Bayesian optimization.",
     )
 
     parser.add_argument(
@@ -110,29 +104,31 @@ def main() -> None:
     args = parse_arguments()
     dataset = args.dataset
     kernel = args.kernel
-    num_init = args.num_init
-    num_iter = args.num_iter
+    n_init = args.n_init
+    n_iter = args.n_iter
     seed = args.seed
+
+    # Set random seeds for reproducibility
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"
 
-    num_samples = num_init + num_iter
-    if num_samples > 10000:
+    n_samples = n_init + n_iter
+    if n_samples > 10000:
         raise ValueError(
-            f"Total samples ({num_samples}) exceed existing dataset size limit (10000)."
+            f"Total samples ({n_samples}) exceed existing dataset size limit (10000)."
         )
 
     df = data_processing.load_data(dataset=dataset, n_samples=10000, random=False)
 
-    if num_init > len(df):
-        raise ValueError(
-            f"num_init ({num_init}) cannot exceed dataset size ({len(df)})."
-        )
+    if n_init > len(df):
+        raise ValueError(f"n_init ({n_init}) cannot exceed dataset size ({len(df)}).")
 
-    if num_init + num_iter > len(df):
+    if n_init + n_iter > len(df):
         raise ValueError(
-            f"num_init + num_iter ({num_init + num_iter}) exceeds dataset size ({len(df)})."
+            f"n_init + n_iter ({n_init + n_iter}) exceeds dataset size ({len(df)})."
         )
 
     data = df.to_numpy()
@@ -172,7 +168,7 @@ def main() -> None:
 
     base_kwargs = {
         "isotropic": False,
-        "n_acquire": num_iter,
+        "n_acquire": n_iter,
         "seed": seed,
         "noise_bounds": noise_bounds,
         "fixed_noise": fixed_noise,
@@ -190,7 +186,7 @@ def main() -> None:
             kwargs["beta"] = args.beta
 
         optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
-        max_y_history = optimizer.bayes_opt(df, num_init)[2]
+        max_y_history = optimizer.bayes_opt(df, n_init)[2]
 
         optimizers[acq_func] = optimizer
         max_y_histories[acq_func] = max_y_history
@@ -202,8 +198,8 @@ def main() -> None:
         max_y_histories["PV"],
         max_y_histories["random"],
         kernel,
-        num_iter,
-        num_init,
+        n_iter,
+        n_init,
         f"{dataset}_{args.init_design}",
         beta=args.beta,
         plots_dir=plots_dir,

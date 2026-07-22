@@ -26,7 +26,9 @@ chmod +x ./nn_fromdata.py
 """
 
 import argparse
+from pathlib import Path
 
+import numpy as np
 import torch
 
 from surmod import neural_network as nn, data_processing
@@ -35,7 +37,7 @@ from surmod import neural_network as nn, data_processing
 def parse_arguments() -> argparse.Namespace:
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Train neural network on a chosen dataset.",
+        description="Train neural network surrogate models on datasets from data/.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -43,14 +45,14 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=["JAG", "borehole", "hst_H"],
+        choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
         help="Which dataset to use (default: JAG).",
     )
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
@@ -58,7 +60,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
@@ -80,7 +82,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-n",
-        "--num_epochs",
+        "--n_epochs",
         type=int,
         default=100,
         help="Number of epochs for training.",
@@ -128,33 +130,49 @@ def main() -> None:
     # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     seed = args.seed
     LHD = args.LHD
-    num_epochs = args.num_epochs
+    n_epochs = args.n_epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
     verbose_plot = args.verbose_plot
 
+    # Set output directory relative to this script
+    script_dir = Path(__file__).parent
+    plots_dir = script_dir / "plots"
+
     # Check data availability
-    num_samples = num_test + num_train
-    if num_samples > 10000:
+    n_samples = n_test + n_train
+    if n_samples > 10000:
         raise ValueError(
-            f"Requested samples ({num_samples}) exceed existing dataset(s) size "
+            f"Requested samples ({n_samples}) exceed existing dataset(s) size "
             "limit (10000)."
         )
+
+    # Set random seeds for reproducibility
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # Weight initialization (normal with mean = 0, sd = 0.1)
     initialize_weights_normal = True
 
     # Load data into data frame and split into train and test sets
-    df = data_processing.load_data(dataset=dataset, n_samples=num_samples, random=False)
+    df = data_processing.load_data(
+        dataset=dataset, n_samples=n_samples, random=True, seed=seed
+    )
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
-        df, LHD=LHD, n_train=num_train, seed=seed
+        df, LHD=LHD, n_train=n_train, seed=seed
     )
+
+    # Normalize data (critical for numerical stability with different feature scales)
+    x_train, x_test, y_train, y_test = data_processing.normalize_data(
+        x_train, x_test, y_train, y_test
+    )
+    print("Data normalized (zero mean, unit variance)\n")
 
     # Convert training and test data to float32 tensors
     x_train = torch.tensor(x_train, dtype=torch.float32)
@@ -169,7 +187,7 @@ def main() -> None:
         x_test,
         y_test,
         hidden_sizes,
-        num_epochs,
+        n_epochs,
         learning_rate,
         batch_size,
         seed,
@@ -189,20 +207,21 @@ def main() -> None:
             scale_x=False,
             normalize_y=False,
             scale_y=False,
-            train_data_size=num_train,
+            train_data_size=n_train,
             test_data_size=x_test.shape[0],
-            objective_data=dataset,
+            dataset=dataset,
+            plots_dir=plots_dir,
         )
 
     else:
         # Plot train and test loss over epochs
-        nn.plot_losses(train_losses, test_losses, dataset)
+        nn.plot_losses(train_losses, test_losses, dataset, plots_dir)
 
     # Get neural network predictions
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
         predictions = model(x_test)
-    nn.plot_predictions(y_test, predictions, test_losses[-1], dataset)
+    nn.plot_predictions(y_test, predictions, test_losses[-1], dataset, plots_dir)
 
 
 if __name__ == "__main__":

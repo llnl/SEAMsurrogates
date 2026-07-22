@@ -31,18 +31,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa
 
-from surmod.gpytorch_gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
 
 
 def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Perform a sensitivity analysis with a GP surrogate model.",
+        description="Perform sensitivity analysis on synthetic test functions using GP surrogates.",
     )
 
     parser.add_argument("--b1", type=float, default=1, help="parabola beta_1 parameter")
@@ -70,7 +70,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--num_train",
+        "--n_train",
         type=int,
         default=100,
         help="Number of points to have in training data set.",
@@ -78,7 +78,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--num_test",
+        "--n_test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
@@ -115,15 +115,6 @@ def log_results(log_message: str, path_to_log: Path | str) -> None:
         f.write(log_message + "\n")
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = nugget / 10000.0
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def main():
     """
     Run a full workflow for surrogate-based sensitivity analysis using
@@ -132,8 +123,8 @@ def main():
     """
     args = parse_arguments()
     objective_function = args.objective_function
-    num_train = args.num_train
-    num_test = args.num_test
+    n_train = args.n_train
+    n_test = args.n_test
     do_log = args.log
     b1 = args.b1
     b2 = args.b2
@@ -141,10 +132,14 @@ def main():
     exclude = args.exclude
     isotropic = args.isotropic
 
+    # Set output directories relative to this script
+    plots_dir = Path(__file__).parent / "plots"
+    results_dir = Path(__file__).parent / "results"
+
     regular_dim, __ = sa.load_test_settings(objective_function)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
-        objective_function, num_train, num_test, b1, b2, b12
+        objective_function, n_train, n_test, b1, b2, b12
     )
 
     if exclude is not None:
@@ -159,9 +154,9 @@ def main():
 
     gp_model = GPSurrogate(
         x_train=x_train,
-        y_train=np.asarray(y_train).reshape(-1),
+        y_train=y_train,
         x_test=x_test,
-        y_test=np.asarray(y_test).reshape(-1),
+        y_test=y_test,
         kernel="matern",
         isotropic=isotropic,
         scale_inputs=False,  # your SA data are already in [0,1]
@@ -176,20 +171,17 @@ def main():
     pred_train, _ = gp_model.predict(x_train)
     pred_test, _ = gp_model.predict(x_test)
 
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
+    train_mae = mean_absolute_error(y_train, pred_train)
+    test_mae = mean_absolute_error(y_test, pred_test)
 
-    train_mae = mean_absolute_error(y_train_1d, pred_train)
-    test_mae = mean_absolute_error(y_test_1d, pred_test)
-
-    train_mse = mean_squared_error(y_train_1d, pred_train)
-    test_mse = mean_squared_error(y_test_1d, pred_test)
+    train_rmse = rmse(y_train, pred_train)
+    test_rmse = rmse(y_test, pred_test)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
-        pred_train, y_train_1d, x_train
+        pred_train, y_train, x_train
     )
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
-        pred_test, y_test_1d, x_test
+        pred_test, y_test, x_test
     )
 
     if objective_function == "wingweight":
@@ -233,14 +225,14 @@ def main():
     log_message = (
         f"Run timestamp (%m%d_%H%M%S): {timestamp}\n"
         f"Test Function: {objective_function}\n"
-        f"Number of training points: {num_train}\n"
-        f"Number of testing points: {num_test}\n"
+        f"Number of training points: {n_train}\n"
+        f"Number of testing points: {n_test}\n"
         f"Kernel: matern\n"
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
         f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
-        f"Train MSE: {train_mse:.3e}\n"
-        f"Test MSE: {test_mse:.3e}\n"
+        f"Train RMSE: {train_rmse:.3e}\n"
+        f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
         f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"
@@ -253,11 +245,11 @@ def main():
     if do_log:
         log_results(
             log_message,
-            path_to_log=Path("output_log") / f"{objective_function}.txt",
+            path_to_log=results_dir / f"{objective_function}.txt",
         )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
-    sa.plot_test_predictions(x_test, y_test_1d, gp_model, objective_function)
+    sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
 
     sa.sobol_plot(
         Si["S1"],
@@ -282,11 +274,9 @@ def main():
         )
         plt.title("GP Model Prediction for Parabola")
 
-        Path("plots").mkdir(exist_ok=True)
+        plots_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plt.savefig(
-            Path("plots") / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
-        )
+        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png")
 
 
 if __name__ == "__main__":

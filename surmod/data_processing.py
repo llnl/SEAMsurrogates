@@ -1,20 +1,11 @@
 """
-General data loading and splitting utilities for JAG, borehole, and hst_H datasets.
+Data loading and splitting utilities.
 
-JAG:
-    - 5 inputs, 1 output
-    - default path: "../../data/JAG_10k.csv"
-
-Borehole:
-    - 8 inputs, 1 output
-    - default path: "../../data/borehole_10k.csv"
-
-hst_H:
-    - 8 inputs, 1 output
-    - default path: "../../data/hst_H_10k.csv"
+Supported datasets: JAG, borehole, hst_H
+See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
 """
 
-from typing import Optional, Tuple
+from typing import Tuple
 import warnings
 from pathlib import Path
 
@@ -25,6 +16,7 @@ from scipy.spatial import cKDTree  # type: ignore
 from scipy.stats import qmc
 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 # Paths relative to this file's location
 _MODULE_DIR = Path(__file__).parent
@@ -36,7 +28,7 @@ DATASET_CONFIG = {
         "path": _DATA_DIR / "JAG_10k.csv",
         "n_inputs": 5,
         "n_outputs": 1,
-        "columns": ["x0", "x1", "x2", "x3", "x4", "y"],
+        "columns": ["x1", "x2", "x3", "x4", "x5", "y"],
     },
     "borehole": {
         "path": _DATA_DIR / "borehole_10k.csv",
@@ -67,7 +59,7 @@ def load_data(
     dataset: str = "JAG",
     n_samples: int = 10000,
     random: bool = True,
-    seed: Optional[int] = None,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Load a subset of a dataset from CSV.
@@ -77,19 +69,13 @@ def load_data(
         - No header, or any header will be ignored and replaced
 
     Args:
-        dataset: Which dataset to load, "JAG", "borehole", or "hst_H".
+        dataset: Dataset name (see DATASET_CONFIG for supported options).
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
 
     Returns:
-        pd.DataFrame:
-            For JAG:
-                columns: [x0, x1, x2, x3, x4, y]
-            For borehole:
-                columns: [rw, r, Tu, Hu, Tl, Hl, L, Kw, y]
-            For hst_H:
-                columns: [Umag, Ts, Ta, alphan, sigmat, theta, phi, panang, Cd]
+        pd.DataFrame with input features and output column for the selected dataset.
     """
     if dataset not in DATASET_CONFIG:
         raise ValueError(
@@ -144,8 +130,8 @@ def split_data(
     Returns:
         x_train: Training features array.
         x_test: Testing features array.
-        y_train: Training labels array (column vector).
-        y_test: Testing labels array (column vector).
+        y_train: Training labels array (1D).
+        y_test: Testing labels array (1D).
 
     Raises:
         ValueError: If n_train is greater than the total number of samples in df.
@@ -198,11 +184,11 @@ def split_data(
         _, index = query_unique(tree, x_lhd)
 
         x_train = x[index]
-        y_train = y[index].reshape(-1, 1)
+        y_train = y[index].reshape(-1)
         mask = np.ones(n_total, dtype=bool)
         mask[index] = False
         x_test = x[mask]
-        y_test = y[mask].reshape(-1, 1)
+        y_test = y[mask].reshape(-1)
     else:
         # Standard random split with exact n_train samples
         x_train, x_test, y_train, y_test = train_test_split(
@@ -212,8 +198,8 @@ def split_data(
             test_size=None,
             random_state=seed,
         )
-        y_train = y_train.reshape(-1, 1)
-        y_test = y_test.reshape(-1, 1)
+        y_train = y_train.reshape(-1)
+        y_test = y_test.reshape(-1)
 
     print(f"x_train shape: {x_train.shape}")
     print(f"x_test shape:  {x_test.shape}")
@@ -235,7 +221,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: "JAG", "borehole", or "hst_H".
+        dataset: Dataset name (see DATASET_CONFIG for supported options).
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.
@@ -253,3 +239,42 @@ def load_and_split(
     )
 
     return split_data(df, LHD=LHD, n_train=n_train, seed=seed)
+
+
+def normalize_data(
+    x_train: np.ndarray,
+    x_test: np.ndarray,
+    y_train: np.ndarray,
+    y_test: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Normalize features and targets using StandardScaler (zero mean, unit variance).
+
+    Uses one scaler for all X features and one scaler for y targets.
+    Fits scalers on training data and applies to both train and test sets.
+
+    Args:
+        x_train: Training features array of shape (n_train, n_features).
+        x_test: Testing features array of shape (n_test, n_features).
+        y_train: Training labels array of shape (n_train,).
+        y_test: Testing labels array of shape (n_test,).
+
+    Returns:
+        x_train_norm: Normalized training features.
+        x_test_norm: Normalized testing features.
+        y_train_norm: Normalized training labels.
+        y_test_norm: Normalized testing labels.
+    """
+    # One scaler for all X features
+    x_scaler = StandardScaler()
+    x_train_norm = x_scaler.fit_transform(x_train)
+    x_test_norm = x_scaler.transform(x_test)
+
+    # One scaler for y target
+    y_scaler = StandardScaler()
+    y_train_reshaped = y_train.reshape(-1, 1)
+    y_test_reshaped = y_test.reshape(-1, 1)
+    y_train_norm = y_scaler.fit_transform(y_train_reshaped).reshape(-1)
+    y_test_norm = y_scaler.transform(y_test_reshaped).reshape(-1)
+
+    return x_train_norm, x_test_norm, y_train_norm, y_test_norm
