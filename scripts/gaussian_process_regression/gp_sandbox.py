@@ -53,9 +53,8 @@ def parse_arguments():
         "-f",
         "--objective_function",
         type=str,
-        choices=["Parabola", "Ackley", "Branin", "HolderTable", "Griewank"],
         default="Parabola",
-        help="Choose objective function.",
+        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
 
     parser.add_argument(

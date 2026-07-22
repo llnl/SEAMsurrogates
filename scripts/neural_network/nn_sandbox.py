@@ -45,6 +45,7 @@ from botorch.test_functions.synthetic import SyntheticTestFunction
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
+from surmod.test_functions import load_test_function
 
 
 def parse_arguments():
@@ -59,9 +60,8 @@ def parse_arguments():
         "-f",
         "--objective_function",
         type=str,
-        choices=["Ackley", "SixHumpCamel", "Griewank"],
         default="Ackley",
-        help="Choose objective function (Ackley, SixHumpCamel, or Griewank).",
+        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
 
     parser.add_argument(
@@ -366,7 +366,7 @@ def main():
     plots_dir = script_dir / "plots"
 
     # Generate random data from test function
-    synthetic_function = nn.load_test_function(objective_function)
+    synthetic_function = load_test_function(objective_function)
     input_size = synthetic_function.dim
     torch.manual_seed(seed)
 

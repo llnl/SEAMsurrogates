@@ -123,6 +123,10 @@ def get_synth_global_optima(
             19.2085,
         ),
         "Parabola": ([[0, 0]], 0.0),
+        "SixHumpCamel": (
+            [[0.0898, -0.7126], [-0.0898, 0.7126]],
+            -1.0316,
+        ),
     }
 
     if objective_function not in global_optima:

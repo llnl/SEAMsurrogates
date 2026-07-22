@@ -71,9 +71,8 @@ def parse_arguments() -> argparse.Namespace:
         "-f",
         "--objective_function",
         type=str,
-        choices=["Parabola", "Ackley", "Griewank", "Branin", "HolderTable"],
         default="Parabola",
-        help="Function to optimize.",
+        help="Function to optimize. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
     )
     parser.add_argument(
         "--init_design",
