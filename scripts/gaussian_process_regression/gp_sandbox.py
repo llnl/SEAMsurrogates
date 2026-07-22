@@ -22,11 +22,11 @@ chmod +x ./gp_sandbox.py
 
 # Smooth Ackley function with an RBF kernel, save results in log, 200 training
 #   points, 3 values of alpha.
-./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200 -a 0.001 0.01 0.1
+./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200
 
 # Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
 #   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l -a 0.002 0.04 0.08
+./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l
 """
 
 import argparse
