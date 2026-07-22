@@ -36,7 +36,7 @@ from surmod import neural_network as nn, data_processing
 def parse_arguments() -> argparse.Namespace:
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Train neural network on JAG ICF data.",
+        description="Train neural network on simulation data.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
