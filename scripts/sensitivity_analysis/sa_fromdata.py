@@ -47,7 +47,7 @@ def parse_arguments():
     """Get command line arguments."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="A script to perform a sensitivity analysis of the JAG dataset.",
+        description="Perform sensitivity analysis on simulation data using Gaussian Process surrogates.",
     )
 
     parser.add_argument(
