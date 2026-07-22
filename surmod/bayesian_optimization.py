@@ -30,9 +30,20 @@ def sample_parabola(
 ) -> np.ndarray:
     rng = np.random.default_rng(seed)
     samples = []
+    attempts = 0
+    max_attempts = 100000
 
     while len(samples) < n_initial:
+        if attempts >= max_attempts:
+            raise RuntimeError(
+                f"Failed to generate {n_initial} samples with norm > {radius} "
+                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
+                f"Consider reducing radius or expanding bounds."
+            )
+
         x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
+        attempts += 1
+
         if np.linalg.norm(x_point) > radius:
             samples.append(x_point)
 
