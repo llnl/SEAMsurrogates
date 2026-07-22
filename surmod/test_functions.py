@@ -7,6 +7,7 @@ from botorch.test_functions.synthetic import (
     Branin,
     Griewank,
     HolderTable,
+    SixHumpCamel,
 )
 from typing import Optional, List, Tuple, Union
 
@@ -458,44 +459,99 @@ def borehole(
     return numerator / denominator
 
 
-def load_test_function(objective_function: str):
+def load_test_function(
+    objective_function: Union[str, type],
+    dim: Optional[int] = None,
+    negate: bool = True,
+    bounds: Optional[List[Tuple[float, float]]] = None,
+    **kwargs,
+):
     """
-    Loads a test function instance for simulating data based on the given
-    objective function name.
+    Loads a test function instance for simulating data.
 
     Args:
-        objective_function (str): The name of the objective function to load.
-            Supported values are "Parabola", "Ackley", "Griewank", "Branin",
-            and "HolderTable".
+        objective_function: Either a string name of a test function or the test
+            function class itself. Supported string names: "Parabola", "Ackley",
+            "Griewank", "Branin", "HolderTable", "SixHumpCamel".
+        dim: Dimension for the test function (if applicable).
+        negate: If True, negate the function values.
+        bounds: Custom bounds for the function as a list of (lower, upper) tuples.
+        **kwargs: Additional arguments to pass to the test function constructor.
 
     Returns:
-        object: An instance of the requested test function, initialized with
-        standard parameters.
+        SyntheticTestFunction: An instance of the requested test function.
 
     Raises:
         ValueError: If the specified objective function name is not recognized.
     """
-    if objective_function == "Parabola":
-        test_function = Parabola_synth_test_func(
-            dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
-        )
-    elif objective_function == "Ackley":
-        test_function = Ackley(
-            dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
-        )
-    elif objective_function == "Griewank":
-        test_function = Griewank(dim=2, negate=True, bounds=[(-100, 45), (-100, 45)])
-    elif objective_function == "Branin":
-        test_function = Branin(negate=True)
-    elif objective_function == "HolderTable":
-        test_function = HolderTable(negate=True)
+    # Registry of common test functions with default parameters
+    DEFAULT_CONFIGS = {
+        "Parabola": {
+            "class": Parabola_synth_test_func,
+            "dim": 2,
+            "bounds": [(-25, 25), (-25, 25)],
+        },
+        "Ackley": {
+            "class": Ackley,
+            "dim": 2,
+            "bounds": [(-32.768, 32.768), (-32.768, 32.768)],
+        },
+        "Griewank": {
+            "class": Griewank,
+            "dim": 2,
+            "bounds": [(-100, 45), (-100, 45)],
+        },
+        "Branin": {
+            "class": Branin,
+        },
+        "HolderTable": {
+            "class": HolderTable,
+        },
+        "SixHumpCamel": {
+            "class": SixHumpCamel,
+        },
+    }
+
+    # If it's already a class, use it directly
+    if isinstance(objective_function, type):
+        test_function_class = objective_function
+        # Use provided parameters
+        init_kwargs = {"negate": negate, **kwargs}
+        if dim is not None:
+            init_kwargs["dim"] = dim
+        if bounds is not None:
+            init_kwargs["bounds"] = bounds
     else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'Parabola', 'Ackley', 'Griewank', 'Branin',"
-            " or 'HolderTable'."
-        )
-    return test_function
+        # Look up string name in registry
+        if objective_function not in DEFAULT_CONFIGS:
+            available = ", ".join(DEFAULT_CONFIGS.keys())
+            raise ValueError(
+                f"Test function '{objective_function}' not found. "
+                f"Available: {available}, or pass the class directly."
+            )
+
+        config = DEFAULT_CONFIGS[objective_function]
+        test_function_class = config["class"]
+
+        # Build kwargs with defaults, overridden by explicit parameters
+        init_kwargs = {"negate": negate, **kwargs}
+
+        # Handle dimension
+        effective_dim = dim if dim is not None else config.get("dim")
+        if effective_dim is not None:
+            init_kwargs["dim"] = effective_dim
+
+        # Handle bounds - only use default bounds if dimension matches
+        if bounds is not None:
+            init_kwargs["bounds"] = bounds
+        elif "bounds" in config:
+            default_bounds = config["bounds"]
+            # Only use default bounds if dimension matches or no dim specified
+            if effective_dim is None or len(default_bounds) == effective_dim:
+                init_kwargs["bounds"] = default_bounds
+            # If dim changed but bounds didn't, skip bounds to use function defaults
+
+    return test_function_class(**init_kwargs)
 
 
 def simulate_data(

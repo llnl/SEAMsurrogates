@@ -18,13 +18,6 @@ from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKerne
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
 
-from botorch.test_functions.synthetic import (
-    Ackley,
-    Branin,
-    Griewank,
-    HolderTable,
-)
-
 from surmod import test_functions
 
 
@@ -131,46 +124,6 @@ def fit_gpytorch_mll_multistart(
         raise RuntimeError("All multistart GP fits failed or produced invalid losses.")
 
     return best_model, best_mll, best_loss
-
-
-def load_test_function(objective_function: str):
-    """
-    Loads a test function instance for simulating data based on the given
-    objective function name.
-
-    Args:
-        objective_function (str): The name of the objective function to load.
-            Supported values are "Parabola", "Ackley", "Griewank", "Branin",
-            and "HolderTable".
-
-    Returns:
-        object: An instance of the requested test function, initialized with
-        standard parameters.
-
-    Raises:
-        ValueError: If the specified objective function name is not recognized.
-    """
-    if objective_function == "Parabola":
-        test_function = test_functions.Parabola_synth_test_func(
-            dim=2, negate=True, bounds=[(-25, 25), (-25, 25)]
-        )
-    elif objective_function == "Ackley":
-        test_function = Ackley(
-            dim=2, negate=True, bounds=[(-32.768, 32.768), (-32.768, 32.768)]
-        )
-    elif objective_function == "Griewank":
-        test_function = Griewank(dim=2, negate=True, bounds=[(-100, 45), (-100, 45)])
-    elif objective_function == "Branin":
-        test_function = Branin(negate=True)
-    elif objective_function == "HolderTable":
-        test_function = HolderTable(negate=True)
-    else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'Parabola', 'Ackley', 'Griewank', 'Branin',"
-            " or 'HolderTable'."
-        )
-    return test_function
 
 
 def _noise_is_fixed(model) -> bool:
@@ -586,7 +539,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
-        test_function = load_test_function(objective_function)
+        test_function = test_functions.load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -670,7 +623,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
-        test_function = load_test_function(objective_function)
+        test_function = test_functions.load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 

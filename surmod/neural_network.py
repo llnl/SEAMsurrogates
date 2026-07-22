@@ -12,12 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from botorch.test_functions.synthetic import (
-    Ackley,
-    Griewank,
-    SixHumpCamel,
-    SyntheticTestFunction,
-)
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -87,35 +81,6 @@ class NeuralNet(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
-
-
-def load_test_function(objective_function: str) -> SyntheticTestFunction:
-    """
-    Load a test function instance for simulating data.
-
-    Args:
-        objective_function (str): Name of the test function to load.
-            Must be one of: "Ackley", "SixHumpCamel", "Griewank".
-
-    Returns:
-        SyntheticTestFunction: An instance of the requested BoTorch synthetic
-        test function.
-
-    Raises:
-        ValueError: If the objective_function name is not recognized.
-    """
-    if objective_function == "Ackley":
-        test_function = Ackley(dim=2)
-    elif objective_function == "SixHumpCamel":
-        test_function = SixHumpCamel()
-    elif objective_function == "Griewank":
-        test_function = Griewank(dim=2)
-    else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'Ackley', 'SixHumpCamel, or 'Griewank'."
-        )
-    return test_function
 
 
 def train(
