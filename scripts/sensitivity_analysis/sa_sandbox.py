@@ -35,7 +35,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa
 
-from surmod.gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
 
 
 def parse_arguments():
@@ -115,15 +115,6 @@ def log_results(log_message: str, path_to_log: Path | str) -> None:
         f.write(log_message + "\n")
 
 
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = nugget / 10000.0
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
-
-
 def main():
     """
     Run a full workflow for surrogate-based sensitivity analysis using
@@ -140,6 +131,10 @@ def main():
     b12 = args.b12
     exclude = args.exclude
     isotropic = args.isotropic
+
+    # Set output directories relative to this script
+    plots_dir = Path(__file__).parent / "plots"
+    results_dir = Path(__file__).parent / "results"
 
     regular_dim, __ = sa.load_test_settings(objective_function)
 
@@ -248,7 +243,6 @@ def main():
     print(log_message)
 
     if do_log:
-        results_dir = Path(__file__).parent / "results"
         log_results(
             log_message,
             path_to_log=results_dir / f"{objective_function}.txt",
@@ -280,11 +274,9 @@ def main():
         )
         plt.title("GP Model Prediction for Parabola")
 
-        Path("plots").mkdir(exist_ok=True)
+        plots_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plt.savefig(
-            Path("plots") / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png"
-        )
+        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png")
 
 
 if __name__ == "__main__":

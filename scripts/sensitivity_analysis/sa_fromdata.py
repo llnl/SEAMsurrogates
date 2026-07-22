@@ -40,7 +40,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa, data_processing
 
-from surmod.gaussian_process import GPSurrogate
+from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
 
 
 def parse_arguments():
@@ -116,15 +116,6 @@ def log_results(log_message: str, path_to_log: Path | str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as f:
         f.write(log_message + "\n")
-
-
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = nugget / 10000.0
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
 
 
 def main():

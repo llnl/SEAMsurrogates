@@ -20,16 +20,10 @@ Usage examples:
 import argparse
 from pathlib import Path
 
+import numpy as np
+import torch
+
 from surmod import bayesian_optimization as bo, data_processing
-
-
-def nugget_to_bounds(nugget: float) -> tuple[float, float]:
-    if nugget <= 0.0:
-        raise ValueError("--fixed_nugget must be > 0.")
-    delta = 1e-16
-    low = max(nugget - delta, 1e-20)
-    high = nugget + delta
-    return (low, high)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -113,6 +107,10 @@ def main() -> None:
     n_init = args.n_init
     n_iter = args.n_iter
     seed = args.seed
+
+    # Set random seeds for reproducibility
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"

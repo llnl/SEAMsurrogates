@@ -377,7 +377,10 @@ def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
 def main() -> None:
     args = parse_arguments()
     os.environ["MPLCONFIGDIR"] = str(Path.cwd())
+
+    # Set random seeds for reproducibility
     np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"

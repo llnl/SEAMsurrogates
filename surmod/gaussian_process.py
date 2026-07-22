@@ -21,6 +21,35 @@ from numpy.typing import NDArray
 from surmod import test_functions
 
 
+def nugget_to_bounds(nugget: float) -> tuple[float, float]:
+    """
+    Convert a fixed nugget value to tight noise bounds for GP fitting.
+
+    This helper creates a narrow constraint interval around a desired nugget
+    value, useful when you want to fix the GP likelihood noise to a specific
+    value or keep it very close to one.
+
+    Args:
+        nugget: The target nugget (likelihood noise) value. Must be > 0.
+
+    Returns:
+        A tuple (low, high) suitable for passing as noise_bounds to GPSurrogate.
+
+    Raises:
+        ValueError: If nugget <= 0.
+
+    Examples:
+        >>> nugget_to_bounds(1e-6)
+        (9.999e-07, 1.0001e-06)
+    """
+    if nugget <= 0.0:
+        raise ValueError("nugget must be > 0.")
+    delta = nugget / 10000.0
+    low = max(nugget - delta, 1e-20)
+    high = nugget + delta
+    return (low, high)
+
+
 def fit_gpytorch_mll_multistart(
     build_model_and_mll,
     n_restarts: int = 10,

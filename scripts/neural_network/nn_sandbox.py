@@ -208,6 +208,7 @@ def plot_surface_3d(
     synthetic_function: SyntheticTestFunction,
     model,
     title: str,
+    plots_dir: Path,
     resolution: int = 50,
     angle: Tuple[float, float] = (30, 120),
     input_scaler=None,
@@ -325,9 +326,9 @@ def plot_surface_3d(
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
     # Create plots directory if it doesn't exist and save plot
-    Path("plots").mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    filepath = Path("plots") / f"surface_plot_{title}_{timestamp}.png"
+    filepath = plots_dir / f"surface_plot_{title}_{timestamp}.png"
     plt.savefig(filepath)
     print(f"Figure saved to {filepath}")
 
@@ -549,6 +550,7 @@ def main():
                 synthetic_function,
                 model,
                 title=objective_function,
+                plots_dir=plots_dir,
                 resolution=50,
                 angle=(30, 120),
                 input_scaler=scaler_x_train,
