@@ -36,7 +36,7 @@ import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error as mse
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa, data_processing
 
@@ -209,8 +209,8 @@ def main():
     train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
     test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-    train_mse = mse(y_train_1d, pred_train_mean)
-    test_mse = mse(y_test_1d, pred_test_mean)
+    train_rmse = rmse(y_train_1d, pred_train_mean)
+    test_rmse = rmse(y_test_1d, pred_test_mean)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
         pred_train_mean, y_train_1d, x_train
@@ -248,8 +248,8 @@ def main():
         f"Normalize x values: {normalize_x}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
         f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
-        f"Train MSE: {train_mse:.3e}\n"
-        f"Test MSE: {test_mse:.3e}\n"
+        f"Train RMSE: {train_rmse:.3e}\n"
+        f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
         f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"

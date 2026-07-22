@@ -571,7 +571,7 @@ class GPSurrogate:
 
     def plot_predictive_mean(
         self,
-        test_mse: float,
+        test_rmse: float,
         objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
@@ -585,8 +585,6 @@ class GPSurrogate:
 
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_mean only supports 2D inputs.")
-
-        test_rmse = np.sqrt(test_mse)
 
         test_function = load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]
@@ -657,7 +655,7 @@ class GPSurrogate:
 
     def plot_predictive_std_dev(
         self,
-        test_mse: float,
+        test_rmse: float,
         objective_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
@@ -671,8 +669,6 @@ class GPSurrogate:
 
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
-
-        test_rmse = np.sqrt(test_mse)
 
         test_function = load_test_function(objective_function)
         bounds_low = [b[0] for b in test_function._bounds]

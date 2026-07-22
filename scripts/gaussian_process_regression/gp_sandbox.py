@@ -35,7 +35,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 
 from surmod.test_functions import simulate_data
 
@@ -204,8 +204,8 @@ def main():
         train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
         test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
 
-        train_mse = mean_squared_error(y_train_1d, pred_train_mean)
-        test_mse = mean_squared_error(y_test_1d, pred_test_mean)
+        train_rmse = rmse(y_train_1d, pred_train_mean)
+        test_rmse = rmse(y_test_1d, pred_test_mean)
 
         train_max_abserr, train_max_input = gp.compute_max_error(
             pred_train_mean, y_train_1d, x_train
@@ -233,8 +233,8 @@ def main():
             f"Standardize outputs (normalize_y): {normalize_y}",
             f"Fixed nugget: {fixed_nugget}",
             f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
-            f"Train MSE: {train_mse:.5e}",
-            f"Test MSE: {test_mse:.5e}",
+            f"Train RMSE: {train_rmse:.5e}",
+            f"Test RMSE: {test_rmse:.5e}",
             f"Test 95% interval coverage: {coverage:.2%}",
             f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
             f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
@@ -257,14 +257,14 @@ def main():
             gp.plot_test_predictions(dataset=objective_function)
 
         gp.plot_predictive_mean(
-            test_mse=test_mse,
+            test_rmse=test_rmse,
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
         )
 
         gp.plot_predictive_std_dev(
-            test_mse=test_mse,
+            test_rmse=test_rmse,
             objective_function=objective_function,
             scale_x=scale_x,
             normalize_y=normalize_y,
