@@ -171,9 +171,6 @@ def main():
         seed=seed,
     )
 
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
-
     if fixed_nugget is not None:
         fixed_noise = float(fixed_nugget)
         eps = max(1e-8, abs(fixed_noise) * 1e-6)
@@ -185,9 +182,9 @@ def main():
     for kernel in kernels:
         gp = GPSurrogate(
             x_train=x_train,
-            y_train=y_train_1d,
+            y_train=y_train,
             x_test=x_test,
-            y_test=y_test_1d,
+            y_test=y_test,
             kernel=kernel,
             isotropic=isotropic,
             scale_inputs=scale_x,
@@ -203,22 +200,22 @@ def main():
         pred_train_mean, _pred_train_std = gp.predict(x_train)
         pred_test_mean, pred_test_std = gp.predict(x_test)
 
-        train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-        test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+        train_mae = mean_absolute_error(y_train, pred_train_mean)
+        test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-        train_rmse = rmse(y_train_1d, pred_train_mean)
-        test_rmse = rmse(y_test_1d, pred_test_mean)
+        train_rmse = rmse(y_train, pred_train_mean)
+        test_rmse = rmse(y_test, pred_test_mean)
 
         train_max_abserr, train_max_input = gp.compute_max_error(
-            pred_train_mean, y_train_1d, x_train
+            pred_train_mean, y_train, x_train
         )
         test_max_abserr, test_max_input = gp.compute_max_error(
-            pred_test_mean, y_test_1d, x_test
+            pred_test_mean, y_test, x_test
         )
         fitted_params = gp.get_fitted_parameters()
         lower = pred_test_mean - 1.96 * pred_test_std
         upper = pred_test_mean + 1.96 * pred_test_std
-        coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
+        coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         log_lines = [
