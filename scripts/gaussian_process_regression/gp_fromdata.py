@@ -186,16 +186,12 @@ def main():
         df=df, LHD=use_lhd, n_train=n_train, seed=seed
     )
 
-    # Ensure y is 1D float array for metrics
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
-
     # Build and fit BoTorch GP surrogate
     gp = GPSurrogate(
         x_train=x_train,
-        y_train=y_train_1d,
+        y_train=y_train,
         x_test=x_test,
-        y_test=y_test_1d,
+        y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
         scale_inputs=scale_inputs,
@@ -213,24 +209,24 @@ def main():
     pred_test_mean, pred_test_std = gp.predict(x_test)
 
     # Metrics (match your previous ones, plus coverage from GPSurrogate.evaluate)
-    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+    train_mae = mean_absolute_error(y_train, pred_train_mean)
+    test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_rmse = rmse(y_train_1d, pred_train_mean)
-    test_rmse = rmse(y_test_1d, pred_test_mean)
+    train_rmse = rmse(y_train, pred_train_mean)
+    test_rmse = rmse(y_test, pred_test_mean)
 
     # Max absolute error locations
     train_max_abserr, train_max_input = gp.compute_max_error(
-        pred_train_mean, y_train_1d, x_train
+        pred_train_mean, y_train, x_train
     )
     test_max_abserr, test_max_input = gp.compute_max_error(
-        pred_test_mean, y_test_1d, x_test
+        pred_test_mean, y_test, x_test
     )
 
     # 95% confidence interval coverage on test data
     lower = pred_test_mean - 1.96 * pred_test_std
     upper = pred_test_mean + 1.96 * pred_test_std
-    coverage = np.mean((y_test_1d >= lower) & (y_test_1d <= upper))
+    coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [

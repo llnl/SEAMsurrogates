@@ -185,9 +185,9 @@ def main():
     # Train GPSurrogate
     gp_model = GPSurrogate(
         x_train=x_train,
-        y_train=np.asarray(y_train).reshape(-1),
+        y_train=y_train,
         x_test=x_test,
-        y_test=np.asarray(y_test).reshape(-1),
+        y_test=y_test,
         kernel="matern",
         isotropic=True,
         # you already optionally StandardScaler'ed X above, avoid double scaling
@@ -202,21 +202,18 @@ def main():
     pred_train_mean, _ = gp_model.predict(x_train)
     pred_test_mean, _ = gp_model.predict(x_test)
 
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
-
     # Metrics
-    train_mae = mean_absolute_error(y_train_1d, pred_train_mean)
-    test_mae = mean_absolute_error(y_test_1d, pred_test_mean)
+    train_mae = mean_absolute_error(y_train, pred_train_mean)
+    test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_rmse = rmse(y_train_1d, pred_train_mean)
-    test_rmse = rmse(y_test_1d, pred_test_mean)
+    train_rmse = rmse(y_train, pred_train_mean)
+    test_rmse = rmse(y_test, pred_test_mean)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
-        pred_train_mean, y_train_1d, x_train
+        pred_train_mean, y_train, x_train
     )
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
-        pred_test_mean, y_test_1d, x_test
+        pred_test_mean, y_test, x_test
     )
 
     # Bounds for SALib (use observed range of the (possibly scaled) x_train)
@@ -262,7 +259,7 @@ def main():
         log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
-    sa.plot_test_predictions(x_test, y_test_1d, gp_model, dataset)
+    sa.plot_test_predictions(x_test, y_test, gp_model, dataset)
 
     plt.figure()
     sa.sobol_plot(

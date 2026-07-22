@@ -129,8 +129,8 @@ def split_data(
     Returns:
         x_train: Training features array.
         x_test: Testing features array.
-        y_train: Training labels array (column vector).
-        y_test: Testing labels array (column vector).
+        y_train: Training labels array (1D).
+        y_test: Testing labels array (1D).
 
     Raises:
         ValueError: If n_train is greater than the total number of samples in df.
@@ -183,11 +183,11 @@ def split_data(
         _, index = query_unique(tree, x_lhd)
 
         x_train = x[index]
-        y_train = y[index].reshape(-1, 1)
+        y_train = y[index].reshape(-1)
         mask = np.ones(n_total, dtype=bool)
         mask[index] = False
         x_test = x[mask]
-        y_test = y[mask].reshape(-1, 1)
+        y_test = y[mask].reshape(-1)
     else:
         # Standard random split with exact n_train samples
         x_train, x_test, y_train, y_test = train_test_split(
@@ -197,8 +197,8 @@ def split_data(
             test_size=None,
             random_state=seed,
         )
-        y_train = y_train.reshape(-1, 1)
-        y_test = y_test.reshape(-1, 1)
+        y_train = y_train.reshape(-1)
+        y_test = y_test.reshape(-1)
 
     print(f"x_train shape: {x_train.shape}")
     print(f"x_test shape:  {x_test.shape}")
