@@ -173,3 +173,4 @@ cython_debug/
 *.DS_Store
 !SEAM_Logo_2025-01.png
 *.gif
+TODO.md
