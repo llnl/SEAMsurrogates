@@ -159,9 +159,9 @@ def main():
 
     gp_model = GPSurrogate(
         x_train=x_train,
-        y_train=np.asarray(y_train).reshape(-1),
+        y_train=y_train,
         x_test=x_test,
-        y_test=np.asarray(y_test).reshape(-1),
+        y_test=y_test,
         kernel="matern",
         isotropic=isotropic,
         scale_inputs=False,  # your SA data are already in [0,1]
@@ -176,20 +176,17 @@ def main():
     pred_train, _ = gp_model.predict(x_train)
     pred_test, _ = gp_model.predict(x_test)
 
-    y_train_1d = np.asarray(y_train).reshape(-1)
-    y_test_1d = np.asarray(y_test).reshape(-1)
+    train_mae = mean_absolute_error(y_train, pred_train)
+    test_mae = mean_absolute_error(y_test, pred_test)
 
-    train_mae = mean_absolute_error(y_train_1d, pred_train)
-    test_mae = mean_absolute_error(y_test_1d, pred_test)
-
-    train_rmse = rmse(y_train_1d, pred_train)
-    test_rmse = rmse(y_test_1d, pred_test)
+    train_rmse = rmse(y_train, pred_train)
+    test_rmse = rmse(y_test, pred_test)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
-        pred_train, y_train_1d, x_train
+        pred_train, y_train, x_train
     )
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
-        pred_test, y_test_1d, x_test
+        pred_test, y_test, x_test
     )
 
     if objective_function == "wingweight":
@@ -258,7 +255,7 @@ def main():
         )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
-    sa.plot_test_predictions(x_test, y_test_1d, gp_model, objective_function)
+    sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
 
     sa.sobol_plot(
         Si["S1"],

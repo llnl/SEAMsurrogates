@@ -108,10 +108,10 @@ def simulate_data(
 
     # Split data into training and testing sets
     x_train = x_data.copy()[:n_train]
-    y_train = y_data.copy()[:n_train]
+    y_train = np.asarray(y_data.copy()[:n_train]).reshape(-1)
 
     x_test = x_data.copy()[n_train:]
-    y_test = y_data.copy()[n_train:]
+    y_test = np.asarray(y_data.copy()[n_train:]).reshape(-1)
 
     return x_train, x_test, y_train, y_test
 
