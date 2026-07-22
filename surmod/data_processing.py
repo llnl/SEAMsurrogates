@@ -16,6 +16,7 @@ from scipy.spatial import cKDTree  # type: ignore
 from scipy.stats import qmc
 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 # Paths relative to this file's location
 _MODULE_DIR = Path(__file__).parent
@@ -238,3 +239,42 @@ def load_and_split(
     )
 
     return split_data(df, LHD=LHD, n_train=n_train, seed=seed)
+
+
+def normalize_data(
+    x_train: np.ndarray,
+    x_test: np.ndarray,
+    y_train: np.ndarray,
+    y_test: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Normalize features and targets using StandardScaler (zero mean, unit variance).
+
+    Uses one scaler for all X features and one scaler for y targets.
+    Fits scalers on training data and applies to both train and test sets.
+
+    Args:
+        x_train: Training features array of shape (n_train, n_features).
+        x_test: Testing features array of shape (n_test, n_features).
+        y_train: Training labels array of shape (n_train,).
+        y_test: Testing labels array of shape (n_test,).
+
+    Returns:
+        x_train_norm: Normalized training features.
+        x_test_norm: Normalized testing features.
+        y_train_norm: Normalized training labels.
+        y_test_norm: Normalized testing labels.
+    """
+    # One scaler for all X features
+    x_scaler = StandardScaler()
+    x_train_norm = x_scaler.fit_transform(x_train)
+    x_test_norm = x_scaler.transform(x_test)
+
+    # One scaler for y target
+    y_scaler = StandardScaler()
+    y_train_reshaped = y_train.reshape(-1, 1)
+    y_test_reshaped = y_test.reshape(-1, 1)
+    y_train_norm = y_scaler.fit_transform(y_train_reshaped).reshape(-1)
+    y_test_norm = y_scaler.transform(y_test_reshaped).reshape(-1)
+
+    return x_train_norm, x_test_norm, y_train_norm, y_test_norm

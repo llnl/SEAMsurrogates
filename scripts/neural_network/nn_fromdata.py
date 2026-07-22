@@ -161,6 +161,12 @@ def main() -> None:
         df, LHD=LHD, n_train=n_train, seed=seed
     )
 
+    # Normalize data (critical for numerical stability with different feature scales)
+    x_train, x_test, y_train, y_test = data_processing.normalize_data(
+        x_train, x_test, y_train, y_test
+    )
+    print("Data normalized (zero mean, unit variance)\n")
+
     # Convert training and test data to float32 tensors
     x_train = torch.tensor(x_train, dtype=torch.float32)
     y_train = torch.tensor(y_train, dtype=torch.float32)
