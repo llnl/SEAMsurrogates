@@ -118,10 +118,21 @@ def simulate_data(
 
 def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> None:
     """
-    Plot test set predictions vs. ground truth for a GP model.
+    Plot GP predictions against observed test values with uncertainty intervals.
 
-    Compatible with GPSurrogate.predict(), which returns (mean, std) and does
-    not accept return_std=...
+    The function computes 95% prediction intervals, interval coverage, and
+    test-set RMSE, then saves a predicted-versus-observed plot as a PNG file.
+
+    Args:
+        x_test: Test input features passed to the GP model.
+        y_test: Observed test target values.
+        gp_model: Fitted Gaussian process model providing ``predict()``, which
+            returns the predictive mean and standard deviation.
+        objective_function: Objective-function name used in the output
+            filename.
+
+    Returns:
+        None. The plot is saved to the sensitivity-analysis plots directory.
     """
     prediction_mean, std_dev = gp_model.predict(x_test)
 

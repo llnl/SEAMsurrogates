@@ -55,6 +55,26 @@ def fit_gpytorch_mll_multistart(
     n_restarts: int = 10,
     seed: int | None = None,
 ):
+    """
+    Fit a Gaussian process marginal log likelihood from multiple random starts.
+
+    Each restart constructs a new model and marginal log likelihood, randomly
+    initializes supported hyperparameters, fits the model, and evaluates its
+    loss. The model with the lowest finite loss is returned.
+
+    Args:
+        build_model_and_mll: Callable that returns a newly initialized
+            ``(model, mll)`` pair.
+        n_restarts: Number of independent fitting attempts. Defaults to 10.
+        seed: Optional random seed for reproducible initialization.
+
+    Raises:
+        RuntimeError: If all fitting attempts fail or produce non-finite losses.
+
+    Returns:
+        A tuple containing the best fitted model, its marginal log likelihood,
+        and the corresponding loss value.
+    """
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -156,6 +176,16 @@ def fit_gpytorch_mll_multistart(
 
 
 def _noise_is_fixed(model) -> bool:
+    """
+    Determine whether the model's likelihood noise parameter is fixed.
+
+    Args:
+        model: Gaussian process model whose likelihood is checked.
+
+    Returns:
+        ``True`` if the likelihood noise parameter does not require gradients,
+        indicating that it is fixed, otherwise ``False``.
+    """
     return (
         hasattr(model.likelihood, "noise_covar")
         and not model.likelihood.noise_covar.raw_noise.requires_grad

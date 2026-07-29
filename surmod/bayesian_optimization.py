@@ -28,6 +28,26 @@ def sample_parabola(
     radius: float = 7,
     seed: int = 1,
 ) -> np.ndarray:
+    """
+    Generate uniformly distributed samples within specified bounds, retaining
+    only points whose Euclidean norm exceeds a given radius.
+
+    Args:
+        n_initial: Number of samples to generate.
+        bounds_low: Lower bounds for sampling each dimension.
+        bounds_high: Upper bounds for sampling each dimension.
+        input_size: Number of dimensions for each sample.
+        radius: Minimum Euclidean norm required for a sample. Defaults to 7.
+        seed: Seed for the random number generator. Defaults to 1.
+
+    Raises:
+        RuntimeError: If the requested number of samples cannot be generated
+            within the maximum number of attempts.
+
+    Returns:
+        An array of shape `(n_initial, input_size)` containing the sampled
+        points with Euclidean norm greater than `radius`.
+    """
     rng = np.random.default_rng(seed)
     samples = []
     attempts = 0
@@ -106,6 +126,23 @@ def sample_data(
 def get_synth_global_optima(
     objective_function: str,
 ) -> Tuple[List[List[float]], float]:
+    """
+    Return the known global optimum locations and objective value for a
+    supported synthetic benchmark function.
+
+    Args:
+        objective_function: Name of the objective function. Supported values
+            are ``Ackley``, ``Branin``, ``Griewank``, ``HolderTable``,
+            ``Parabola``, and ``SixHumpCamel``.
+
+    Raises:
+        ValueError: If the specified objective function is not supported.
+
+    Returns:
+        A tuple containing:
+            - A list of points corresponding to the global optima.
+            - The global optimum objective value.
+    """
     global_optima = {
         "Ackley": ([[0, 0]], 0.0),
         "Branin": (
@@ -214,6 +251,36 @@ class BayesianOptimizer:
         init_design_kwargs: Optional[dict] = None,
         **acquisition_kwargs,
     ):
+        """
+        Perform Bayesian optimization using a Gaussian process surrogate model.
+
+        The optimizer supports analytic acquisition functions, including Expected
+        Improvement, Probability of Improvement, Upper Confidence Bound, and
+        Posterior Variance, as well as uniform random sampling. It can optimize
+        synthetic objective functions directly or select observations from a
+        provided dataset.
+
+        Args:
+            objective_function: Name of the objective function to optimize.
+            x_init: Initial input observations.
+            y_init: Initial objective values corresponding to ``x_init``.
+            kernel: Kernel used by the Gaussian process surrogate. Defaults to
+                ``"matern"``.
+            isotropic: Whether to use an isotropic kernel. Defaults to ``False``.
+            acquisition_function: Acquisition strategy, such as ``"EI"``,
+                ``"PI"``, ``"UCB"``, ``"PV"``, or ``"random"``. Defaults to
+                ``"EI"``.
+            n_acquire: Number of observations to acquire. Defaults to 10.
+            seed: Random seed used for reproducible sampling. Defaults to 42.
+            noise_bounds: Optional lower and upper bounds for model noise.
+            fixed_noise: Optional fixed noise value for the Gaussian process.
+            init_design: Initial design strategy used for dataset optimization.
+                Defaults to ``"random"``.
+            init_design_kwargs: Additional keyword arguments for the initial design
+                strategy.
+            **acquisition_kwargs: Additional acquisition-function parameters, such
+                as ``beta`` for UCB.
+        """
         self.objective_function = objective_function
         self.x_init = np.asarray(x_init, dtype=float)
         self.y_init = np.asarray(y_init, dtype=float).reshape(-1)
@@ -239,6 +306,7 @@ class BayesianOptimizer:
         self.init_design_kwargs = init_design_kwargs or {}
 
     def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
+        """Evaluate the objective function at a proposed point."""
         synthetic_function = load_test_function(self.objective_function)
 
         bounds = self._get_objective_bounds().cpu().numpy()
@@ -258,6 +326,7 @@ class BayesianOptimizer:
         return y_tensor.detach().cpu().numpy().reshape(-1)
 
     def gp_model_fit(self) -> GPSurrogate:
+        """Fit and return the Gaussian process surrogate model."""
         self.gp_model = GPSurrogate(
             x_train=self.x_all_data,
             y_train=self.y_all_data,
@@ -274,6 +343,7 @@ class BayesianOptimizer:
         return self.gp_model
 
     def _get_objective_bounds(self) -> torch.Tensor:
+        """Return the objective function bounds as a two-row tensor."""
         synthetic_function = load_test_function(self.objective_function)
         bounds_low = [b[0] for b in synthetic_function._bounds]
         bounds_high = [b[1] for b in synthetic_function._bounds]
@@ -281,6 +351,7 @@ class BayesianOptimizer:
         return torch.tensor([bounds_low, bounds_high], dtype=torch.float64)
 
     def _build_analytic_acquisition(self):
+        """Build and return the configured analytic acquisition function."""
         if self.gp_model is None or self.gp_model.model is None:
             raise ValueError(
                 "GP model must be fit before building acquisition function."
@@ -310,6 +381,7 @@ class BayesianOptimizer:
         n_restarts: int = 30,
         raw_samples: int = 1000,
     ) -> np.ndarray:
+        """Find the next point to evaluate using the configured strategy."""
         rng = np.random.RandomState(self.seed)
         bounds_t = self._get_objective_bounds()
         bounds = bounds_t.cpu().numpy()
@@ -338,6 +410,7 @@ class BayesianOptimizer:
         self,
         x_candidates: np.ndarray,
     ) -> np.ndarray:
+        """Score candidate points using the configured acquisition strategy."""
         rng = np.random.RandomState(self.seed)
 
         if self.acquisition.lower() == "random":
@@ -355,6 +428,7 @@ class BayesianOptimizer:
         self,
         x_candidates: np.ndarray,
     ) -> np.ndarray:
+        """Return acquisition scores for a set of candidate points."""
         return self._score_candidates_discrete(x_candidates)
 
     def _append_observation(
@@ -362,6 +436,7 @@ class BayesianOptimizer:
         x_next: np.ndarray,
         y_next_scalar: float,
     ) -> None:
+        """Append a newly evaluated point and value to the optimizer state."""
         x_next = np.asarray(x_next, dtype=float).reshape(1, -1)
 
         self.x_all_data = np.vstack((self.x_all_data, x_next))
@@ -378,6 +453,13 @@ class BayesianOptimizer:
         grid_shape: Optional[tuple[int, int]] = None,
         return_diagnostics: bool = False,
     ) -> dict:
+        """
+        Perform one Bayesian optimization step.
+
+        Fits the surrogate model, selects or evaluates the next point, updates
+        the optimizer state, and returns optimization results and optional
+        diagnostics.
+        """
         self.gp_model_fit()
         gp = self.gp_model
         if gp is None:
@@ -446,6 +528,13 @@ class BayesianOptimizer:
         df: Optional[pd.DataFrame] = None,
         n_init: int = 10,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Run Bayesian optimization for the configured number of acquisitions.
+
+        Returns:
+            A tuple containing all observed inputs, their objective values, and
+            the history of the best observed value.
+        """
         if df is not None:
             df = df.copy()
 
@@ -504,6 +593,7 @@ class BayesianOptimizer:
         return self.x_all_data, self.y_all_data, self.y_max_history
 
     def _clip_to_objective_bounds(self, x: np.ndarray) -> np.ndarray:
+        """Clip input points to the bounds of the objective function."""
         bounds = self._get_objective_bounds().cpu().numpy()
         return np.clip(np.asarray(x, dtype=float), bounds[0], bounds[1])
 
@@ -521,6 +611,30 @@ def plot_acquisition_comparison(
     beta: float = 2.0,
     plots_dir: Path = Path("plots"),
 ) -> None:
+    """
+    Plot and save the best observed objective value across iterations for
+    multiple Bayesian optimization acquisition strategies.
+
+    Args:
+        max_output_EI: Best observed values obtained using Expected Improvement.
+        max_output_PI: Best observed values obtained using Probability of
+            Improvement.
+        max_output_UCB: Best observed values obtained using Upper Confidence
+            Bound.
+        max_output_PV: Best observed values obtained using the PV strategy.
+        max_output_random: Best observed values obtained using uniform random
+            sampling.
+        kernel: Kernel name used in the experiment. Defaults to ``"rbf"``.
+        n_iter: Number of optimization iterations. Defaults to 10.
+        n_init: Number of initial samples. Defaults to 5.
+        objective_data: Name of the objective function or dataset used.
+        beta: Exploration parameter for the UCB strategy. Defaults to 2.0.
+        plots_dir: Directory where the plot will be saved. Defaults to
+            ``Path("plots")``.
+
+    Returns:
+        None. The generated plot is saved as a PNG file.
+    """
     plt.figure(figsize=(10, 6))
     plt.plot(max_output_EI, marker="o", c="blue", label="EI")
     plt.plot(max_output_PI, marker="o", c="orange", label="PI")
