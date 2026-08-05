@@ -26,6 +26,8 @@ chmod +x ./nn_fromdata.py
 """
 
 import argparse
+import json
+from pathlib import Path
 
 import torch
 
@@ -119,6 +121,13 @@ def parse_arguments():
         help="If set, includes (hyper)parameter values in loss plot title.",
     )
 
+    parser.add_argument(
+        "--metrics_json",
+        type=str,
+        default=None,
+        help="Optional path to write structured training metrics as JSON.",
+    )
+
     args = parser.parse_args()
 
     return args
@@ -137,6 +146,7 @@ def main():
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
     verbose_plot = args.verbose_plot
+    metrics_json = args.metrics_json
 
     # Check data availability
     num_samples = num_test + num_train
@@ -175,6 +185,29 @@ def main():
         seed,
         initialize_weights_normal,
     )
+
+    if metrics_json:
+        best_epoch = min(range(len(test_losses)), key=lambda idx: test_losses[idx]) + 1
+        metrics_payload = {
+            "dataset": data,
+            "seed": seed,
+            "num_train": num_train,
+            "num_test": num_test,
+            "num_epochs": num_epochs,
+            "batch_size": batch_size,
+            "hidden_sizes": hidden_sizes,
+            "learning_rate": learning_rate,
+            "lhd": LHD,
+            "train_losses": [float(loss) for loss in train_losses],
+            "test_losses": [float(loss) for loss in test_losses],
+            "final_train_loss": float(train_losses[-1]),
+            "final_test_loss": float(test_losses[-1]),
+            "best_test_loss": float(test_losses[best_epoch - 1]),
+            "best_epoch": best_epoch,
+        }
+        metrics_path = Path(metrics_json)
+        metrics_path.parent.mkdir(parents=True, exist_ok=True)
+        metrics_path.write_text(json.dumps(metrics_payload, indent=2) + "\n", encoding="utf-8")
 
     if verbose_plot:
         # Plot train and test loss over epochs with (hyper)parameters included
