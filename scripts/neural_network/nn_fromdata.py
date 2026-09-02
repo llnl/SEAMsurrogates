@@ -23,6 +23,9 @@ chmod +x ./nn_fromdata.py
 # Train a neural net with layers of size 60 and 60, a learning rate of 0.02,
 #   and a batch size of 40
 ./nn_fromdata.py --hidden_sizes 60 60 -n 600 -l 0.02 -b 40
+
+# Train with scaled input features
+./nn_fromdata.py --scale_inputs
 """
 
 import argparse
@@ -114,6 +117,14 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--scale_inputs",
+        dest="scale_inputs",
+        action="store_true",
+        default=False,
+        help="Scale inputs using training-split statistics before training.",
+    )
+
+    parser.add_argument(
         "-vp",
         "--verbose_plot",
         action="store_true",
@@ -145,6 +156,7 @@ def main():
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
+    scale_inputs = args.scale_inputs
     verbose_plot = args.verbose_plot
     metrics_json = args.metrics_json
 
@@ -164,6 +176,11 @@ def main():
     print("Data subset shape:", df.shape)
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df, LHD=LHD, n_train=num_train, seed=seed
+    )
+    x_train, x_test = data_processing.scale_inputs(
+        x_train,
+        x_test,
+        scale_inputs=scale_inputs,
     )
 
     # Convert training and test data to float32 tensors
@@ -197,6 +214,7 @@ def main():
             "batch_size": batch_size,
             "hidden_sizes": hidden_sizes,
             "learning_rate": learning_rate,
+            "scale_inputs": scale_inputs,
             "lhd": LHD,
             "train_losses": [float(loss) for loss in train_losses],
             "test_losses": [float(loss) for loss in test_losses],
@@ -218,7 +236,7 @@ def main():
             learning_rate,
             batch_size,
             hidden_sizes,
-            normalize_x=False,
+            normalize_x=scale_inputs,
             scale_x=False,
             normalize_y=False,
             scale_y=False,

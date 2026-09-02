@@ -1,5 +1,5 @@
 """
-General data loading and splitting utilities for JAG and borehole datasets.
+General data loading, scaling, and splitting utilities for JAG and borehole datasets.
 
 JAG:
     - 5 inputs, 1 output
@@ -210,6 +210,43 @@ def split_data(
     print(f"y_test shape:  {y_test.shape}\n")
 
     return x_train, x_test, y_train, y_test
+
+
+def scale_inputs(
+    x_train: np.ndarray,
+    x_test: np.ndarray,
+    scale_inputs: bool = False,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Scale feature inputs using statistics derived from the training split only.
+
+    Args:
+        x_train: Training feature array of shape (n_train, n_features).
+        x_test: Test feature array of shape (n_test, n_features).
+        scale_inputs: If True, standardize each feature using the training
+            split mean and standard deviation. If False, return the arrays
+            unchanged.
+
+    Returns:
+        Tuple containing the scaled training and test feature arrays.
+
+    Raises:
+        ValueError: If the arrays are not compatible or the method is unknown.
+    """
+    if not scale_inputs:
+        return x_train, x_test
+
+    if x_train.ndim != 2 or x_test.ndim != 2:
+        raise ValueError("x_train and x_test must both be 2D arrays.")
+    if x_train.shape[1] != x_test.shape[1]:
+        raise ValueError("x_train and x_test must have the same number of features.")
+
+    mean = np.mean(x_train, axis=0)
+    std = np.std(x_train, axis=0)
+    safe_std = np.where(std == 0.0, 1.0, std)
+    x_train_scaled = (x_train - mean) / safe_std
+    x_test_scaled = (x_test - mean) / safe_std
+    return x_train_scaled, x_test_scaled
 
 
 # Convenience wrapper
