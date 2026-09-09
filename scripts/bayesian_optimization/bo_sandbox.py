@@ -8,8 +8,8 @@ Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
 
 Usage examples:
 
-./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=Parabola
-./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=Ackley --beta=3.0
+./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=parabola
+./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=ackley --beta=3.0
 ./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
 ./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
 """
@@ -71,8 +71,8 @@ def parse_arguments() -> argparse.Namespace:
         "-f",
         "--objective_function",
         type=str,
-        default="Parabola",
-        help="Function to optimize. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
+        default="parabola",
+        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
     parser.add_argument(
         "--init_design",

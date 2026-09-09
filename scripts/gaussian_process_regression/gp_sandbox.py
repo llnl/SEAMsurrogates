@@ -12,21 +12,21 @@ chmod +x ./gp_sandbox.py
 ./gp_sandbox.py -h
 
 # Smooth parabola function with an isotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --isotropic --plots
+./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic --plots
 
 # Smooth parabola function with an anisotropic Matern kernel.
-./gp_sandbox.py --objective_function=Parabola --kernels=matern --plots
+./gp_sandbox.py --objective_function=parabola --kernels=matern --plots
 
 # Smooth Branin test function with an RBF kernel.
-./gp_sandbox.py --objective_function=Branin --kernels=rbf --seed 1 --plots
+./gp_sandbox.py --objective_function=branin --kernels=rbf --seed 1 --plots
 
 # Smooth Ackley function with an RBF kernel, save results in log, 200 training
 #   points, 3 values of alpha.
-./gp_sandbox.py --objective_function=Ackley -k rbf -p -l -tr 200
+./gp_sandbox.py --objective_function=ackley -k rbf -p -l -tr 200
 
 # Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
 #   Save plot and log file.
-./gp_sandbox.py -f "HolderTable" -k rbf matern -p -l
+./gp_sandbox.py -f "holder_table" -k rbf matern -p -l
 """
 
 import argparse
@@ -53,8 +53,8 @@ def parse_arguments():
         "-f",
         "--objective_function",
         type=str,
-        default="Parabola",
-        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
+        default="parabola",
+        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
     parser.add_argument(

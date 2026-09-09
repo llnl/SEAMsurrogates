@@ -15,11 +15,11 @@ chmod +x ./nn_sandbox.py
 # See help.
 ./nn_sandbox.py -h
 
-# Train a NN on the Ackley function with default settings.
+# Train a NN on the ackley function with default settings.
 ./nn_sandbox.py
 
-# Train a NN on the Griewank function with 200 epochs and a custom learning rate.
-./nn_sandbox.py --objective_function=Griewank -n 200 -l 0.001
+# Train a NN on the griewank function with 200 epochs and a custom learning rate.
+./nn_sandbox.py --objective_function=griewank -n 200 -l 0.001
 
 # Train a NN with custom hidden layer sizes and batch size.
 ./nn_sandbox.py --hidden_sizes 16 8 -b 10
@@ -58,8 +58,8 @@ def parse_arguments():
         "-f",
         "--objective_function",
         type=str,
-        default="Ackley",
-        help="Choose objective function. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
+        default="ackley",
+        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
     parser.add_argument(

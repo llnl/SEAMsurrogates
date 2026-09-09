@@ -495,8 +495,8 @@ def load_test_function(
 
     Args:
         objective_function: Either a string name of a test function or the test
-            function class itself. Supported string names: "Parabola", "Ackley",
-            "Griewank", "Branin", "HolderTable", "SixHumpCamel".
+            function class itself. Supported string names: "parabola", "ackley",
+            "griewank", "branin", "holder_table", "six_hump_camel".
         dim: Dimension for the test function (if applicable).
         negate: If True, negate the function values.
         bounds: Custom bounds for the function as a list of (lower, upper) tuples.
@@ -510,28 +510,28 @@ def load_test_function(
     """
     # Registry of common test functions with default parameters
     DEFAULT_CONFIGS = {
-        "Parabola": {
+        "parabola": {
             "class": Parabola_synth_test_func,
             "dim": 2,
             "bounds": [(-8, 8), (-8, 8)],
         },
-        "Ackley": {
+        "ackley": {
             "class": Ackley,
             "dim": 2,
             "bounds": [(-32.768, 32.768), (-32.768, 32.768)],
         },
-        "Griewank": {
+        "griewank": {
             "class": Griewank,
             "dim": 2,
             "bounds": [(-100, 45), (-100, 45)],
         },
-        "Branin": {
+        "branin": {
             "class": Branin,
         },
-        "HolderTable": {
+        "holder_table": {
             "class": HolderTable,
         },
-        "SixHumpCamel": {
+        "six_hump_camel": {
             "class": SixHumpCamel,
         },
     }
@@ -589,8 +589,8 @@ def simulate_data(
 
     Args:
         objective_function (str): The name of the objective function to simulate
-            data from. Supported values are "Parabola", "Ackley", "Griewank",
-            "Branin", and "HolderTable".
+            data from. Supported values are "parabola", "ackley", "griewank",
+            "branin", "holder_table", and "six_hump_camel".
         n_train (int): Number of training samples to generate.
         n_test (int): Number of testing samples to generate.
         seed (int): Random seed for reproducibility. Defaults to 1.

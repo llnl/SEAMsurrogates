@@ -79,7 +79,7 @@ def sample_data(
     """
     test_function = load_test_function(objective_function)
 
-    if objective_function == "Parabola" and init_design == "random":
+    if objective_function == "parabola" and init_design == "random":
         x_data = sample_parabola(
             n_initial, bounds_low, bounds_high, input_size, seed=seed
         )
@@ -106,13 +106,13 @@ def get_synth_global_optima(
     objective_function: str,
 ) -> tuple[list[list[float]], float]:
     global_optima = {
-        "Ackley": ([[0, 0]], 0.0),
-        "Branin": (
+        "ackley": ([[0, 0]], 0.0),
+        "branin": (
             [[-np.pi, 12.275], [np.pi, 2.275], [9.42478, 2.475]],
             -0.397887,
         ),
-        "Griewank": ([[0, 0]], 0.0),
-        "HolderTable": (
+        "griewank": ([[0, 0]], 0.0),
+        "holder_table": (
             [
                 [8.05502, 9.66459],
                 [-8.05502, -9.66459],
@@ -121,8 +121,8 @@ def get_synth_global_optima(
             ],
             19.2085,
         ),
-        "Parabola": ([[0, 0]], 0.0),
-        "SixHumpCamel": (
+        "parabola": ([[0, 0]], 0.0),
+        "six_hump_camel": (
             [[0.0898, -0.7126], [-0.0898, 0.7126]],
             -1.0316,
         ),
