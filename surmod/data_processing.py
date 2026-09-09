@@ -5,16 +5,14 @@ Supported datasets: JAG, borehole, hst_H
 See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
 """
 
-from typing import Tuple
 import warnings
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
-
 from scipy.spatial import cKDTree  # type: ignore
 from scipy.stats import qmc
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 

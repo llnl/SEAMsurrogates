@@ -35,11 +35,11 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
-
-from surmod.test_functions import simulate_data
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import root_mean_squared_error as rmse
 
 from surmod.gaussian_process import GPSurrogate
+from surmod.test_functions import simulate_data
 
 
 def parse_arguments():

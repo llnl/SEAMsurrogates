@@ -23,7 +23,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from surmod import bayesian_optimization as bo, data_processing
+from surmod import bayesian_optimization as bo
+from surmod import data_processing
 
 
 def parse_arguments() -> argparse.Namespace:

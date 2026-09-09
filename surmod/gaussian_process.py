@@ -1,7 +1,6 @@
 """
 Gaussian process surrogate modeling with BoTorch and GPyTorch.
 """
-
 import copy
 import warnings
 from datetime import datetime
@@ -11,11 +10,11 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from botorch.exceptions.errors import ModelFittingError
 from botorch.fit import fit_gpytorch_mll
 from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
-from botorch.exceptions.errors import ModelFittingError
 from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood

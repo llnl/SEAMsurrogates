@@ -31,10 +31,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import root_mean_squared_error as rmse
 
 from surmod import sensitivity_analysis as sa
-
 from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
 from surmod.test_functions import get_input_spec
 

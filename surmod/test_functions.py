@@ -3,12 +3,12 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from botorch.test_functions.synthetic import (
-    SyntheticTestFunction,
     Ackley,
     Branin,
     Griewank,
     HolderTable,
     SixHumpCamel,
+    SyntheticTestFunction,
 )
 FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {

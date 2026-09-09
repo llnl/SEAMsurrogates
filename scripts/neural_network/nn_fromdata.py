@@ -31,7 +31,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from surmod import neural_network as nn, data_processing
+from surmod import data_processing
+from surmod import neural_network as nn
 
 
 def parse_arguments() -> argparse.Namespace:

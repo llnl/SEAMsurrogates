@@ -6,18 +6,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-
 from botorch.acquisition.analytic import (
     LogExpectedImprovement,
+    PosteriorStandardDeviation,
     ProbabilityOfImprovement,
     UpperConfidenceBound,
-    PosteriorStandardDeviation,
 )
 from botorch.optim import optimize_acqf
 
-from surmod.test_functions import load_test_function
 from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
+from surmod.test_functions import load_test_function
 
 
 def sample_parabola(
