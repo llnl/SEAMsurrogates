@@ -9,7 +9,73 @@ from botorch.test_functions.synthetic import (
     HolderTable,
     SixHumpCamel,
 )
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple, Union, Callable
+
+FUNCTION_SPECS: dict[str, dict[str, object]] = {
+    "parabola": {
+        "dim": 2,
+        "function_name": "parabola",
+        "bounds": [
+            (-8.0, 8.0),  # x1
+            (-8.0, 8.0),  # x2
+        ],
+    },
+    "otlcircuit": {
+        "dim": 6,
+        "function_name": "otlcircuit",
+        "bounds": [
+            (50.0, 150.0),  # Rb1 (kOhms)
+            (25.0, 70.0),  # Rb2 (kOhms)
+            (0.5, 3.0),  # Rf (kOhms)
+            (1.2, 2.5),  # Rc1 (kOhms)
+            (0.25, 1.2),  # Rc2 (kOhms)
+            (50.0, 300.0),  # beta (A)
+        ],
+    },
+    "piston": {
+        "dim": 7,
+        "function_name": "piston",
+        "bounds": [
+            (30.0, 60.0),  # M (kg)
+            (0.005, 0.02),  # S (m^2)
+            (0.002, 0.01),  # V0 (m^3)
+            (1000.0, 5000.0),  # k (N/m)
+            (90000.0, 110000.0),  # P0 (N/m^2)
+            (290.0, 296.0),  # Ta (K)
+            (340.0, 360.0),  # T0 (K)
+        ],
+    },
+    "wingweight": {
+        "dim": 10,
+        "function_name": "wingweight",
+        "bounds": [
+            (150.0, 200.0),  # Sw (ft^2)
+            (220.0, 300.0),  # Wfw (lb)
+            (6.0, 10.0),  # A
+            (-10.0 * np.pi / 180.0, 10.0 * np.pi / 180.0),  # Lam (rad)
+            (16.0, 45.0),  # q (lb/ft^2)
+            (0.5, 1.0),  # lam
+            (0.08, 0.18),  # tc
+            (2.5, 6.0),  # Nz
+            (1700.0, 2500.0),  # Wdg (lb)
+            (0.025, 0.08),  # Wp (lb/ft^2)
+        ],
+    },
+    "borehole": {
+        "dim": 8,
+        "function_name": "borehole",
+        "bounds": [
+            (0.05, 0.15),  # rw (m)
+            (100.0, 50000.0),  # r (m)
+            (63070.0, 115600.0),  # Tu (m^2/yr)
+            (990.0, 1110.0),  # Hu (m)
+            (63.1, 116.0),  # Tl (m^2/yr)
+            (700.0, 820.0),  # Hl (m)
+            (1120.0, 1680.0),  # L (m)
+            (9855.0, 12045.0),  # Kw (m/yr)
+        ],
+    },
+}
 
 
 class Parabola_synth_test_func(SyntheticTestFunction):
@@ -35,22 +101,26 @@ class Parabola_synth_test_func(SyntheticTestFunction):
             bounds: Custom bounds for the function specified as (lower, upper) pairs.
         """
         self.dim = dim
-        bounds = [(-8, 8) for _ in range(self.dim)]
+        if bounds is None:
+            if self.dim == 2:
+                bounds = list(FUNCTION_SPECS["parabola"]["bounds"])
+            else:
+                bounds = [(-8.0, 8.0) for _ in range(self.dim)]
+        elif len(bounds) != self.dim:
+            raise ValueError(
+                f"Expected {self.dim} bounds for a {self.dim}-D parabola, "
+                f"got {len(bounds)}."
+            )
         self.continuous_inds = list(range(dim))
         self.discrete_inds = []
         self.categorical_inds = []
         super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
 
-    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
-        if isinstance(X, torch.Tensor):
-            result = -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
-        elif isinstance(X, np.ndarray):
-            result = -np.sum(X**2, axis=1) if X.ndim > 1 else -np.sum(X**2)
-            result = torch.from_numpy(result)
-        else:
-            raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
-
-        return -result if self.negate else result
+    def _evaluate_true(self, X: torch.Tensor) -> torch.Tensor:
+        X = torch.as_tensor(X)
+        if X.ndim == 1:
+            X = X.unsqueeze(0)
+        return torch.sum(X**2, dim=1)
 
 
 class Borehole_synth_test_func(SyntheticTestFunction):
@@ -108,16 +178,12 @@ class Borehole_synth_test_func(SyntheticTestFunction):
 
         # Default bounds from SFU (Surjanovic & Bingham) matching the input order
         if bounds is None:
-            bounds = [
-                (0.05, 0.15),  # rw
-                (100.0, 50000.0),  # r
-                (63070.0, 115600.0),  # Tu
-                (990.0, 1110.0),  # Hu
-                (63.1, 116.0),  # Tl
-                (700.0, 820.0),  # Hl
-                (1120.0, 1680.0),  # L
-                (9855.0, 12045.0),  # Kw
-            ]
+            bounds = list(FUNCTION_SPECS["borehole"]["bounds"])
+        elif len(bounds) != self.dim:
+            raise ValueError(
+                f"Expected {self.dim} bounds for a {self.dim}-D borehole, "
+                f"got {len(bounds)}."
+            )
 
         self.continuous_inds = list(range(self.dim))
         self.discrete_inds = []
@@ -157,8 +223,7 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         if X.shape[-1] != 8:
             raise ValueError(f"Borehole expects input dimension 8, got {X.shape[-1]}")
 
-        # Unpack input variables: [rw, r, Tu, Hu, Tl, Hl, L, Kw]
-        rw, r, Tu, Hu, Tl, Hl, L, Kw = [X[..., i] for i in range(8)]
+        rw, r, Tu, Hu, Tl, Hl, L, Kw = X.T
 
         # SFU implementation
         log_r_rw = torch.log(r / rw)
@@ -167,9 +232,6 @@ class Borehole_synth_test_func(SyntheticTestFunction):
             1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl
         )
         y = numerator / denominator
-
-        if self.negate:
-            y = -y
 
         return y
 
@@ -246,18 +308,50 @@ def scale_inputs(
     return x_scaled
 
 
+def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
+    """
+    Return the physical input bounds for the provided test functions.
+
+    Args:
+        objective_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+    """
+    return list(get_input_spec(objective_function)[2])
+
+
+def get_input_spec(
+    objective_function: str,
+) -> tuple[int, Callable, list[tuple[float, float]]]:
+    """
+    Return the dimension, callable, and bounds for a provided test function.
+
+    Args:
+        objective_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+    """
+    if objective_function not in FUNCTION_SPECS:
+        available = ", ".join(FUNCTION_SPECS)
+        raise ValueError(
+            f"Test function '{objective_function}' not found. Available: {available}."
+        )
+
+    config = FUNCTION_SPECS[objective_function]
+    function_name = str(config["function_name"])
+    function = globals()[function_name]
+    return int(config["dim"]), function, list(config["bounds"])  # type: ignore[arg-type]
+
+
 def otlcircuit(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the midpoint voltage of output transformerless (OTL)
-    push-pull circuit.
+    Compute midpoint voltage of an output transformerless (OTL) push-pull circuit.
 
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [Rb1, Rb2, Rf, Rc1, Rc2, beta].
 
     Returns
     -------
@@ -272,23 +366,8 @@ def otlcircuit(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Define variable bounds
-    bounds = {
-        "Rb1": (50, 150),  # Resistance b1 (K-Ohms)
-        "Rb2": (25, 70),  # Resistance b2 (K-Ohms)
-        "Rf": (0.5, 3),  # Feedback resistance (K-Ohms)
-        "Rc1": (1.2, 2.5),  # Resistance c1 (K-Ohms)
-        "Rc2": (0.25, 1.2),  # Resistance c2 (K-Ohms)
-        "beta": (50, 300),  # Current gain (Amperes)
-    }
+    Rb1, Rb2, Rf, Rc1, Rc2, beta = x.T
 
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
-    # Unpack variables
-    Rb1, Rb2, Rf, Rc1, Rc2, beta = x_scaled.T
-
-    # Compute midpoint voltage
     Vb1 = 12 * Rb2 / (Rb1 + Rb2)
     denom = beta * (Rc2 + 9) + Rf
 
@@ -305,13 +384,13 @@ def piston(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the time it takes a piston to complete one cycle.
+    Compute time it takes a piston to complete one cycle.
 
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [M, S, V0, k, P0, Ta, T0].
 
     Returns
     -------
@@ -326,24 +405,8 @@ def piston(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Define variable bounds
-    bounds = {
-        "M": (30, 60),  # Piston weight (kg)
-        "S": (0.005, 0.02),  # Piston surface area (m^2)
-        "V0": (0.002, 0.01),  # Initial gas volume (m^3)
-        "k": (1000, 5000),  # Spring coefficient (N/m)
-        "P0": (90000, 110000),  # Atmospheric pressure (N/m^2)
-        "Ta": (290, 296),  # Ambient temperature (K)
-        "T0": (340, 360),  # Filling gas temperature (K)
-    }
+    M, S, V0, k, P0, Ta, T0 = x.T
 
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
-    # Unpack variables
-    M, S, V0, k, P0, Ta, T0 = x_scaled.T
-
-    # Compute cycle time
     A = P0 * S + 19.62 * M - (k * V0 / S)
     V = (S / (2 * k)) * (np.sqrt(A**2 + 4 * k * (P0 * V0 / T0) * Ta) - A)
 
@@ -357,13 +420,13 @@ def wingweight(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the weight of a light aircraft wing.
+    Compute weight of a light aircraft wing.
 
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [Sw, Wfw, A, Lam, q, lam, tc, Nz, Wdg, Wp].
 
     Returns
     -------
@@ -375,30 +438,8 @@ def wingweight(
     [1] Formula source: Wing Weight Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/wingweight.html (accessed July 2024).
     """
-    # Define variable bounds
-    bounds = {
-        "Sw": (150, 200),  # Wing area (ft^2)
-        "Wfw": (220, 300),  # Weight of fuel in the wing (lb)
-        "A": (6, 10),  # Aspect ratio
-        "Lam": (
-            -10 * np.pi / 180,
-            10 * np.pi / 180,
-        ),  # Quarter-chord Sweep (radians)
-        "q": (16, 45),  # Dynamic pressure at cruise (lb / ft^2)
-        "lam": (0.5, 1.0),  # Taper ratio
-        "tc": (0.08, 0.18),  # Aerofoil thickness-to-chord ratio
-        "Nz": (2.5, 6.0),  # Ultimate load factor
-        "Wdg": (1700, 2500),  # Flight design gross weight (lb)
-        "Wp": (0.025, 0.08),  # Paint weight (lb / ft^2)
-    }
+    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x.T
 
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
-    # Unpack variables
-    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x_scaled.T
-
-    # Calculate wing weight
     factors = [
         0.036 * Sw**0.758 * Wfw**0.0035,
         (A / (np.cos(LamCaps) ** 2)) ** 0.6,
@@ -416,13 +457,13 @@ def borehole(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the water flow rate through a borehole.
+    Compute water flow rate through a borehole.
 
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [rw, r, Tu, Hu, Tl, Hl, L, Kw].
 
     Returns
     -------
@@ -434,29 +475,13 @@ def borehole(
     [1] Formula source: Borehole Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/borehole.html (accessed Dec 2025).
     """
-    # Define variable bounds
-    bounds = {
-        "rw": (0.05, 0.15),  # radius of borehole (m)
-        "r": (100, 50000),  # radius of influence (m)
-        "Tu": (63070, 115600),  # transmissivity upper aquifer (m^2/year)
-        "Hu": (990, 1110),  # potentiometric head upper aquifer (m)
-        "Tl": (63.1, 116),  # transmissivity lower aquifer (m^2/year)
-        "Hl": (700, 820),  # potentiometric head lower aquifer (m)
-        "L": (1120, 1680),  # length of borehole (m)
-        "Kw": (9855, 12045),  # hydraulic conductivity of borehole (m/year)
-    }
+    rw, r, Tu, Hu, Tl, Hl, L, Kw = x.T
 
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
-    # Unpack variables
-    rw, r, Tu, Hu, Tl, Hl, L, Kw = x_scaled.T
-
-    # Compute borehole flow rate
     log_r_rw = np.log(r / rw)
     numerator = 2 * np.pi * Tu * (Hu - Hl)
     denominator = log_r_rw * (1 + 2 * L * Tu / (log_r_rw * rw**2 * Kw) + Tu / Tl)
-    return numerator / denominator
+    flow_rate = numerator / denominator
+    return flow_rate
 
 
 def load_test_function(
@@ -489,7 +514,7 @@ def load_test_function(
         "Parabola": {
             "class": Parabola_synth_test_func,
             "dim": 2,
-            "bounds": [(-25, 25), (-25, 25)],
+            "bounds": [(-8, 8), (-8, 8)],
         },
         "Ackley": {
             "class": Ackley,
