@@ -35,7 +35,13 @@ class Parabola_synth_test_func(SyntheticTestFunction):
             bounds: Custom bounds for the function specified as (lower, upper) pairs.
         """
         self.dim = dim
-        bounds = [(-8, 8) for _ in range(self.dim)]
+        if bounds is None:
+            bounds = [(-8, 8) for _ in range(self.dim)]
+        elif len(bounds) != self.dim:
+            raise ValueError(
+                f"Expected {self.dim} bounds for a {self.dim}-D parabola, "
+                f"got {len(bounds)}."
+            )
         self.continuous_inds = list(range(dim))
         self.discrete_inds = []
         self.categorical_inds = []
@@ -43,14 +49,14 @@ class Parabola_synth_test_func(SyntheticTestFunction):
 
     def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         if isinstance(X, torch.Tensor):
-            result = -torch.sum(X**2, dim=1) if X.ndim > 1 else -torch.sum(X**2)
+            result = torch.sum(X**2, dim=1) if X.ndim > 1 else torch.sum(X**2)
         elif isinstance(X, np.ndarray):
-            result = -np.sum(X**2, axis=1) if X.ndim > 1 else -np.sum(X**2)
+            result = np.sum(X**2, axis=1) if X.ndim > 1 else np.sum(X**2)
             result = torch.from_numpy(result)
         else:
             raise TypeError("Input must be a torch.Tensor or numpy.ndarray.")
 
-        return -result if self.negate else result
+        return result
 
 
 class Borehole_synth_test_func(SyntheticTestFunction):
@@ -166,9 +172,6 @@ class Borehole_synth_test_func(SyntheticTestFunction):
             1.0 + 2.0 * L * Tu / (log_r_rw * rw.pow(2) * Kw) + Tu / Tl
         )
         y = numerator / denominator
-
-        if self.negate:
-            y = -y
 
         return y
 
@@ -488,7 +491,7 @@ def load_test_function(
         "Parabola": {
             "class": Parabola_synth_test_func,
             "dim": 2,
-            "bounds": [(-25, 25), (-25, 25)],
+            "bounds": [(-8, 8), (-8, 8)],
         },
         "Ackley": {
             "class": Ackley,
