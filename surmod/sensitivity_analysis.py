@@ -18,6 +18,7 @@ from surmod.test_functions import (
     wingweight,
     piston,
     borehole,
+    get_input_bounds,
 )
 
 
@@ -97,10 +98,13 @@ def simulate_data(
     # Set-up simulation
     n_total = n_train + n_test
     out_dim, test_function = load_test_settings(objective_function)
+    bounds = np.array(get_input_bounds(objective_function), dtype=float)
+    bounds_low = bounds[:, 0]
+    bounds_high = bounds[:, 1]
 
     # Sample random data from test function
     rng = np.random.default_rng(seed)
-    x_data = rng.uniform(0, 1, size=(n_total, out_dim))
+    x_data = rng.uniform(bounds_low, bounds_high, size=(n_total, out_dim))
     if objective_function == "parabola":
         y_data = test_function(x_data, b1, b2, b12)
     else:

@@ -36,6 +36,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 from surmod import sensitivity_analysis as sa
 
 from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
+from surmod.test_functions import get_input_bounds
 
 
 def parse_arguments():
@@ -137,6 +138,7 @@ def main():
     results_dir = Path(__file__).parent / "results"
 
     regular_dim, __ = sa.load_test_settings(objective_function)
+    bounds = np.array(get_input_bounds(objective_function), dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
         objective_function, n_train, n_test, b1, b2, b12
@@ -145,6 +147,7 @@ def main():
     if exclude is not None:
         x_train = np.copy(np.delete(x_train, exclude, axis=1))
         x_test = np.copy(np.delete(x_test, exclude, axis=1))
+        bounds = np.delete(bounds, exclude, axis=0)
 
     dim = x_train.shape[1]
 
@@ -159,7 +162,7 @@ def main():
         y_test=y_test,
         kernel="matern",
         isotropic=isotropic,
-        scale_inputs=False,  # your SA data are already in [0,1]
+        scale_inputs=True,  # SA data are now in physical units
         scale_outputs=True,  # matches old normalize_y=True intent
         noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
     )
@@ -211,8 +214,11 @@ def main():
             np.delete(np.array(variable_names, dtype=object), exclude)
         )
 
-    bounds = [[0.0, 1.0]] * dim
-    problem = {"num_vars": dim, "names": variable_names, "bounds": bounds}
+    problem = {
+        "num_vars": dim,
+        "names": variable_names,
+        "bounds": bounds.tolist(),
+    }
 
     param_values = saltelli.sample(problem, 2**13, calc_second_order=False)
 
@@ -261,8 +267,8 @@ def main():
     )
 
     if objective_function == "parabola":
-        input1 = np.linspace(0, 1, 100)
-        input2 = np.linspace(0, 1, 100)
+        input1 = np.linspace(bounds[0, 0], bounds[0, 1], 100)
+        input2 = np.linspace(bounds[1, 0], bounds[1, 1], 100)
         grid_input1, grid_input2 = np.meshgrid(input1, input2)
         x_grid = np.column_stack((grid_input1.flatten(), grid_input2.flatten()))
 

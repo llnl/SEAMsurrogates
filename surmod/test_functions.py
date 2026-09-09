@@ -12,6 +12,51 @@ from botorch.test_functions.synthetic import (
 from typing import Optional, List, Tuple, Union
 
 
+PARABOLA_BOUNDS: list[tuple[float, float]] = [
+    (-8.0, 8.0),  # x1
+    (-8.0, 8.0),  # x2
+]
+OTLCIRCUIT_BOUNDS: list[tuple[float, float]] = [
+    (50.0, 150.0),  # Rb1 (kOhms)
+    (25.0, 70.0),  # Rb2 (kOhms)
+    (0.5, 3.0),  # Rf (kOhms)
+    (1.2, 2.5),  # Rc1 (kOhms)
+    (0.25, 1.2),  # Rc2 (kOhms)
+    (50.0, 300.0),  # beta (A)
+]
+PISTON_BOUNDS: list[tuple[float, float]] = [
+    (30.0, 60.0),  # M (kg)
+    (0.005, 0.02),  # S (m^2)
+    (0.002, 0.01),  # V0 (m^3)
+    (1000.0, 5000.0),  # k (N/m)
+    (90000.0, 110000.0),  # P0 (N/m^2)
+    (290.0, 296.0),  # Ta (K)
+    (340.0, 360.0),  # T0 (K)
+]
+WINGWEIGHT_BOUNDS: list[tuple[float, float]] = [
+    (150.0, 200.0),  # Sw (ft^2)
+    (220.0, 300.0),  # Wfw (lb)
+    (6.0, 10.0),  # A
+    (-10.0 * np.pi / 180.0, 10.0 * np.pi / 180.0),  # Lam (rad)
+    (16.0, 45.0),  # q (lb/ft^2)
+    (0.5, 1.0),  # lam
+    (0.08, 0.18),  # tc
+    (2.5, 6.0),  # Nz
+    (1700.0, 2500.0),  # Wdg (lb)
+    (0.025, 0.08),  # Wp (lb/ft^2)
+]
+BOREHOLE_BOUNDS: list[tuple[float, float]] = [
+    (0.05, 0.15),  # rw (m)
+    (100.0, 50000.0),  # r (m)
+    (63070.0, 115600.0),  # Tu (m^2/yr)
+    (990.0, 1110.0),  # Hu (m)
+    (63.1, 116.0),  # Tl (m^2/yr)
+    (700.0, 820.0),  # Hl (m)
+    (1120.0, 1680.0),  # L (m)
+    (9855.0, 12045.0),  # Kw (m/yr)
+]
+
+
 class Parabola_synth_test_func(SyntheticTestFunction):
     """Parabola test function.
 
@@ -36,7 +81,7 @@ class Parabola_synth_test_func(SyntheticTestFunction):
         """
         self.dim = dim
         if bounds is None:
-            bounds = [(-8, 8) for _ in range(self.dim)]
+            bounds = [(-8.0, 8.0) for _ in range(self.dim)]
         elif len(bounds) != self.dim:
             raise ValueError(
                 f"Expected {self.dim} bounds for a {self.dim}-D parabola, "
@@ -114,16 +159,12 @@ class Borehole_synth_test_func(SyntheticTestFunction):
 
         # Default bounds from SFU (Surjanovic & Bingham) matching the input order
         if bounds is None:
-            bounds = [
-                (0.05, 0.15),  # rw
-                (100.0, 50000.0),  # r
-                (63070.0, 115600.0),  # Tu
-                (990.0, 1110.0),  # Hu
-                (63.1, 116.0),  # Tl
-                (700.0, 820.0),  # Hl
-                (1120.0, 1680.0),  # L
-                (9855.0, 12045.0),  # Kw
-            ]
+            bounds = BOREHOLE_BOUNDS
+        elif len(bounds) != self.dim:
+            raise ValueError(
+                f"Expected {self.dim} bounds for a {self.dim}-D borehole, "
+                f"got {len(bounds)}."
+            )
 
         self.continuous_inds = list(range(self.dim))
         self.discrete_inds = []
@@ -248,6 +289,31 @@ def scale_inputs(
     return x_scaled
 
 
+def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
+    """
+    Return the physical input bounds for the engineering benchmark functions.
+
+    Args:
+        objective_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+    """
+    bounds_map = {
+        "parabola": PARABOLA_BOUNDS,
+        "otlcircuit": OTLCIRCUIT_BOUNDS,
+        "piston": PISTON_BOUNDS,
+        "wingweight": WINGWEIGHT_BOUNDS,
+        "borehole": BOREHOLE_BOUNDS,
+    }
+
+    if objective_function not in bounds_map:
+        available = ", ".join(bounds_map)
+        raise ValueError(
+            f"Test function '{objective_function}' not found. Available: {available}."
+        )
+
+    return list(bounds_map[objective_function])
+
+
 def otlcircuit(
     x: npt.NDArray,
 ) -> npt.NDArray:
@@ -258,8 +324,8 @@ def otlcircuit(
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [Rb1, Rb2, Rf, Rc1, Rc2, beta].
 
     Returns
     -------
@@ -274,21 +340,8 @@ def otlcircuit(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Define variable bounds
-    bounds = {
-        "Rb1": (50, 150),  # Resistance b1 (K-Ohms)
-        "Rb2": (25, 70),  # Resistance b2 (K-Ohms)
-        "Rf": (0.5, 3),  # Feedback resistance (K-Ohms)
-        "Rc1": (1.2, 2.5),  # Resistance c1 (K-Ohms)
-        "Rc2": (0.25, 1.2),  # Resistance c2 (K-Ohms)
-        "beta": (50, 300),  # Current gain (Amperes)
-    }
-
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
     # Unpack variables
-    Rb1, Rb2, Rf, Rc1, Rc2, beta = x_scaled.T
+    Rb1, Rb2, Rf, Rc1, Rc2, beta = x.T
 
     # Compute midpoint voltage
     Vb1 = 12 * Rb2 / (Rb1 + Rb2)
@@ -312,8 +365,8 @@ def piston(
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [M, S, V0, k, P0, Ta, T0].
 
     Returns
     -------
@@ -328,22 +381,8 @@ def piston(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Define variable bounds
-    bounds = {
-        "M": (30, 60),  # Piston weight (kg)
-        "S": (0.005, 0.02),  # Piston surface area (m^2)
-        "V0": (0.002, 0.01),  # Initial gas volume (m^3)
-        "k": (1000, 5000),  # Spring coefficient (N/m)
-        "P0": (90000, 110000),  # Atmospheric pressure (N/m^2)
-        "Ta": (290, 296),  # Ambient temperature (K)
-        "T0": (340, 360),  # Filling gas temperature (K)
-    }
-
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
     # Unpack variables
-    M, S, V0, k, P0, Ta, T0 = x_scaled.T
+    M, S, V0, k, P0, Ta, T0 = x.T
 
     # Compute cycle time
     A = P0 * S + 19.62 * M - (k * V0 / S)
@@ -364,8 +403,8 @@ def wingweight(
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [Sw, Wfw, A, Lam, q, lam, tc, Nz, Wdg, Wp].
 
     Returns
     -------
@@ -377,28 +416,8 @@ def wingweight(
     [1] Formula source: Wing Weight Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/wingweight.html (accessed July 2024).
     """
-    # Define variable bounds
-    bounds = {
-        "Sw": (150, 200),  # Wing area (ft^2)
-        "Wfw": (220, 300),  # Weight of fuel in the wing (lb)
-        "A": (6, 10),  # Aspect ratio
-        "Lam": (
-            -10 * np.pi / 180,
-            10 * np.pi / 180,
-        ),  # Quarter-chord Sweep (radians)
-        "q": (16, 45),  # Dynamic pressure at cruise (lb / ft^2)
-        "lam": (0.5, 1.0),  # Taper ratio
-        "tc": (0.08, 0.18),  # Aerofoil thickness-to-chord ratio
-        "Nz": (2.5, 6.0),  # Ultimate load factor
-        "Wdg": (1700, 2500),  # Flight design gross weight (lb)
-        "Wp": (0.025, 0.08),  # Paint weight (lb / ft^2)
-    }
-
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
     # Unpack variables
-    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x_scaled.T
+    Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x.T
 
     # Calculate wing weight
     factors = [
@@ -423,8 +442,8 @@ def borehole(
     Parameters
     ----------
     x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
+        Array of shape (n_samples, n_variables) with physical input values.
+        Columns correspond to [rw, r, Tu, Hu, Tl, Hl, L, Kw].
 
     Returns
     -------
@@ -436,23 +455,8 @@ def borehole(
     [1] Formula source: Borehole Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/borehole.html (accessed Dec 2025).
     """
-    # Define variable bounds
-    bounds = {
-        "rw": (0.05, 0.15),  # radius of borehole (m)
-        "r": (100, 50000),  # radius of influence (m)
-        "Tu": (63070, 115600),  # transmissivity upper aquifer (m^2/year)
-        "Hu": (990, 1110),  # potentiometric head upper aquifer (m)
-        "Tl": (63.1, 116),  # transmissivity lower aquifer (m^2/year)
-        "Hl": (700, 820),  # potentiometric head lower aquifer (m)
-        "L": (1120, 1680),  # length of borehole (m)
-        "Kw": (9855, 12045),  # hydraulic conductivity of borehole (m/year)
-    }
-
-    # Scale inputs from unit-cube to actual ranges
-    x_scaled = scale_inputs(x, bounds)
-
     # Unpack variables
-    rw, r, Tu, Hu, Tl, Hl, L, Kw = x_scaled.T
+    rw, r, Tu, Hu, Tl, Hl, L, Kw = x.T
 
     # Compute borehole flow rate
     log_r_rw = np.log(r / rw)
