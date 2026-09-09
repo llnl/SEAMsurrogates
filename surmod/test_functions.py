@@ -11,7 +11,6 @@ from botorch.test_functions.synthetic import (
 )
 from typing import Optional, List, Tuple, Union
 
-
 PARABOLA_BOUNDS: list[tuple[float, float]] = [
     (-8.0, 8.0),  # x1
     (-8.0, 8.0),  # x2
@@ -318,8 +317,7 @@ def otlcircuit(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the midpoint voltage of output transformerless (OTL)
-    push-pull circuit.
+    Compute midpoint voltage of an output transformerless (OTL) push-pull circuit.
 
     Parameters
     ----------
@@ -340,10 +338,8 @@ def otlcircuit(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Unpack variables
     Rb1, Rb2, Rf, Rc1, Rc2, beta = x.T
 
-    # Compute midpoint voltage
     Vb1 = 12 * Rb2 / (Rb1 + Rb2)
     denom = beta * (Rc2 + 9) + Rf
 
@@ -360,7 +356,7 @@ def piston(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the time it takes a piston to complete one cycle.
+    Compute time it takes a piston to complete one cycle.
 
     Parameters
     ----------
@@ -381,10 +377,8 @@ def piston(
         an empirical comparison of kriging with MARS and projection pursuit regression.
         Quality Engineering, 19(4), 327-338.
     """
-    # Unpack variables
     M, S, V0, k, P0, Ta, T0 = x.T
 
-    # Compute cycle time
     A = P0 * S + 19.62 * M - (k * V0 / S)
     V = (S / (2 * k)) * (np.sqrt(A**2 + 4 * k * (P0 * V0 / T0) * Ta) - A)
 
@@ -398,7 +392,7 @@ def wingweight(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the weight of a light aircraft wing.
+    Compute weight of a light aircraft wing.
 
     Parameters
     ----------
@@ -416,10 +410,8 @@ def wingweight(
     [1] Formula source: Wing Weight Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/wingweight.html (accessed July 2024).
     """
-    # Unpack variables
     Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x.T
 
-    # Calculate wing weight
     factors = [
         0.036 * Sw**0.758 * Wfw**0.0035,
         (A / (np.cos(LamCaps) ** 2)) ** 0.6,
@@ -437,7 +429,7 @@ def borehole(
     x: npt.NDArray,
 ) -> npt.NDArray:
     """
-    This function computes the water flow rate through a borehole.
+    Compute water flow rate through a borehole.
 
     Parameters
     ----------
@@ -455,14 +447,13 @@ def borehole(
     [1] Formula source: Borehole Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/borehole.html (accessed Dec 2025).
     """
-    # Unpack variables
     rw, r, Tu, Hu, Tl, Hl, L, Kw = x.T
 
-    # Compute borehole flow rate
     log_r_rw = np.log(r / rw)
     numerator = 2 * np.pi * Tu * (Hu - Hl)
     denominator = log_r_rw * (1 + 2 * L * Tu / (log_r_rw * rw**2 * Kw) + Tu / Tl)
-    return numerator / denominator
+    flow_rate = numerator / denominator
+    return flow_rate
 
 
 def load_test_function(
