@@ -3,7 +3,6 @@ Utility functions for simulating, evaluating, and visualizing surrogate modeling
 sensitivity analysis experiments using benchmark engineering test problems.
 """
 
-import copy
 from typing import Tuple, Callable, List, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -13,12 +12,7 @@ import numpy as np
 import seaborn as sns
 
 from surmod.test_functions import (
-    parabola,
-    otlcircuit,
-    wingweight,
-    piston,
-    borehole,
-    get_input_bounds,
+    get_input_spec,
 )
 
 
@@ -43,26 +37,7 @@ def load_test_settings(
     Raises:
         ValueError: If the provided objective_function is not recognized.
     """
-    if objective_function == "parabola":
-        out_dim = 2
-        test_function = copy.deepcopy(parabola)
-    elif objective_function == "otlcircuit":
-        out_dim = 6
-        test_function = copy.deepcopy(otlcircuit)
-    elif objective_function == "wingweight":
-        out_dim = 10
-        test_function = copy.deepcopy(wingweight)
-    elif objective_function == "piston":
-        out_dim = 7
-        test_function = copy.deepcopy(piston)
-    elif objective_function == "borehole":
-        out_dim = 8
-        test_function = copy.deepcopy(borehole)
-    else:
-        raise ValueError(
-            f"Test function '{objective_function}' not found. "
-            "Choose from 'parabola', 'otlcircuit', 'wingweight', 'piston', or 'borehole'."
-        )
+    out_dim, test_function, _ = get_input_spec(objective_function)
     return out_dim, test_function
 
 
@@ -97,8 +72,8 @@ def simulate_data(
     """
     # Set-up simulation
     n_total = n_train + n_test
-    out_dim, test_function = load_test_settings(objective_function)
-    bounds = np.array(get_input_bounds(objective_function), dtype=float)
+    out_dim, test_function, bounds_list = get_input_spec(objective_function)
+    bounds = np.array(bounds_list, dtype=float)
     bounds_low = bounds[:, 0]
     bounds_high = bounds[:, 1]
 

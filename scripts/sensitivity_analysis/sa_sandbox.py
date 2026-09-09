@@ -36,7 +36,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error as rmse
 from surmod import sensitivity_analysis as sa
 
 from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
-from surmod.test_functions import get_input_bounds
+from surmod.test_functions import get_input_spec
 
 
 def parse_arguments():
@@ -137,8 +137,8 @@ def main():
     plots_dir = Path(__file__).parent / "plots"
     results_dir = Path(__file__).parent / "results"
 
-    regular_dim, __ = sa.load_test_settings(objective_function)
-    bounds = np.array(get_input_bounds(objective_function), dtype=float)
+    regular_dim, _, bounds_list = get_input_spec(objective_function)
+    bounds = np.array(bounds_list, dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
         objective_function, n_train, n_test, b1, b2, b12

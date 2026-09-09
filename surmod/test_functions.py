@@ -9,51 +9,73 @@ from botorch.test_functions.synthetic import (
     HolderTable,
     SixHumpCamel,
 )
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple, Union, Callable
 
-PARABOLA_BOUNDS: list[tuple[float, float]] = [
-    (-8.0, 8.0),  # x1
-    (-8.0, 8.0),  # x2
-]
-OTLCIRCUIT_BOUNDS: list[tuple[float, float]] = [
-    (50.0, 150.0),  # Rb1 (kOhms)
-    (25.0, 70.0),  # Rb2 (kOhms)
-    (0.5, 3.0),  # Rf (kOhms)
-    (1.2, 2.5),  # Rc1 (kOhms)
-    (0.25, 1.2),  # Rc2 (kOhms)
-    (50.0, 300.0),  # beta (A)
-]
-PISTON_BOUNDS: list[tuple[float, float]] = [
-    (30.0, 60.0),  # M (kg)
-    (0.005, 0.02),  # S (m^2)
-    (0.002, 0.01),  # V0 (m^3)
-    (1000.0, 5000.0),  # k (N/m)
-    (90000.0, 110000.0),  # P0 (N/m^2)
-    (290.0, 296.0),  # Ta (K)
-    (340.0, 360.0),  # T0 (K)
-]
-WINGWEIGHT_BOUNDS: list[tuple[float, float]] = [
-    (150.0, 200.0),  # Sw (ft^2)
-    (220.0, 300.0),  # Wfw (lb)
-    (6.0, 10.0),  # A
-    (-10.0 * np.pi / 180.0, 10.0 * np.pi / 180.0),  # Lam (rad)
-    (16.0, 45.0),  # q (lb/ft^2)
-    (0.5, 1.0),  # lam
-    (0.08, 0.18),  # tc
-    (2.5, 6.0),  # Nz
-    (1700.0, 2500.0),  # Wdg (lb)
-    (0.025, 0.08),  # Wp (lb/ft^2)
-]
-BOREHOLE_BOUNDS: list[tuple[float, float]] = [
-    (0.05, 0.15),  # rw (m)
-    (100.0, 50000.0),  # r (m)
-    (63070.0, 115600.0),  # Tu (m^2/yr)
-    (990.0, 1110.0),  # Hu (m)
-    (63.1, 116.0),  # Tl (m^2/yr)
-    (700.0, 820.0),  # Hl (m)
-    (1120.0, 1680.0),  # L (m)
-    (9855.0, 12045.0),  # Kw (m/yr)
-]
+FUNCTION_SPECS: dict[str, dict[str, object]] = {
+    "parabola": {
+        "dim": 2,
+        "function_name": "parabola",
+        "bounds": [
+            (-8.0, 8.0),  # x1
+            (-8.0, 8.0),  # x2
+        ],
+    },
+    "otlcircuit": {
+        "dim": 6,
+        "function_name": "otlcircuit",
+        "bounds": [
+            (50.0, 150.0),  # Rb1 (kOhms)
+            (25.0, 70.0),  # Rb2 (kOhms)
+            (0.5, 3.0),  # Rf (kOhms)
+            (1.2, 2.5),  # Rc1 (kOhms)
+            (0.25, 1.2),  # Rc2 (kOhms)
+            (50.0, 300.0),  # beta (A)
+        ],
+    },
+    "piston": {
+        "dim": 7,
+        "function_name": "piston",
+        "bounds": [
+            (30.0, 60.0),  # M (kg)
+            (0.005, 0.02),  # S (m^2)
+            (0.002, 0.01),  # V0 (m^3)
+            (1000.0, 5000.0),  # k (N/m)
+            (90000.0, 110000.0),  # P0 (N/m^2)
+            (290.0, 296.0),  # Ta (K)
+            (340.0, 360.0),  # T0 (K)
+        ],
+    },
+    "wingweight": {
+        "dim": 10,
+        "function_name": "wingweight",
+        "bounds": [
+            (150.0, 200.0),  # Sw (ft^2)
+            (220.0, 300.0),  # Wfw (lb)
+            (6.0, 10.0),  # A
+            (-10.0 * np.pi / 180.0, 10.0 * np.pi / 180.0),  # Lam (rad)
+            (16.0, 45.0),  # q (lb/ft^2)
+            (0.5, 1.0),  # lam
+            (0.08, 0.18),  # tc
+            (2.5, 6.0),  # Nz
+            (1700.0, 2500.0),  # Wdg (lb)
+            (0.025, 0.08),  # Wp (lb/ft^2)
+        ],
+    },
+    "borehole": {
+        "dim": 8,
+        "function_name": "borehole",
+        "bounds": [
+            (0.05, 0.15),  # rw (m)
+            (100.0, 50000.0),  # r (m)
+            (63070.0, 115600.0),  # Tu (m^2/yr)
+            (990.0, 1110.0),  # Hu (m)
+            (63.1, 116.0),  # Tl (m^2/yr)
+            (700.0, 820.0),  # Hl (m)
+            (1120.0, 1680.0),  # L (m)
+            (9855.0, 12045.0),  # Kw (m/yr)
+        ],
+    },
+}
 
 
 class Parabola_synth_test_func(SyntheticTestFunction):
@@ -80,7 +102,10 @@ class Parabola_synth_test_func(SyntheticTestFunction):
         """
         self.dim = dim
         if bounds is None:
-            bounds = [(-8.0, 8.0) for _ in range(self.dim)]
+            if self.dim == 2:
+                bounds = list(FUNCTION_SPECS["parabola"]["bounds"])
+            else:
+                bounds = [(-8.0, 8.0) for _ in range(self.dim)]
         elif len(bounds) != self.dim:
             raise ValueError(
                 f"Expected {self.dim} bounds for a {self.dim}-D parabola, "
@@ -153,7 +178,7 @@ class Borehole_synth_test_func(SyntheticTestFunction):
 
         # Default bounds from SFU (Surjanovic & Bingham) matching the input order
         if bounds is None:
-            bounds = BOREHOLE_BOUNDS
+            bounds = list(FUNCTION_SPECS["borehole"]["bounds"])
         elif len(bounds) != self.dim:
             raise ValueError(
                 f"Expected {self.dim} bounds for a {self.dim}-D borehole, "
@@ -285,27 +310,35 @@ def scale_inputs(
 
 def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
     """
-    Return the physical input bounds for the engineering benchmark functions.
+    Return the physical input bounds for the provided test functions.
 
     Args:
         objective_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
     """
-    bounds_map = {
-        "parabola": PARABOLA_BOUNDS,
-        "otlcircuit": OTLCIRCUIT_BOUNDS,
-        "piston": PISTON_BOUNDS,
-        "wingweight": WINGWEIGHT_BOUNDS,
-        "borehole": BOREHOLE_BOUNDS,
-    }
+    return list(get_input_spec(objective_function)[2])
 
-    if objective_function not in bounds_map:
-        available = ", ".join(bounds_map)
+
+def get_input_spec(
+    objective_function: str,
+) -> tuple[int, Callable, list[tuple[float, float]]]:
+    """
+    Return the dimension, callable, and bounds for a provided test function.
+
+    Args:
+        objective_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+    """
+    if objective_function not in FUNCTION_SPECS:
+        available = ", ".join(FUNCTION_SPECS)
         raise ValueError(
             f"Test function '{objective_function}' not found. Available: {available}."
         )
 
-    return list(bounds_map[objective_function])
+    config = FUNCTION_SPECS[objective_function]
+    function_name = str(config["function_name"])
+    function = globals()[function_name]
+    return int(config["dim"]), function, list(config["bounds"])  # type: ignore[arg-type]
 
 
 def otlcircuit(
