@@ -243,11 +243,13 @@ def setup_figure(
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
     plt.tight_layout()
 
-    handles = dict(
-        acq_surface=acq_surface, gp_surface=gp_surface, gp_mean_dot=gp_mean_dot
-    )
-    axes = dict(ax1=ax1, ax2=ax2, ax3=ax3)
-    meta = dict(title_lines=title_lines)
+    handles = {
+        "acq_surface": acq_surface,
+        "gp_surface": gp_surface,
+        "gp_mean_dot": gp_mean_dot,
+    }
+    axes = {"ax1": ax1, "ax2": ax2, "ax3": ax3}
+    meta = {"title_lines": title_lines}
 
     return fig, axes, handles, meta
 

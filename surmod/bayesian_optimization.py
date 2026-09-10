@@ -430,13 +430,13 @@ class BayesianOptimizer:
         x_best = self.x_all_data[np.argmax(self.y_all_data), :]
 
         snapshot.update(
-            dict(
-                x_next=np.asarray(x_next, dtype=float),
-                y_next=y_next_scalar,
-                y_max=float(np.max(self.y_all_data)),
-                x_best=x_best,
-                acquired_max=float(np.max(self.y_all_data)),
-            )
+            {
+                "x_next": np.asarray(x_next, dtype=float),
+                "y_next": y_next_scalar,
+                "y_max": float(np.max(self.y_all_data)),
+                "x_best": x_best,
+                "acquired_max": float(np.max(self.y_all_data)),
+            }
         )
 
         return snapshot

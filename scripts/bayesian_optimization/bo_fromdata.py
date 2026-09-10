@@ -137,15 +137,15 @@ def main() -> None:
 
     # Keep maximin-LHD settings internal, not exposed on CLI
     if args.init_design == "maximin_lhd":
-        init_design_kwargs = dict(
-            T0=10.0,
-            c=0.95,
-            it=2000,
-            p=50,
-            profile="GEOM",
-            Imax=100,
-            jitter=False,
-        )
+        init_design_kwargs = {
+            "T0": 10.0,
+            "c": 0.95,
+            "it": 2000,
+            "p": 50,
+            "profile": "GEOM",
+            "Imax": 100,
+            "jitter": False,
+        }
     else:
         init_design_kwargs = {}
 
