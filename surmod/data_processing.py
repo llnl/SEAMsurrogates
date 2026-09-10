@@ -115,7 +115,7 @@ def split_data(
     LHD: bool = False,
     n_train: int = 100,
     seed: int = 42,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Split data into train and test sets using either Latin Hypercube Design
     (LHD) or random split.
@@ -216,7 +216,7 @@ def load_and_split(
     seed: int = 42,
     LHD: bool = False,
     n_train: int = 100,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Convenience function: load dataset, then split into train and test.
 
@@ -246,7 +246,7 @@ def normalize_data(
     x_test: np.ndarray,
     y_train: np.ndarray,
     y_test: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Normalize features and targets using StandardScaler (zero mean, unit variance).
 

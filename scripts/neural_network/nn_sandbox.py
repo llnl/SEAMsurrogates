@@ -34,7 +34,6 @@ chmod +x ./nn_sandbox.py
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
 
 import matplotlib
 import matplotlib.patches as mpatches
@@ -209,7 +208,7 @@ def plot_surface_3d(
     title: str,
     plots_dir: Path,
     resolution: int = 50,
-    angle: Tuple[float, float] = (30, 120),
+    angle: tuple[float, float] = (30, 120),
     input_scaler=None,
     output_scaler=None,
 ):
@@ -233,7 +232,7 @@ def plot_surface_3d(
             the objective data/function name.
         resolution (int, optional): Number of points per dimension
             for the surface grid. Default is 50.
-        angle (Tuple[float, float], optional):
+        angle (tuple[float, float], optional):
             The (elevation, azimuth) viewing angles for the 3D plot.
             Default is (30, 120).
         input_scaler: Optional sklearn.preprocessing scaler with a
