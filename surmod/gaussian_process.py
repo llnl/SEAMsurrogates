@@ -527,8 +527,8 @@ class GPSurrogate:
 
         max_value = max(observed.max(), upper_bounds.max())
         min_value = min(observed.min(), lower_bounds.min())
-        plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
+        plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
         plt.title(f"{dataset} \n {self.get_fitted_kernel_label()}")
