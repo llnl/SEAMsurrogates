@@ -182,7 +182,7 @@ def sobol_plot(
     colors = sns.color_palette("husl", len(variables))
 
     # Create a figure with subplots
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    _fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
     # First Order Sensitivity Plot
     axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)

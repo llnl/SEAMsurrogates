@@ -327,7 +327,7 @@ def plot_convergence(
     save_animation: bool,
     plots_dir: Path,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(18, 6))
+    _fig, ax = plt.subplots(figsize=(18, 6))
     ax.plot(
         acquired_maxima,
         color="red",
