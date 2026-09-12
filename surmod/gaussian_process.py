@@ -1,4 +1,9 @@
-# wrapper for gpytoch GP fitting
+"""
+Gaussian process surrogate modeling with BoTorch and GPyTorch.
+"""
+
+import copy
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -6,8 +11,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import copy
-import warnings
 from botorch.fit import fit_gpytorch_mll
 from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
