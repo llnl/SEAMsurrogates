@@ -498,7 +498,6 @@ class GPSurrogate:
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
-        Styled to closely match the legacy sklearn plotting function.
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -557,8 +556,7 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP mean surface in a style closely matching the legacy sklearn version.
-        Uses learned likelihood noise as the alpha analog.
+        Plot GP mean surface. Uses learned likelihood noise as the alpha analog.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -642,8 +640,7 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP predictive standard deviation in a style closely matching the legacy
-        sklearn version.
+        Plot GP standard deviation.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
