@@ -56,3 +56,6 @@ extend-select = [
     "W",    # pycodestyle warnings
     "D202", # no-blank-line-after-function
 ]
+ignore = [
+    "DTZ005", # keep local wall-clock timestamps in filenames
+]
