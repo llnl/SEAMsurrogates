@@ -1,18 +1,20 @@
-# wrapper for gpytoch GP fitting
+"""
+Gaussian process surrogate modeling with BoTorch and GPyTorch.
+"""
+import copy
+import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import copy
-import warnings
+from botorch.exceptions.errors import ModelFittingError
 from botorch.fit import fit_gpytorch_mll
 from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
-from botorch.exceptions.errors import ModelFittingError
 from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
@@ -126,10 +128,7 @@ def fit_gpytorch_mll_multistart(
                     abnormal = True
                     warning_msgs.append(msg)
 
-        except ModelFittingError as e:
-            fit_failed = True
-            warning_msgs.append(f"ModelFittingError: {e}")
-        except Exception as e:
+        except (ModelFittingError, RuntimeError, ValueError) as e:
             fit_failed = True
             warning_msgs.append(f"{type(e).__name__}: {e}")
 
@@ -140,7 +139,7 @@ def fit_gpytorch_mll_multistart(
             with torch.no_grad():
                 output = model(model.train_inputs[0])
                 loss = -mll(output, model.train_targets).item()
-        except Exception as e:
+        except (RuntimeError, ValueError) as e:
             print(f"restart {i + 1}/{n_restarts}, failed to evaluate loss: {e}")
             for msg in warning_msgs:
                 print(f"  warning: {msg}")
@@ -217,8 +216,8 @@ class GPSurrogate:
         self,
         x_train: NDArray,
         y_train: NDArray,
-        x_test: Optional[NDArray] = None,
-        y_test: Optional[NDArray] = None,
+        x_test: NDArray | None = None,
+        y_test: NDArray | None = None,
         kernel: str = "rbf",
         isotropic: bool = False,
         scale_inputs: bool = True,
@@ -251,10 +250,10 @@ class GPSurrogate:
             y_train, dtype=torch.float64
         ).reshape(-1, 1)
 
-        self.x_test: Optional[torch.Tensor] = (
+        self.x_test: torch.Tensor | None = (
             None if x_test is None else torch.as_tensor(x_test, dtype=torch.float64)
         )
-        self.y_test: Optional[torch.Tensor] = (
+        self.y_test: torch.Tensor | None = (
             None
             if y_test is None
             else torch.as_tensor(y_test, dtype=torch.float64).reshape(-1, 1)
@@ -265,8 +264,8 @@ class GPSurrogate:
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
         self.optimization_restarts: int = optimization_restarts
-        self.model: Optional[SingleTaskGP] = None
-        self.mll: Optional[ExactMarginalLogLikelihood] = None
+        self.model: SingleTaskGP | None = None
+        self.mll: ExactMarginalLogLikelihood | None = None
         self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
         self.outputscale_bounds = outputscale_bounds
@@ -370,9 +369,9 @@ class GPSurrogate:
 
     def predict(
         self,
-        x: Optional[NDArray | torch.Tensor] = None,
+        x: NDArray | torch.Tensor | None = None,
         include_nugget: bool = False,
-    ) -> Tuple[NDArray, NDArray]:
+    ) -> tuple[NDArray, NDArray]:
         """
         Predict posterior mean and standard deviation for input points.
         """
@@ -437,7 +436,7 @@ class GPSurrogate:
         output: NDArray,
         target: NDArray,
         inputs: NDArray,
-    ) -> Tuple[float, NDArray]:
+    ) -> tuple[float, NDArray]:
         """
         Compute the maximum absolute error and the corresponding input.
 
@@ -531,7 +530,6 @@ class GPSurrogate:
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
-        Styled to closely match the legacy sklearn plotting function.
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -560,8 +558,8 @@ class GPSurrogate:
 
         max_value = max(observed.max(), upper_bounds.max())
         min_value = min(observed.min(), lower_bounds.min())
-        plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
 
+        plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
         plt.title(f"{dataset} \n {self.get_fitted_kernel_label()}")
@@ -590,8 +588,7 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP mean surface in a style closely matching the legacy sklearn version.
-        Uses learned likelihood noise as the alpha analog.
+        Plot GP mean surface. Uses learned likelihood noise as the alpha analog.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -675,8 +672,7 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP predictive standard deviation in a style closely matching the legacy
-        sklearn version.
+        Plot GP standard deviation.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")

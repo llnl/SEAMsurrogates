@@ -7,7 +7,7 @@ name = "surmod"
 version = "0.1.0"
 description =  "Package used in LLNL's SEAM professional development course on Surrogate Modeling and Design Optimization."
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.14"
 license = { file = "LICENSE" }   
 
 authors = [
@@ -55,4 +55,7 @@ line-length = 88
 extend-select = [
     "W",    # pycodestyle warnings
     "D202", # no-blank-line-after-function
+]
+ignore = [
+    "DTZ005", # keep local wall-clock timestamps in filenames
 ]

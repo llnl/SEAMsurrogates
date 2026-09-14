@@ -1,29 +1,28 @@
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Sequence, Union, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-
 from botorch.acquisition.analytic import (
     LogExpectedImprovement,
+    PosteriorStandardDeviation,
     ProbabilityOfImprovement,
     UpperConfidenceBound,
-    PosteriorStandardDeviation,
 )
 from botorch.optim import optimize_acqf
 
-from surmod.test_functions import load_test_function
 from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
+from surmod.test_functions import load_test_function
 
 
 def sample_parabola(
     n_initial: int,
-    bounds_low: Union[float, Sequence[float], np.ndarray],
-    bounds_high: Union[float, Sequence[float], np.ndarray],
+    bounds_low: float | Sequence[float] | np.ndarray,
+    bounds_high: float | Sequence[float] | np.ndarray,
     input_size: int,
     radius: float = 7,
     seed: int = 1,
@@ -72,14 +71,14 @@ def sample_parabola(
 
 def sample_data(
     objective_function: str,
-    bounds_low: Union[float, Sequence[float], np.ndarray],
-    bounds_high: Union[float, Sequence[float], np.ndarray],
+    bounds_low: float | Sequence[float] | np.ndarray,
+    bounds_high: float | Sequence[float] | np.ndarray,
     n_initial: int,
     input_size: int = 2,
     init_design: str = "random",
     seed: int = 1,
     **design_kwargs,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate input and output samples from the specified synthetic objective.
 
@@ -100,7 +99,7 @@ def sample_data(
     """
     test_function = load_test_function(objective_function)
 
-    if objective_function == "Parabola" and init_design == "random":
+    if objective_function == "parabola" and init_design == "random":
         x_data = sample_parabola(
             n_initial, bounds_low, bounds_high, input_size, seed=seed
         )
@@ -125,32 +124,15 @@ def sample_data(
 
 def get_synth_global_optima(
     objective_function: str,
-) -> Tuple[List[List[float]], float]:
-    """
-    Return the known global optimum locations and objective value for a
-    supported synthetic benchmark function.
-
-    Args:
-        objective_function: Name of the objective function. Supported values
-            are ``Ackley``, ``Branin``, ``Griewank``, ``HolderTable``,
-            ``Parabola``, and ``SixHumpCamel``.
-
-    Raises:
-        ValueError: If the specified objective function is not supported.
-
-    Returns:
-        A tuple containing:
-            - A list of points corresponding to the global optima.
-            - The global optimum objective value.
-    """
+) -> tuple[list[list[float]], float]:
     global_optima = {
-        "Ackley": ([[0, 0]], 0.0),
-        "Branin": (
+        "ackley": ([[0, 0]], 0.0),
+        "branin": (
             [[-np.pi, 12.275], [np.pi, 2.275], [9.42478, 2.475]],
             -0.397887,
         ),
-        "Griewank": ([[0, 0]], 0.0),
-        "HolderTable": (
+        "griewank": ([[0, 0]], 0.0),
+        "holder_table": (
             [
                 [8.05502, 9.66459],
                 [-8.05502, -9.66459],
@@ -159,8 +141,8 @@ def get_synth_global_optima(
             ],
             19.2085,
         ),
-        "Parabola": ([[0, 0]], 0.0),
-        "SixHumpCamel": (
+        "parabola": ([[0, 0]], 0.0),
+        "six_hump_camel": (
             [[0.0898, -0.7126], [-0.0898, 0.7126]],
             -1.0316,
         ),
@@ -245,10 +227,10 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        noise_bounds: Optional[Tuple[float, float]] = None,
-        fixed_noise: Optional[float] = None,
+        noise_bounds: tuple[float, float] | None = None,
+        fixed_noise: float | None = None,
         init_design: str = "random",
-        init_design_kwargs: Optional[dict] = None,
+        init_design_kwargs: dict | None = None,
         **acquisition_kwargs,
     ):
         """
@@ -301,7 +283,7 @@ class BayesianOptimizer:
         self.y_acquired = np.empty((0,), dtype=float)
         self.y_max_history = np.empty((0,), dtype=float)
 
-        self.gp_model: Optional[GPSurrogate] = None
+        self.gp_model: GPSurrogate | None = None
         self.init_design = init_design
         self.init_design_kwargs = init_design_kwargs or {}
 
@@ -447,10 +429,10 @@ class BayesianOptimizer:
 
     def step(
         self,
-        df: Optional[pd.DataFrame] = None,
-        remaining_indices: Optional[set[int]] = None,
-        x_grid: Optional[np.ndarray] = None,
-        grid_shape: Optional[tuple[int, int]] = None,
+        df: pd.DataFrame | None = None,
+        remaining_indices: set[int] | None = None,
+        x_grid: np.ndarray | None = None,
+        grid_shape: tuple[int, int] | None = None,
         return_diagnostics: bool = False,
     ) -> dict:
         """
@@ -512,29 +494,22 @@ class BayesianOptimizer:
         x_best = self.x_all_data[np.argmax(self.y_all_data), :]
 
         snapshot.update(
-            dict(
-                x_next=np.asarray(x_next, dtype=float),
-                y_next=y_next_scalar,
-                y_max=float(np.max(self.y_all_data)),
-                x_best=x_best,
-                acquired_max=float(np.max(self.y_all_data)),
-            )
+            {
+                "x_next": np.asarray(x_next, dtype=float),
+                "y_next": y_next_scalar,
+                "y_max": float(np.max(self.y_all_data)),
+                "x_best": x_best,
+                "acquired_max": float(np.max(self.y_all_data)),
+            }
         )
 
         return snapshot
 
     def bayes_opt(
         self,
-        df: Optional[pd.DataFrame] = None,
+        df: pd.DataFrame | None = None,
         n_init: int = 10,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Run Bayesian optimization for the configured number of acquisitions.
-
-        Returns:
-            A tuple containing all observed inputs, their objective values, and
-            the history of the best observed value.
-        """
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         if df is not None:
             df = df.copy()
 

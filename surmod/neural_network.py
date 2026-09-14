@@ -2,16 +2,15 @@
 Functions for neural network surrogates.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import List, Sequence, Tuple
 
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -23,7 +22,7 @@ class NeuralNet(nn.Module):
     def __init__(
         self,
         input_size: int,
-        hidden_sizes: List[int],
+        hidden_sizes: list[int],
         output_size: int,
         initialize_weights_normal: bool,
     ):
@@ -37,7 +36,7 @@ class NeuralNet(nn.Module):
             initialize_weights_normal (bool): Whether to initialize weights
             with a normal distribution.
         """
-        super(NeuralNet, self).__init__()
+        super().__init__()
         self.layers = nn.ModuleList()
 
         # Create the first hidden layer
@@ -88,13 +87,13 @@ def train(
     y_train: torch.Tensor,
     x_test: torch.Tensor,
     y_test: torch.Tensor,
-    hidden_sizes: List[int],
+    hidden_sizes: list[int],
     n_epochs: int,
     learning_rate: float,
     batch_size: int,
     seed: int,
     initialize_weights_normal: bool,
-) -> Tuple[nn.Module, List[float], List[float]]:
+) -> tuple[nn.Module, list[float], list[float]]:
     """
     Train a feedforward neural network and evaluate its performance.
 
@@ -103,14 +102,14 @@ def train(
         y_train (torch.Tensor): Training target values of shape (n_samples,) or (n_samples, 1).
         x_test (torch.Tensor): Test input features of shape (n_test_samples, n_features).
         y_test (torch.Tensor): Test target values of shape (n_test_samples,) or (n_test_samples, 1).
-        hidden_sizes (List[int]): List specifying the number of units in each hidden layer.
+        hidden_sizes (list[int]): List specifying the number of units in each hidden layer.
         n_epochs (int): Number of epochs to train the network.
         learning_rate (float): Learning rate for the optimizer.
         batch_size (int): Number of samples per training batch.
         seed (int): Random seed for reproducibility.
         initialize_weights_normal (bool): If True, initialize weights with a normal distribution.
     Returns:
-        Tuple[nn.Module, List[float], List[float]]: Trained neural network model, list of training losses per epoch, and list of test losses per epoch.
+        tuple[nn.Module, list[float], list[float]]: Trained neural network model, list of training losses per epoch, and list of test losses per epoch.
     """
     # Specify fixed output and input sizes
     input_size = x_train.shape[1]
@@ -184,8 +183,8 @@ def train(
 
 
 def plot_losses(
-    train_losses: List[float],
-    test_losses: List[float],
+    train_losses: list[float],
+    test_losses: list[float],
     dataset: str,
     plots_dir: Path,
 ) -> None:
@@ -193,9 +192,9 @@ def plot_losses(
     Plot and save the training and testing loss curves across epochs.
 
     Args:
-        train_losses (List[float]): List of training loss values (MSE) for each
+        train_losses (list[float]): List of training loss values (MSE) for each
             epoch.
-        test_losses (List[float]): List of testing loss values (MSE) for each
+        test_losses (list[float]): List of testing loss values (MSE) for each
             epoch.
         dataset (str): Name of the dataset. Used in the plot title and filename.
         plots_dir (Path): Directory where plots will be saved.
@@ -224,11 +223,11 @@ def plot_losses(
 
 
 def plot_losses_verbose(
-    train_losses: List[float],
-    test_losses: List[float],
+    train_losses: list[float],
+    test_losses: list[float],
     learning_rate: float,
     batch_size: int,
-    hidden_sizes: List[int],
+    hidden_sizes: list[int],
     normalize_x: bool,
     scale_x: bool,
     normalize_y: bool,
@@ -243,13 +242,13 @@ def plot_losses_verbose(
     hyperparameter values in the plot title.
 
     Args:
-        train_losses (List[float]): List of training loss values (MSE) for each
+        train_losses (list[float]): List of training loss values (MSE) for each
             epoch.
-        test_losses (List[float]): List of testing loss values (MSE) for each
+        test_losses (list[float]): List of testing loss values (MSE) for each
             epoch.
         learning_rate (float): Learning rate used during training.
         batch_size (int): Batch size used during training.
-        hidden_sizes (List[int]): List of hidden layer sizes in the model.
+        hidden_sizes (list[int]): List of hidden layer sizes in the model.
         normalize_x (bool): Whether input features (x) were normalized.
         scale_x (bool): Whether input features (x) were scaled.
         normalize_y (bool): Whether target values (y) were normalized.
@@ -296,10 +295,10 @@ def plot_losses_verbose(
 
 
 def plot_losses_multiplot(
-    train_losses_grid: List[List[List[float]]],
-    test_losses_grid: List[List[List[float]]],
-    learning_rates: List[float],
-    hid_dims: List[int],
+    train_losses_grid: list[list[list[float]]],
+    test_losses_grid: list[list[list[float]]],
+    learning_rates: list[float],
+    hid_dims: list[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
     dataset: str,
     plots_dir: Path,
@@ -314,16 +313,16 @@ def plot_losses_multiplot(
     that includes the dataset name and a timestamp.
 
     Args:
-        train_losses_grid (Sequence[Sequence[List[float]]]):
+        train_losses_grid (Sequence[Sequence[list[float]]]):
             2D grid where each element is a list of training losses per epoch
             for a specific (hidden_dim, learning_rate) pair.
-        test_losses_grid (Sequence[Sequence[List[float]]]):
+        test_losses_grid (Sequence[Sequence[list[float]]]):
             2D grid where each element is a list of test losses per epoch for a
             specific (hidden_dim, learning_rate) pair.
-        learning_rates (List[float]):
+        learning_rates (list[float]):
             List of learning rates corresponding to the columns of the subplot
             grid.
-        hid_dims (List[int]):
+        hid_dims (list[int]):
             List of hidden dimensions corresponding to the rows of the subplot
             grid.
         axs (Sequence[Sequence[matplotlib.axes.Axes]]):

@@ -8,8 +8,8 @@ Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
 
 Usage examples:
 
-./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=Parabola
-./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=Ackley --beta=3.0
+./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=parabola
+./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=ackley --beta=3.0
 ./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
 ./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
 """
@@ -17,9 +17,9 @@ Usage examples:
 import argparse
 import io
 import os
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Generator
 
 import imageio.v2 as imageio
 import matplotlib.figure
@@ -71,8 +71,8 @@ def parse_arguments() -> argparse.Namespace:
         "-f",
         "--objective_function",
         type=str,
-        default="Parabola",
-        help="Function to optimize. Supported: Parabola, Ackley, Branin, HolderTable, Griewank, SixHumpCamel.",
+        default="parabola",
+        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
     parser.add_argument(
         "--init_design",
@@ -243,11 +243,13 @@ def setup_figure(
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
     plt.tight_layout()
 
-    handles = dict(
-        acq_surface=acq_surface, gp_surface=gp_surface, gp_mean_dot=gp_mean_dot
-    )
-    axes = dict(ax1=ax1, ax2=ax2, ax3=ax3)
-    meta = dict(title_lines=title_lines)
+    handles = {
+        "acq_surface": acq_surface,
+        "gp_surface": gp_surface,
+        "gp_mean_dot": gp_mean_dot,
+    }
+    axes = {"ax1": ax1, "ax2": ax2, "ax3": ax3}
+    meta = {"title_lines": title_lines}
 
     return fig, axes, handles, meta
 
@@ -327,7 +329,7 @@ def plot_convergence(
     save_animation: bool,
     plots_dir: Path,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(18, 6))
+    _fig, ax = plt.subplots(figsize=(18, 6))
     ax.plot(
         acquired_maxima,
         color="red",

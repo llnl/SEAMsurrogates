@@ -3,7 +3,7 @@ Utility functions for simulating, evaluating, and visualizing surrogate modeling
 sensitivity analysis experiments using benchmark engineering test problems.
 """
 
-from typing import Tuple, Callable, List, Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
 
@@ -18,7 +18,7 @@ from surmod.test_functions import (
 
 def load_test_settings(
     objective_function: str,
-) -> Tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
+) -> tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
     """
     Load the test function and its input dimension for simulating data.
 
@@ -27,7 +27,7 @@ def load_test_settings(
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
 
     Returns:
-        Tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
+        tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
             A tuple containing:
                 - out_dim (int): The number of input dimensions for the selected
                     test function.
@@ -49,7 +49,7 @@ def simulate_data(
     b2: float,
     b12: float,
     seed: int = 1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Simulate training and testing data from a selected test function.
 
@@ -64,7 +64,7 @@ def simulate_data(
         seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
             - x_train (np.ndarray): Training input data of shape (n_train, input_dim).
             - x_test (np.ndarray): Testing input data of shape (n_test, input_dim).
             - y_train (np.ndarray): Training output data.
@@ -168,7 +168,7 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
 def sobol_plot(
     S1: Sequence[float],
     ST: Sequence[float],
-    variables: List[str],
+    variables: list[str],
     S1_conf: Sequence[float],
     ST_conf: Sequence[float],
     objective_function: str,
@@ -180,7 +180,7 @@ def sobol_plot(
     Args:
         S1 (Sequence[float]): First order sensitivity indices for each variable.
         ST (Sequence[float]): Total order sensitivity indices for each variable.
-        variables (List[str]): List of variable names.
+        variables (list[str]): List of variable names.
         S1_conf (Sequence[float]): Confidence intervals for first order indices.
         ST_conf (Sequence[float]): Confidence intervals for total order indices.
         objective_function (str): Name of the objective function, used in the
@@ -193,7 +193,7 @@ def sobol_plot(
     colors = sns.color_palette("husl", len(variables))
 
     # Create a figure with subplots
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    _fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
     # First Order Sensitivity Plot
     axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)
