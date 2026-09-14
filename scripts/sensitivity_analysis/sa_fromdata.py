@@ -7,25 +7,20 @@ length scale adjustment, and exclusion of specific input variables.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
-Note:
-- For JAG data there are 5 input variables: x1, x2, x3, x4, x5
-- For borehole data there are 8 input variables: rw, r, Tu, Hu, Tl, Hl, L, Kw
-
 Usage:
 
-# Make script executable
-chmod +x ./sa_fromdata.py
-
-# Get help
+# Get help (shows all options including available datasets, kernels, and variables)
 ./sa_fromdata.py -h
 
-# Perform sensitivity analysis with 200 training points, 150 testing points,
-# excluding variables x4 and x5
-./sa_fromdata.py -tr 200 -te 150 --exclude x4 x5
+# JAG dataset: exclude variables x4 and x5
+./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
 
-# Perform sensitivity analysis with 150 training points, 100 testing points,
-# excluding variables x2 and x3, and save results to log file
-./sa_fromdata.py -tr 150 -e x2 x3 --log
+# Borehole dataset with all variables and with r and Tu excluded
+./scripts/sensitivity_analysis/sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
+./scripts/sensitivity_analysis/sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu --log
+
+# Use periodic kernel with normalized inputs
+./sa_fromdata.py --kernel periodic --normalize_x -tr 200 -te 100
 """
 
 import argparse
@@ -37,11 +32,10 @@ from SALib.analyze import sobol
 from SALib.sample import saltelli
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import root_mean_squared_error as rmse
-from sklearn.preprocessing import StandardScaler
 
 from surmod import data_processing
 from surmod import sensitivity_analysis as sa
-from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
+from surmod.gaussian_process import GPSurrogate
 
 
 def parse_arguments():
@@ -61,11 +55,26 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-nx",
-        "--normalize_x",
+        "--scale_inputs",
+        dest="scale_inputs",
+        action="store_true",
+        default=True,
+        help="Normalize inputs to unit cube (GPSurrogate.scale_inputs).",
+    )
+
+    parser.add_argument(
+        "--no-scale_inputs",
+        dest="scale_inputs",
+        action="store_false",
+        help="Disable input normalization.",
+    )
+
+    parser.add_argument(
+        "-ny",
+        "--normalize_y",
         action="store_true",
         default=False,
-        help="Whether or not to normalize the input values by removing the mean and scaling to unit-variance per dimension.",
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
     )
 
     parser.add_argument(
@@ -103,10 +112,12 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--fixed_nugget",
+        "--noise_bounds",
         type=float,
-        default=None,
-        help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
     )
 
     parser.add_argument(
@@ -116,6 +127,13 @@ def parse_arguments():
         choices=["rbf", "matern", "periodic"],
         default="matern",
         help="Kernel type for Gaussian Process (default: matern).",
+    )
+
+    parser.add_argument(
+        "--isotropic",
+        action="store_true",
+        default=False,
+        help="Use isotropic kernel (same lengthscale for all dimensions). Default is anisotropic.",
     )
 
     return parser.parse_args()
@@ -135,11 +153,13 @@ def main():
     """
     args = parse_arguments()
     dataset = args.dataset
-    normalize_x = args.normalize_x
+    scale_inputs = args.scale_inputs
+    normalize_y = args.normalize_y
     n_train = args.n_train
     n_test = args.n_test
     do_log = args.log
     exclude = args.exclude
+    noise_bounds = tuple(args.noise_bounds)
 
     # Check data availability
     n_samples = n_test + n_train
@@ -172,17 +192,6 @@ def main():
 
     _, dim = x_train.shape
 
-    x_scaler = None
-    if normalize_x:
-        x_scaler = StandardScaler()
-        x_train = x_scaler.fit_transform(x_train)
-        x_test = x_scaler.transform(x_test)
-
-    # Fixed nugget -> noise_bounds
-    noise_bounds = None
-    if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
-
     # Train GPSurrogate
     gp_model = GPSurrogate(
         x_train=x_train,
@@ -190,12 +199,10 @@ def main():
         x_test=x_test,
         y_test=y_test,
         kernel=args.kernel,
-        isotropic=True,
-        # you already optionally StandardScaler'ed X above, avoid double scaling
-        scale_inputs=False,
-        # keep output standardization on (matches your old normalize_y=True intent)
-        scale_outputs=True,
-        noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+        isotropic=args.isotropic,
+        scale_inputs=scale_inputs,
+        scale_outputs=normalize_y,
+        noise_bounds=noise_bounds,
     )
     gp_model.fit()
 
@@ -242,10 +249,10 @@ def main():
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
         f"Kernel: {args.kernel}\n"
-        f"Isotropic: True\n"
-        f"Normalize x values: {normalize_x}\n"
-        f"Fixed nugget: {args.fixed_nugget}\n"
-        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
+        f"Isotropic: {args.isotropic}\n"
+        f"Scale inputs: {scale_inputs}\n"
+        f"Normalize y: {normalize_y}\n"
+        f"Noise bounds: {noise_bounds}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"

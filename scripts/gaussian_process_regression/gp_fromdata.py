@@ -8,6 +8,7 @@ Usage examples:
 ./gp_fromdata.py --n_train=200 --kernel=matern
 ./gp_fromdata.py --n_train=200 --kernel=matern --normalize_y --plot
 ./gp_fromdata.py --n_train=300 --kernel=matern --log
+./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --plot
 """
 
 import argparse
@@ -105,7 +106,7 @@ def parse_arguments():
         "--noise_bounds",
         type=float,
         nargs=2,
-        default=(1e-16, 1e-1),
+        default=(1e-8, 1e-1),
         metavar=("LOW", "HIGH"),
         help="Bounds for likelihood noise constraint.",
     )
