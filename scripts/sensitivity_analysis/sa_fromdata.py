@@ -109,6 +109,15 @@ def parse_arguments():
         help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
     )
 
+    parser.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="Kernel type for Gaussian Process (default: matern).",
+    )
+
     return parser.parse_args()
 
 
@@ -180,7 +189,7 @@ def main():
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        kernel="matern",
+        kernel=args.kernel,
         isotropic=True,
         # you already optionally StandardScaler'ed X above, avoid double scaling
         scale_inputs=False,
@@ -232,7 +241,7 @@ def main():
     log_message = (
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
-        f"Kernel: matern\n"
+        f"Kernel: {args.kernel}\n"
         f"Isotropic: True\n"
         f"Normalize x values: {normalize_x}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
