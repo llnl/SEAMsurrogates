@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -9,8 +10,6 @@ from botorch.test_functions.synthetic import (
     HolderTable,
     SixHumpCamel,
 )
-from typing import Optional, List, Tuple, Union, Callable
-
 FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {
         "dim": 2,
@@ -89,9 +88,9 @@ class Parabola_synth_test_func(SyntheticTestFunction):
     def __init__(
         self,
         dim: int = 2,
-        noise_std: Optional[float] = None,
+        noise_std: float | None = None,
         negate: bool = True,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> None:
         """
         Args:
@@ -155,9 +154,9 @@ class Borehole_synth_test_func(SyntheticTestFunction):
 
     def __init__(
         self,
-        noise_std: Optional[float] = None,
+        noise_std: float | None = None,
         negate: bool = False,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> None:
         """
         Initialize the Borehole synthetic test function.
@@ -191,7 +190,7 @@ class Borehole_synth_test_func(SyntheticTestFunction):
 
         super().__init__(noise_std=noise_std, negate=negate, bounds=bounds)
 
-    def _evaluate_true(self, X: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+    def _evaluate_true(self, X: torch.Tensor | np.ndarray) -> torch.Tensor:
         """
         Evaluate the Borehole test function at given inputs.
 
@@ -485,10 +484,10 @@ def borehole(
 
 
 def load_test_function(
-    objective_function: Union[str, type],
-    dim: Optional[int] = None,
+    objective_function: str | type,
+    dim: int | None = None,
     negate: bool = True,
-    bounds: Optional[List[Tuple[float, float]]] = None,
+    bounds: list[tuple[float, float]] | None = None,
     **kwargs,
 ):
     """

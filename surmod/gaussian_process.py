@@ -1,7 +1,7 @@
 # wrapper for gpytoch GP fitting
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -184,8 +184,8 @@ class GPSurrogate:
         self,
         x_train: NDArray,
         y_train: NDArray,
-        x_test: Optional[NDArray] = None,
-        y_test: Optional[NDArray] = None,
+        x_test: NDArray | None = None,
+        y_test: NDArray | None = None,
         kernel: str = "rbf",
         isotropic: bool = False,
         scale_inputs: bool = True,
@@ -218,10 +218,10 @@ class GPSurrogate:
             y_train, dtype=torch.float64
         ).reshape(-1, 1)
 
-        self.x_test: Optional[torch.Tensor] = (
+        self.x_test: torch.Tensor | None = (
             None if x_test is None else torch.as_tensor(x_test, dtype=torch.float64)
         )
-        self.y_test: Optional[torch.Tensor] = (
+        self.y_test: torch.Tensor | None = (
             None
             if y_test is None
             else torch.as_tensor(y_test, dtype=torch.float64).reshape(-1, 1)
@@ -232,8 +232,8 @@ class GPSurrogate:
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
         self.optimization_restarts: int = optimization_restarts
-        self.model: Optional[SingleTaskGP] = None
-        self.mll: Optional[ExactMarginalLogLikelihood] = None
+        self.model: SingleTaskGP | None = None
+        self.mll: ExactMarginalLogLikelihood | None = None
         self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
         self.outputscale_bounds = outputscale_bounds
@@ -337,9 +337,9 @@ class GPSurrogate:
 
     def predict(
         self,
-        x: Optional[NDArray | torch.Tensor] = None,
+        x: NDArray | torch.Tensor | None = None,
         include_nugget: bool = False,
-    ) -> Tuple[NDArray, NDArray]:
+    ) -> tuple[NDArray, NDArray]:
         """
         Predict posterior mean and standard deviation for input points.
         """
@@ -404,7 +404,7 @@ class GPSurrogate:
         output: NDArray,
         target: NDArray,
         inputs: NDArray,
-    ) -> Tuple[float, NDArray]:
+    ) -> tuple[float, NDArray]:
         """
         Compute the maximum absolute error and the corresponding input.
 

@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Sequence, Union, Tuple, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,8 +22,8 @@ from surmod.space_fill_design import generate_initial_design
 
 def sample_parabola(
     n_initial: int,
-    bounds_low: Union[float, Sequence[float], np.ndarray],
-    bounds_high: Union[float, Sequence[float], np.ndarray],
+    bounds_low: float | Sequence[float] | np.ndarray,
+    bounds_high: float | Sequence[float] | np.ndarray,
     input_size: int,
     radius: float = 7,
     seed: int = 1,
@@ -52,14 +52,14 @@ def sample_parabola(
 
 def sample_data(
     objective_function: str,
-    bounds_low: Union[float, Sequence[float], np.ndarray],
-    bounds_high: Union[float, Sequence[float], np.ndarray],
+    bounds_low: float | Sequence[float] | np.ndarray,
+    bounds_high: float | Sequence[float] | np.ndarray,
     n_initial: int,
     input_size: int = 2,
     init_design: str = "random",
     seed: int = 1,
     **design_kwargs,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Generate input and output samples from the specified synthetic objective.
 
@@ -105,7 +105,7 @@ def sample_data(
 
 def get_synth_global_optima(
     objective_function: str,
-) -> Tuple[List[List[float]], float]:
+) -> tuple[list[list[float]], float]:
     global_optima = {
         "Ackley": ([[0, 0]], 0.0),
         "Branin": (
@@ -208,10 +208,10 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        noise_bounds: Optional[Tuple[float, float]] = None,
-        fixed_noise: Optional[float] = None,
+        noise_bounds: tuple[float, float] | None = None,
+        fixed_noise: float | None = None,
         init_design: str = "random",
-        init_design_kwargs: Optional[dict] = None,
+        init_design_kwargs: dict | None = None,
         **acquisition_kwargs,
     ):
         self.objective_function = objective_function
@@ -234,7 +234,7 @@ class BayesianOptimizer:
         self.y_acquired = np.empty((0,), dtype=float)
         self.y_max_history = np.empty((0,), dtype=float)
 
-        self.gp_model: Optional[GPSurrogate] = None
+        self.gp_model: GPSurrogate | None = None
         self.init_design = init_design
         self.init_design_kwargs = init_design_kwargs or {}
 
@@ -372,10 +372,10 @@ class BayesianOptimizer:
 
     def step(
         self,
-        df: Optional[pd.DataFrame] = None,
-        remaining_indices: Optional[set[int]] = None,
-        x_grid: Optional[np.ndarray] = None,
-        grid_shape: Optional[tuple[int, int]] = None,
+        df: pd.DataFrame | None = None,
+        remaining_indices: set[int] | None = None,
+        x_grid: np.ndarray | None = None,
+        grid_shape: tuple[int, int] | None = None,
         return_diagnostics: bool = False,
     ) -> dict:
         self.gp_model_fit()
@@ -443,9 +443,9 @@ class BayesianOptimizer:
 
     def bayes_opt(
         self,
-        df: Optional[pd.DataFrame] = None,
+        df: pd.DataFrame | None = None,
         n_init: int = 10,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         if df is not None:
             df = df.copy()
 
