@@ -3,6 +3,17 @@ from scipy.stats import qmc
 
 
 def _scale_to_bounds(x_unit: np.ndarray, bounds_low, bounds_high) -> np.ndarray:
+    """
+    Scale unit-hypercube points to the specified lower and upper bounds.
+
+    Args:
+        x_unit: Points defined in the unit hypercube.
+        bounds_low: Lower bound for each dimension.
+        bounds_high: Upper bound for each dimension.
+
+    Returns:
+        Points transformed from the unit hypercube to the specified bounds.
+    """
     bounds_low = np.asarray(bounds_low, dtype=float)
     bounds_high = np.asarray(bounds_high, dtype=float)
     return bounds_low + x_unit * (bounds_high - bounds_low)
@@ -11,6 +22,18 @@ def _scale_to_bounds(x_unit: np.ndarray, bounds_low, bounds_high) -> np.ndarray:
 def _lhd_permutation_matrix(
     n_samples: int, dim: int, rng: np.random.Generator
 ) -> np.ndarray:
+    """
+    Generate a Latin hypercube permutation matrix.
+
+    Args:
+        n_samples: Number of samples, or rows, to generate.
+        dim: Number of dimensions, or columns, in the matrix.
+        rng: NumPy random number generator used to create permutations.
+
+    Returns:
+        An integer array of shape ``(n_samples, dim)`` where each column
+        contains a permutation of the integers from 0 to ``n_samples - 1``.
+    """
     return np.column_stack([rng.permutation(n_samples) for _ in range(dim)])
 
 
@@ -19,6 +42,20 @@ def _perm_to_unit_lhd(
     jitter: bool = False,
     rng: np.random.Generator | None = None,
 ) -> np.ndarray:
+    """
+    Convert a Latin hypercube permutation matrix to unit-hypercube samples.
+
+    Args:
+        perm: Permutation matrix of shape ``(n_samples, dim)``.
+        jitter: Whether to randomly jitter points within each Latin
+            hypercube interval. If ``False``, interval midpoints are used.
+        rng: Optional random number generator used when jittering. If omitted,
+            a default generator is created.
+
+    Returns:
+        An array of shape ``(n_samples, dim)`` containing samples in the
+        unit hypercube.
+    """
     n_samples, dim = perm.shape
     if rng is None:
         rng = np.random.default_rng()
@@ -32,6 +69,15 @@ def _perm_to_unit_lhd(
 
 
 def _pairwise_distances(x: np.ndarray) -> np.ndarray:
+    """
+    Compute Euclidean distances between all unique pairs of points.
+
+    Args:
+        x: Array of points with shape ``(n_samples, n_dimensions)``.
+
+    Returns:
+        One-dimensional array containing the pairwise distances.
+    """
     diff = x[:, None, :] - x[None, :, :]
     dist2 = np.sum(diff * diff, axis=2)
     iu = np.triu_indices(x.shape[0], k=1)
@@ -40,10 +86,17 @@ def _pairwise_distances(x: np.ndarray) -> np.ndarray:
 
 def phi_p_criterion(x: np.ndarray, p: float = 50) -> float:
     """
-    DiceDesign-style phi_p criterion.
+    Compute the DiceDesign-style phi-p space-filling criterion.
 
-    Lower is better.
-    As p -> infinity, minimizing phi_p approaches maximin optimization.
+    Lower values indicate better space-filling designs. As ``p`` approaches
+    infinity, minimizing this criterion approaches maximin optimization.
+
+    Args:
+        x: Design points with shape ``(n_samples, n_dimensions)``.
+        p: Exponent controlling the emphasis on small pairwise distances.
+
+    Returns:
+        The scalar phi-p criterion value.
     """
     dists = _pairwise_distances(x)
     dists = np.clip(dists, 1e-15, None)
@@ -51,11 +104,42 @@ def phi_p_criterion(x: np.ndarray, p: float = 50) -> float:
 
 
 def mindist_criterion(x: np.ndarray) -> float:
+    """
+    Compute the minimum pairwise Euclidean distance between design points.
+
+    Larger values indicate better space-filling designs.
+
+    Args:
+        x: Design points with shape ``(n_samples, n_dimensions)``.
+
+    Returns:
+        The smallest Euclidean distance between any two distinct points.
+    """
     dists = _pairwise_distances(x)
     return float(np.min(dists))
 
 
 def _temperature(profile: str, T0: float, c: float, iteration: int, it: int) -> float:
+    """
+    Compute the simulated annealing temperature for a given iteration.
+
+    Supports geometric cooling, which scales the initial temperature by
+    ``c**iteration``, and linear cooling, which decreases to zero over the
+    total number of iterations.
+
+    Args:
+        profile: Cooling schedule, either ``"GEOM"`` or ``"LINEAR"``.
+        T0: Initial temperature.
+        c: Geometric cooling factor.
+        iteration: Current iteration number.
+        it: Total number of iterations.
+
+    Returns:
+        The temperature for the specified iteration.
+
+    Raises:
+        ValueError: If ``profile`` is not ``"GEOM"`` or ``"LINEAR"``.
+    """
     profile = profile.upper()
 
     if profile == "GEOM":
@@ -83,10 +167,35 @@ def maximin_sa_lhd(
     return_history: bool = False,
 ):
     """
-    Python approximation of DiceDesign::maximinSA_LHS in R.
+    Optimize a Latin hypercube design using simulated annealing.
 
-    Parameters mirror the R routine where practical.
-    The optimization is done over a Latin hypercube permutation structure.
+    The optimization operates on the permutation structure of a Latin
+    hypercube and minimizes the phi-p space-filling criterion. Candidate
+    designs are generated by swapping two entries within a randomly selected
+    dimension and are accepted according to a simulated annealing schedule.
+
+    Args:
+        bounds_low: Lower bounds for each design dimension.
+        bounds_high: Upper bounds for each design dimension.
+        n_samples: Number of design points to generate.
+        T0: Initial annealing temperature.
+        c: Geometric cooling factor.
+        it: Number of simulated annealing iterations.
+        p: Exponent used by the phi-p criterion.
+        profile: Cooling schedule, such as ``"GEOM"`` or ``"LINEAR"``.
+        Imax: Number of non-improving iterations used by the Morris-style
+            stagnation adjustment.
+        jitter: Whether to randomly jitter points within Latin hypercube
+            intervals.
+        seed: Optional random seed.
+        return_history: If ``True``, return the optimized design and
+            optimization diagnostics. Otherwise, return only the design.
+
+    Returns:
+        Either the optimized design scaled to the specified bounds, or a
+        dictionary containing the design, initial design, annealing
+        parameters, criterion history, temperature history, acceptance
+        probabilities, and final quality metrics.
     """
     rng = np.random.default_rng(seed)
     bounds_low = np.asarray(bounds_low, dtype=float)
@@ -196,6 +305,19 @@ def maximin_sa_lhd(
 
 
 def random_design(bounds_low, bounds_high, n_samples, seed=None):
+    """
+    Generate uniformly distributed random design points within bounds.
+
+    Args:
+        bounds_low: Lower bound for each dimension.
+        bounds_high: Upper bound for each dimension.
+        n_samples: Number of design points to generate.
+        seed: Optional seed for reproducible sampling.
+
+    Returns:
+        Array of shape ``(n_samples, n_dimensions)`` containing the sampled
+        design points.
+    """
     rng = np.random.default_rng(seed)
     bounds_low = np.asarray(bounds_low, dtype=float)
     bounds_high = np.asarray(bounds_high, dtype=float)
@@ -203,6 +325,19 @@ def random_design(bounds_low, bounds_high, n_samples, seed=None):
 
 
 def latin_hypercube_design(bounds_low, bounds_high, n_samples, seed=None):
+    """
+    Generate a Latin hypercube design scaled to specified bounds.
+
+    Args:
+        bounds_low: Lower bound for each dimension.
+        bounds_high: Upper bound for each dimension.
+        n_samples: Number of design points to generate.
+        seed: Optional seed for reproducible sampling.
+
+    Returns:
+        Array of shape ``(n_samples, n_dimensions)`` containing the scaled
+        Latin hypercube design.
+    """
     bounds_low = np.asarray(bounds_low, dtype=float)
     bounds_high = np.asarray(bounds_high, dtype=float)
     dim = len(bounds_low)
@@ -220,6 +355,32 @@ def generate_initial_design(
     seed=None,
     **kwargs,
 ):
+    """
+    Generate an initial design using the selected sampling method.
+
+    Supported methods include uniform random sampling, Latin hypercube
+    sampling, and simulated-annealing-optimized maximin Latin hypercube
+    sampling.
+
+    Args:
+        bounds_low: Lower bound for each dimension.
+        bounds_high: Upper bound for each dimension.
+        n_samples: Number of design points to generate.
+        method: Design method, one of ``"random"``, ``"lhd"``,
+            ``"latin_hypercube"``, or ``"maximin_lhd"``.
+        seed: Optional seed for reproducible sampling.
+        **kwargs: Additional options passed to the selected method, such as
+            ``jitter`` for Latin hypercube designs or simulated annealing
+            parameters for ``"maximin_lhd"``.
+
+    Returns:
+        The generated design array. For ``"maximin_lhd"``, the return value
+        may be either the optimized design or a diagnostics dictionary,
+        depending on the supplied keyword arguments.
+
+    Raises:
+        ValueError: If ``method`` is not supported.
+    """
     method = method.lower()
 
     if method == "random":
