@@ -17,9 +17,9 @@ Usage examples:
 import argparse
 import io
 import os
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Generator
 
 import imageio.v2 as imageio
 import matplotlib.figure
