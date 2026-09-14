@@ -596,7 +596,7 @@ def simulate_data(
         seed (int): Random seed for reproducibility. Defaults to 1.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
             A tuple containing:
                 - x_train (np.ndarray): Training input data of shape (n_train, 2).
                 - x_test (np.ndarray): Testing input data of shape (n_test, 2).
