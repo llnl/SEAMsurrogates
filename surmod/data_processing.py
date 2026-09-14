@@ -7,7 +7,6 @@ See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
 
 import warnings
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd

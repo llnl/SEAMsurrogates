@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -10,6 +11,7 @@ from botorch.test_functions.synthetic import (
     SixHumpCamel,
     SyntheticTestFunction,
 )
+
 FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {
         "dim": 2,
