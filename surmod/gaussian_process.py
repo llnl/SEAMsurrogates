@@ -106,10 +106,7 @@ def fit_gpytorch_mll_multistart(
                     abnormal = True
                     warning_msgs.append(msg)
 
-        except ModelFittingError as e:
-            fit_failed = True
-            warning_msgs.append(f"ModelFittingError: {e}")
-        except Exception as e:
+        except (ModelFittingError, RuntimeError, ValueError) as e:
             fit_failed = True
             warning_msgs.append(f"{type(e).__name__}: {e}")
 
@@ -120,7 +117,7 @@ def fit_gpytorch_mll_multistart(
             with torch.no_grad():
                 output = model(model.train_inputs[0])
                 loss = -mll(output, model.train_targets).item()
-        except Exception as e:
+        except (RuntimeError, ValueError) as e:
             print(f"restart {i + 1}/{n_restarts}, failed to evaluate loss: {e}")
             for msg in warning_msgs:
                 print(f"  warning: {msg}")
