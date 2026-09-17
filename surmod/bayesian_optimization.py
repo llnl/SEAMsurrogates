@@ -20,57 +20,7 @@ from botorch.optim import optimize_acqf
 
 from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
-from surmod.test_functions import load_test_function
-
-
-def sample_parabola(
-    n_initial: int,
-    bounds_low: float | Sequence[float] | np.ndarray,
-    bounds_high: float | Sequence[float] | np.ndarray,
-    input_size: int,
-    radius: float = 7,
-    seed: int = 1,
-) -> np.ndarray:
-    """
-    Generate uniformly distributed samples within specified bounds, retaining
-    only points whose Euclidean norm exceeds a given radius.
-
-    Args:
-        n_initial: Number of samples to generate.
-        bounds_low: Lower bounds for sampling each dimension.
-        bounds_high: Upper bounds for sampling each dimension.
-        input_size: Number of dimensions for each sample.
-        radius: Minimum Euclidean norm required for a sample. Defaults to 7.
-        seed: Seed for the random number generator. Defaults to 1.
-
-    Raises:
-        RuntimeError: If the requested number of samples cannot be generated
-            within the maximum number of attempts.
-
-    Returns:
-        An array of shape `(n_initial, input_size)` containing the sampled
-        points with Euclidean norm greater than `radius`.
-    """
-    rng = np.random.default_rng(seed)
-    samples = []
-    attempts = 0
-    max_attempts = 100000
-
-    while len(samples) < n_initial:
-        if attempts >= max_attempts:
-            raise RuntimeError(
-                f"Failed to generate {n_initial} samples with norm > {radius} "
-                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
-                f"Consider reducing radius or expanding bounds."
-            )
-
-        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
-        attempts += 1
-
-        if np.linalg.norm(x_point) > radius:
-            samples.append(x_point)
-
-    return np.array(samples)
+from surmod.test_functions import load_test_function, sample_parabola
 
 
 def sample_data(

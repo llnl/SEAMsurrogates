@@ -580,6 +580,56 @@ def load_test_function(
     return test_function_class(**init_kwargs)
 
 
+def sample_parabola(
+    n_initial: int,
+    bounds_low: float | list[float] | npt.NDArray,
+    bounds_high: float | list[float] | npt.NDArray,
+    input_size: int,
+    radius: float = 7,
+    seed: int = 1,
+) -> npt.NDArray:
+    """
+    Generate samples for parabola test function with norm > radius constraint.
+
+    Uses rejection sampling to ensure all points have L2 norm > radius,
+    avoiding samples too close to the origin.
+
+    Args:
+        n_initial: Number of samples to generate.
+        bounds_low: Lower bounds for each dimension.
+        bounds_high: Upper bounds for each dimension.
+        input_size: Input dimension.
+        radius: Minimum L2 norm constraint (default: 7).
+        seed: Random seed (default: 1).
+
+    Returns:
+        Array of shape (n_initial, input_size) with all samples having norm > radius.
+
+    Raises:
+        RuntimeError: If unable to generate n_initial samples after max_attempts.
+    """
+    rng = np.random.default_rng(seed)
+    samples = []
+    attempts = 0
+    max_attempts = 100000
+
+    while len(samples) < n_initial:
+        if attempts >= max_attempts:
+            raise RuntimeError(
+                f"Failed to generate {n_initial} samples with norm > {radius} "
+                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
+                f"Consider reducing radius or expanding bounds."
+            )
+
+        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
+        attempts += 1
+
+        if np.linalg.norm(x_point) > radius:
+            samples.append(x_point)
+
+    return np.array(samples)
+
+
 def simulate_data(
     objective_function: str,
     n_train: int,

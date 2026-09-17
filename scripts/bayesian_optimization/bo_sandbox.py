@@ -12,6 +12,7 @@ Usage examples:
 ./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=ackley --beta=3.0
 ./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
 ./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
+./bo_sandbox.py --objective_function=parabola --init_design=random --n_initial=10
 """
 
 import argparse
