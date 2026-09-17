@@ -35,8 +35,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import root_mean_squared_error as rmse
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import simulate_data
@@ -203,8 +202,8 @@ def main():
         train_mae = mean_absolute_error(y_train, pred_train_mean)
         test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-        train_rmse = rmse(y_train, pred_train_mean)
-        test_rmse = rmse(y_test, pred_test_mean)
+        train_rmse = root_mean_squared_error(y_train, pred_train_mean)
+        test_rmse = root_mean_squared_error(y_test, pred_test_mean)
 
         train_max_abserr, train_max_input = gp.compute_max_error(
             pred_train_mean, y_train, x_train
