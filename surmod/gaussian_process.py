@@ -20,6 +20,7 @@ from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
+from sklearn.metrics import mean_squared_error, root_mean_squared_error
 
 from surmod import test_functions
 
@@ -418,8 +419,8 @@ class GPSurrogate:
         mean, std = self.predict(self.x_test, include_nugget=include_nugget)
         y_true = self.y_test.squeeze(-1).cpu().numpy()
 
-        mse = np.mean((y_true - mean) ** 2)
-        rmse = np.sqrt(mse)
+        mse = mean_squared_error(y_true, mean)
+        rmse = root_mean_squared_error(y_true, mean)
         lower = mean - 1.96 * std
         upper = mean + 1.96 * std
         coverage = np.mean((y_true >= lower) & (y_true <= upper))
