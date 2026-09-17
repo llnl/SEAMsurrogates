@@ -1,3 +1,7 @@
+"""
+Bayesian optimization for sequential function optimization.
+"""
+
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path

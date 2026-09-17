@@ -1,6 +1,5 @@
 """
-Utility functions for simulating, evaluating, and visualizing surrogate modeling
-sensitivity analysis experiments using benchmark engineering test problems.
+Sensitivity analysis for surrogate models.
 """
 
 from collections.abc import Callable, Sequence
