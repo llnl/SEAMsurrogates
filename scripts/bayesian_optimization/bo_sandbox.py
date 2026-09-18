@@ -8,6 +8,8 @@ Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
 
 Usage examples:
 
+./bo_sandbox.py -h
+./bo_sandbox.py
 ./bo_sandbox.py --objective_function=parabola --acquisition=EI --init_design=lhd --save_animation
 ./bo_sandbox.py --objective_function=parabola --acquisition=EI --n_iteration=15
 ./bo_sandbox.py --objective_function=parabola --acquisition=random --n_iteration=15 --n_initial=10 --init_design=random
