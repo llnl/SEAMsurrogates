@@ -17,7 +17,6 @@ Usage examples:
 
 import argparse
 import io
-import os
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -95,7 +94,7 @@ def parse_arguments() -> argparse.Namespace:
         "-save",
         "--save_animation",
         action="store_true",
-        help="Save the animation (useful for lightning AI users).",
+        help="Save the animation instead of displaying it interactively.",
     )
     parser.add_argument(
         "-beta",
@@ -379,7 +378,6 @@ def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
 
 def main() -> None:
     args = parse_arguments()
-    os.environ["MPLCONFIGDIR"] = str(Path.cwd())
 
     # Set random seeds for reproducibility
     np.random.seed(args.seed)
