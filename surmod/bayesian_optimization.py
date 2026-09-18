@@ -181,7 +181,12 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        noise_bounds: tuple[float, float] | None = None,
+        scale_inputs: bool = True,
+        scale_outputs: bool = True,
+        lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
+        noise_bounds: tuple[float, float] = (1e-8, 1e-1),
+        outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
+        optimization_restarts: int = 3,
         fixed_noise: float | None = None,
         init_design: str = "random",
         init_design_kwargs: dict | None = None,
@@ -208,7 +213,12 @@ class BayesianOptimizer:
                 ``"EI"``.
             n_acquire: Number of observations to acquire. Defaults to 10.
             seed: Random seed used for reproducible sampling. Defaults to 42.
-            noise_bounds: Optional lower and upper bounds for model noise.
+            scale_inputs: Whether to normalize GP inputs to [0, 1].
+            scale_outputs: Whether to standardize GP outputs.
+            lengthscale_bounds: Lower and upper GP lengthscale parameter bounds.
+            noise_bounds: Lower and upper GP nugget parameter bounds.
+            outputscale_bounds: Lower and upper GP output variance scale bounds.
+            optimization_restarts: Number of GP hyperparameter restarts.
             fixed_noise: Optional fixed noise value for the Gaussian process.
             init_design: Initial design strategy used for dataset optimization.
                 Defaults to ``"random"``.
@@ -229,7 +239,12 @@ class BayesianOptimizer:
         self.acquisition = acquisition_function
         self.n_acquire = n_acquire
         self.seed = seed
+        self.scale_inputs = scale_inputs
+        self.scale_outputs = scale_outputs
+        self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
+        self.outputscale_bounds = outputscale_bounds
+        self.optimization_restarts = optimization_restarts
         self.fixed_noise = fixed_noise
         self.acquisition_kwargs = acquisition_kwargs
 
@@ -240,6 +255,7 @@ class BayesianOptimizer:
         self.gp_model: GPSurrogate | None = None
         self.init_design = init_design
         self.init_design_kwargs = init_design_kwargs or {}
+        self._rng = np.random.RandomState(seed)
 
     def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
         """Evaluate the objective function at a proposed point."""
@@ -268,11 +284,12 @@ class BayesianOptimizer:
             y_train=self.y_all_data,
             kernel=self.kernel,
             isotropic=self.isotropic,
-            scale_inputs=True,
-            scale_outputs=True,
-            noise_bounds=(
-                self.noise_bounds if self.noise_bounds is not None else (1e-8, 1e-3)
-            ),
+            scale_inputs=self.scale_inputs,
+            scale_outputs=self.scale_outputs,
+            lengthscale_bounds=self.lengthscale_bounds,
+            noise_bounds=self.noise_bounds,
+            outputscale_bounds=self.outputscale_bounds,
+            optimization_restarts=self.optimization_restarts,
             fixed_noise=self.fixed_noise,
         )
         self.gp_model.fit()
@@ -318,12 +335,11 @@ class BayesianOptimizer:
         raw_samples: int = 1000,
     ) -> np.ndarray:
         """Find the next point to evaluate using the configured strategy."""
-        rng = np.random.RandomState(self.seed)
         bounds_t = self._get_objective_bounds()
         bounds = bounds_t.cpu().numpy()
 
         if self.acquisition.lower() == "random":
-            x_next = rng.uniform(bounds[0], bounds[1])
+            x_next = self._rng.uniform(bounds[0], bounds[1])
             return np.clip(
                 np.asarray(x_next, dtype=np.float64).reshape(-1), bounds[0], bounds[1]
             )
@@ -347,10 +363,8 @@ class BayesianOptimizer:
         x_candidates: np.ndarray,
     ) -> np.ndarray:
         """Score candidate points using the configured acquisition strategy."""
-        rng = np.random.RandomState(self.seed)
-
         if self.acquisition.lower() == "random":
-            return rng.uniform(size=x_candidates.shape[0])
+            return self._rng.uniform(size=x_candidates.shape[0])
 
         acq_func = self._build_analytic_acquisition()
         x_tensor = torch.as_tensor(x_candidates, dtype=torch.float64).unsqueeze(1)

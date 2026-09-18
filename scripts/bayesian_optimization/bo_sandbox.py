@@ -8,11 +8,11 @@ Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
 
 Usage examples:
 
-./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=parabola
-./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=ackley --beta=3.0
-./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
-./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
-./bo_sandbox.py --objective_function=parabola --init_design=random --n_initial=10
+./bo_sandbox.py --objective_function=parabola --acquisition=EI --init_design=lhd --save_animation
+./bo_sandbox.py --objective_function=parabola --acquisition=EI --n_iteration=15
+./bo_sandbox.py --objective_function=parabola --acquisition=random --n_iteration=15 --n_initial=10 --init_design=random
+./bo_sandbox.py --objective_function=ackley --acquisition=UCB --n_init=3 --n_iteration=20 --beta=2.0 --init_design lhd
+./bo_sandbox.py --objective_function=branin --acquisition=UCB --n_iteration=20 --n_initial 3 --seed 2
 """
 
 import argparse
@@ -28,7 +28,6 @@ import numpy as np
 import torch
 
 from surmod import bayesian_optimization as bo
-from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import load_test_function
 
 
@@ -36,6 +35,21 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on synthetic test functions.",
+    )
+    parser.add_argument(
+        "-f",
+        "--objective_function",
+        type=str,
+        default="parabola",
+        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+    )
+    parser.add_argument(
+        "-acq",
+        "--acquisition",
+        type=str,
+        choices=["EI", "PI", "UCB", "PV", "random"],
+        default="EI",
+        help="Choice of acquisition function.",
     )
     parser.add_argument(
         "-it",
@@ -60,21 +74,6 @@ def parse_arguments() -> argparse.Namespace:
         help="Kernel function used for GP surrogate.",
     )
     parser.add_argument(
-        "-acq",
-        "--acquisition",
-        type=str,
-        choices=["EI", "PI", "UCB", "PV", "random"],
-        default="EI",
-        help="Choice of acquisition function.",
-    )
-    parser.add_argument(
-        "-f",
-        "--objective_function",
-        type=str,
-        default="parabola",
-        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
-    )
-    parser.add_argument(
         "--init_design",
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
@@ -88,7 +87,11 @@ def parse_arguments() -> argparse.Namespace:
         help="Force GP kernel to be isotropic (single lengthscale).",
     )
     parser.add_argument(
-        "-s", "--seed", type=int, default=42, help="Set random initial seed."
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Set random initial seed.",
     )
     parser.add_argument(
         "-save",
@@ -162,7 +165,6 @@ def setup_figure(
     kernel: str,
     n_initial: int,
     n_iteration: int,
-    gp_initial: object,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
@@ -210,7 +212,8 @@ def setup_figure(
 
     x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
 
-    bopt.gp_model = gp_initial
+    # Fit initial GP for visualization
+    gp_initial = bopt.gp_model_fit()
     acq_init = bopt.score_candidates(x_grid)
 
     acq_init = acq_init.reshape(x1_grid.shape)
@@ -427,16 +430,6 @@ def main() -> None:
         beta=args.beta,
     )
 
-    gp_initial = GPSurrogate(
-        x_train=x_sample,
-        y_train=y_sample,
-        kernel=args.kernel,
-        isotropic=args.isotropic,
-        scale_inputs=True,
-        scale_outputs=True,
-    )
-    gp_initial.fit()
-
     fig, axes, handles, meta = setup_figure(
         bopt=bopt,
         x1_grid=x1_grid,
@@ -449,7 +442,6 @@ def main() -> None:
         kernel=args.kernel,
         n_initial=args.n_initial,
         n_iteration=args.n_iteration,
-        gp_initial=gp_initial,
     )
 
     if not args.save_animation:
