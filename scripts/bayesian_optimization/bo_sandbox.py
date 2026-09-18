@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
 """
-This script creates an animation of Bayesian Optimization on a chosen
-synthetic objective function and plots performance of the chosen acquisition
-function: Expected Improvement (EI), Probability of Improvement (PI),
-Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
+Animate Bayesian Optimization on synthetic test functions.
+
+This script visualizes the BO process on 2D test functions, showing the objective
+surface, acquisition function evolution, and GP mean predictions over iterations.
+Supports EI, PI, UCB, PV, and random acquisition strategies.
 
 Usage examples:
 
 ./bo_sandbox.py -h
 ./bo_sandbox.py
-./bo_sandbox.py --objective_function=parabola --acquisition=EI --init_design=lhd --save_animation
-./bo_sandbox.py --objective_function=parabola --acquisition=EI --n_iteration=15
-./bo_sandbox.py --objective_function=parabola --acquisition=random --n_iteration=15 --n_initial=10 --init_design=random
-./bo_sandbox.py --objective_function=ackley --acquisition=UCB --n_init=3 --n_iteration=20 --beta=2.0 --init_design lhd
-./bo_sandbox.py --objective_function=branin --acquisition=UCB --n_iteration=20 --n_initial 3 --seed 2
+./bo_sandbox.py --objective_function parabola --acquisition EI --init_design lhd --save_animation
+./bo_sandbox.py --objective_function parabola --acquisition EI --n_iteration 15
+./bo_sandbox.py --objective_function parabola --acquisition random --n_iteration 15 --n_initial 10
+./bo_sandbox.py --objective_function ackley --acquisition UCB --n_initial 3 --n_iteration 20 --beta 2.0
+./bo_sandbox.py --objective_function branin --acquisition UCB --n_iteration 20 --n_initial 3 --seed 2
 """
 
 import argparse
