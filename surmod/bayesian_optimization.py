@@ -112,7 +112,7 @@ def get_synth_global_optima(
 
 def select_initial_dataset_indices(
     x: np.ndarray,
-    n_init: int,
+    n_initial: int,
     method: str = "random",
     seed: int = 42,
     **design_kwargs,
@@ -127,29 +127,29 @@ def select_initial_dataset_indices(
 
     Args:
         x: Dataset inputs, assumed already normalized to [0,1], shape (n, d)
-        n_init: Number of initial points
+        n_initial: Number of initial points
         method: 'random', 'lhd', or 'maximin_lhd'
         seed: Random seed
         design_kwargs: Extra arguments forwarded to generate_initial_design()
 
     Returns:
-        Array of selected row indices, shape (n_init,)
+        Array of selected row indices, shape (n_initial,)
     """
     rng = np.random.default_rng(seed)
     n_rows, dim = x.shape
 
-    if n_init > n_rows:
-        raise ValueError("n_init cannot exceed number of available dataset rows.")
+    if n_initial > n_rows:
+        raise ValueError("n_initial cannot exceed number of available dataset rows.")
 
     method = method.lower()
 
     if method == "random":
-        return rng.choice(n_rows, size=n_init, replace=False)
+        return rng.choice(n_rows, size=n_initial, replace=False)
 
     targets = generate_initial_design(
         bounds_low=np.zeros(dim),
         bounds_high=np.ones(dim),
-        n_samples=n_init,
+        n_samples=n_initial,
         method=method,
         seed=seed,
         **design_kwargs,
@@ -476,7 +476,7 @@ class BayesianOptimizer:
     def bayes_opt(
         self,
         df: pd.DataFrame | None = None,
-        n_init: int = 10,
+        n_initial: int = 10,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         if df is not None:
             df = df.copy()
@@ -485,8 +485,8 @@ class BayesianOptimizer:
             y = df.iloc[:, -1].to_numpy(dtype=float).reshape(-1)
 
             n_total = len(df)
-            if n_init > n_total:
-                raise ValueError("n_init cannot exceed the number of rows in df.")
+            if n_initial > n_total:
+                raise ValueError("n_initial cannot exceed the number of rows in df.")
 
             # Only for LHD / maximin-LHD matching, not for GP training
             x_min = x.min(axis=0)
@@ -496,7 +496,7 @@ class BayesianOptimizer:
 
             initial_indices = select_initial_dataset_indices(
                 x=x_for_init,
-                n_init=n_init,
+                n_initial=n_initial,
                 method=self.init_design,
                 seed=self.seed,
                 **self.init_design_kwargs,
@@ -549,7 +549,7 @@ def plot_acquisition_comparison(
     max_output_random: np.ndarray,
     kernel: str = "rbf",
     n_iter: int = 10,
-    n_init: int = 5,
+    n_initial: int = 5,
     objective_data: str = "___ data",
     beta: float = 2.0,
     plots_dir: Path = Path("plots"),
@@ -609,7 +609,7 @@ def plot_acquisition_comparison(
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
         plots_dir
-        / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
+        / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_initial}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")
     print(f"Figure saved to {filepath}")
