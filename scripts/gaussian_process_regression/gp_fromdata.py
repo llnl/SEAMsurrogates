@@ -4,11 +4,13 @@ Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurroga
 
 Usage examples:
 
+./gp_fromdata.py -h
+./gp_fromdata.py
 ./gp_fromdata.py -d JAG --n_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py -d borehole --n_train=200 --kernel=matern
-./gp_fromdata.py -d hst_H --n_train=200 --kernel=matern --normalize_y --plot
 ./gp_fromdata.py -d JAG --n_train=300 --kernel=matern --log
 ./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --plot
+./gp_fromdata.py -d borehole --n_train=200 --kernel=matern
+./gp_fromdata.py -d hst_H --n_train=200 --kernel=matern --normalize_y --plot
 """
 
 import argparse
@@ -34,7 +36,7 @@ def parse_arguments():
         "--dataset",
         type=str,
         choices=list(data_processing.DATASET_CONFIG.keys()),
-        required=True,
+        default="JAG",
         help="Which dataset to use.",
     )
 
@@ -74,7 +76,7 @@ def parse_arguments():
         "-i",
         "--isotropic",
         action="store_true",
-        help="Use isotropic kernel (shared lengthscale). Default is ARD.",
+        help="Use isotropic kernel (shared lengthscale).",
     )
 
     parser.add_argument(

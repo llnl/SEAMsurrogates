@@ -3,29 +3,14 @@
 This script simulates data from a test function, fits a Gaussian process to the
 data, and saves a log message and plot of the fitted surface if desired.
 
-Usage:
+Usage examples:
 
-# Make script executable
-chmod +x ./gp_sandbox.py
-
-# See help.
 ./gp_sandbox.py -h
-
-# Smooth parabola function with an isotropic Matern kernel.
+./gp_sandbox.py
 ./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic --plots
-
-# Smooth parabola function with an anisotropic Matern kernel.
 ./gp_sandbox.py --objective_function=parabola --kernels=matern --plots
-
-# Smooth Branin test function with an RBF kernel.
 ./gp_sandbox.py --objective_function=branin --kernels=rbf --seed 1 --plots
-
-# Smooth Ackley function with an RBF kernel, save results in log, 200 training
-#   points, 3 values of alpha.
 ./gp_sandbox.py --objective_function=ackley -k rbf -p -l -tr 200
-
-# Smooth HolderTable function with RBF and Matern kernels and 3 values of alpha.
-#   Save plot and log file.
 ./gp_sandbox.py -f "holder_table" -k rbf matern -p -l
 """
 
@@ -61,7 +46,7 @@ def parse_arguments():
         "--n_train",
         type=int,
         default=100,
-        help="Number of points to have in training data set.",
+        help="Number of points in training data set.",
     )
 
     parser.add_argument(
@@ -69,7 +54,7 @@ def parse_arguments():
         "--n_test",
         type=int,
         default=100,
-        help="Number of points to have in testing data set.",
+        help="Number of points in testing data set.",
     )
 
     parser.add_argument(
