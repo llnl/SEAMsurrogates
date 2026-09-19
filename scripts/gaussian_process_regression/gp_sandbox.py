@@ -239,21 +239,21 @@ def main():
         if plots:
             gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
 
-        gp.plot_predictive_mean(
-            test_rmse=test_rmse,
-            objective_function=objective_function,
-            scale_x=scale_x,
-            normalize_y=normalize_y,
-            plots_dir=plots_dir,
-        )
+            gp.plot_predictive_mean(
+                test_rmse=test_rmse,
+                objective_function=objective_function,
+                scale_x=scale_x,
+                normalize_y=normalize_y,
+                plots_dir=plots_dir,
+            )
 
-        gp.plot_predictive_std_dev(
-            test_rmse=test_rmse,
-            objective_function=objective_function,
-            scale_x=scale_x,
-            normalize_y=normalize_y,
-            plots_dir=plots_dir,
-        )
+            gp.plot_predictive_std_dev(
+                test_rmse=test_rmse,
+                objective_function=objective_function,
+                scale_x=scale_x,
+                normalize_y=normalize_y,
+                plots_dir=plots_dir,
+            )
 
 
 if __name__ == "__main__":
