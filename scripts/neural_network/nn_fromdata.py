@@ -5,10 +5,7 @@ This script trains a neural network on a chosen dataset. It provides options
 for specifying the number of epochs, batch size, sizes of hidden layers, and
 learning rate. It saves two metric plots to the directory containing this script.
 
-Usage:
-
-# Make script executable
-chmod +x ./nn_fromdata.py
+Usage examples:
 
 # See help
 ./nn_fromdata.py -h

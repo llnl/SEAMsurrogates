@@ -7,10 +7,7 @@ options for customizing the network architecture, learning rate, batch size,
 and for running multiple training configurations. Results are plotted and saved
 within working directory.
 
-Usage:
-
-# Make script executable
-chmod +x ./nn_sandbox.py
+Usage examples:
 
 # See help.
 ./nn_sandbox.py -h
