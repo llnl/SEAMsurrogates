@@ -6,12 +6,10 @@ and runs a sensitivity analysis with the fitted GP model.
 
 Usage examples:
 
-# Make script executable
-chmod +x ./sa_sandbox.py
-
 ./sa_sandbox.py -h
 ./sa_sandbox.py
-./sa_sandbox.py -objective_function otlcircuit -n_train 200
+./sa_sandbox.py --objective_function otlcircuit --n_train 200
+./sa_sandbox.py --objective_function otlcircuit --n_train 200 --exclude Beta
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A -l
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f -l
 """
