@@ -16,6 +16,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {
         "dim": 2,
         "function_name": "parabola",
+        "variable_names": ["x1", "x2"],
         "bounds": [
             (-8.0, 8.0),  # x1
             (-8.0, 8.0),  # x2
@@ -24,6 +25,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "otlcircuit": {
         "dim": 6,
         "function_name": "otlcircuit",
+        "variable_names": ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"],
         "bounds": [
             (50.0, 150.0),  # Rb1 (kOhms)
             (25.0, 70.0),  # Rb2 (kOhms)
@@ -36,6 +38,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "piston": {
         "dim": 7,
         "function_name": "piston",
+        "variable_names": ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"],
         "bounds": [
             (30.0, 60.0),  # M (kg)
             (0.005, 0.02),  # S (m^2)
@@ -49,6 +52,18 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "wingweight": {
         "dim": 10,
         "function_name": "wingweight",
+        "variable_names": [
+            "S_w",
+            "W_fw",
+            "A",
+            "Lambda",
+            "q",
+            "lambda",
+            "t_c",
+            "N_z",
+            "W_dg",
+            "W_p",
+        ],
         "bounds": [
             (150.0, 200.0),  # Sw (ft^2)
             (220.0, 300.0),  # Wfw (lb)
@@ -65,6 +80,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "borehole": {
         "dim": 8,
         "function_name": "borehole",
+        "variable_names": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"],
         "bounds": [
             (0.05, 0.15),  # rw (m)
             (100.0, 50000.0),  # r (m)
@@ -318,6 +334,30 @@ def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
             "wingweight", or "borehole".
     """
     return list(get_input_spec(objective_function)[2])
+
+
+def get_variable_names(objective_function: str) -> list[str]:
+    """
+    Return the variable names for the provided test function.
+
+    Args:
+        objective_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+
+    Returns:
+        List of variable names in the order they appear in the function's input.
+
+    Raises:
+        ValueError: If the objective function is not recognized.
+    """
+    if objective_function not in FUNCTION_SPECS:
+        available = ", ".join(FUNCTION_SPECS)
+        raise ValueError(
+            f"Test function '{objective_function}' not found. Available: {available}."
+        )
+
+    config = FUNCTION_SPECS[objective_function]
+    return list(config["variable_names"])  # type: ignore[arg-type]
 
 
 def get_input_spec(

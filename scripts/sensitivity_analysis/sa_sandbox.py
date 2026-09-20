@@ -29,7 +29,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod import sensitivity_analysis as sa
 from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
-from surmod.test_functions import get_input_spec
+from surmod.test_functions import get_input_spec, get_variable_names
 
 
 def parse_arguments():
@@ -130,35 +130,15 @@ def main():
     plots_dir = Path(__file__).parent / "plots"
     results_dir = Path(__file__).parent / "results"
 
-    regular_dim, _, bounds_list = get_input_spec(objective_function)
+    _, _, bounds_list = get_input_spec(objective_function)
     bounds = np.array(bounds_list, dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
         objective_function, n_train, n_test, b1, b2, b12
     )
 
-    # Define variable names based on objective function
-    if objective_function == "wingweight":
-        variable_names = [
-            "S_w",
-            "W_fw",
-            "A",
-            "Lambda",
-            "q",
-            "lambda",
-            "t_c",
-            "N_z",
-            "W_dg",
-            "W_p",
-        ]
-    elif objective_function == "borehole":
-        variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
-    elif objective_function == "otlcircuit":
-        variable_names = ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"]
-    elif objective_function == "piston":
-        variable_names = ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"]
-    else:
-        variable_names = [f"x{i}" for i in range(1, regular_dim + 1)]
+    # Get variable names from test_functions module
+    variable_names = get_variable_names(objective_function)
 
     # Apply exclusions by converting variable names to indices
     if exclude is not None:
