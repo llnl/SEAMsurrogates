@@ -4,22 +4,16 @@
 This script simulates data from a test function, fits a Gaussian process,
 and runs a sensitivity analysis with the fitted GP model.
 
-Note: Column exclusion uses zero-based indexing.
-
-Usage:
+Usage examples:
 
 # Make script executable
 chmod +x ./sa_sandbox.py
 
-# Get help
 ./sa_sandbox.py -h
-
-# Perform sensitivity analysis on otlcircuit function with 200 training points
-./sa_sandbox.py -f otlcircuit -tr 200
-
-# Perform sensitivity analysis on wingweight function with 150 training points,
-# excluding columns 2 and 3 (zero-based indexing), and save results to log file
-./sa_sandbox.py -f wingweight -tr 150 -e 2 3 -l
+./sa_sandbox.py
+./sa_sandbox.py -objective_function otlcircuit -n_train 200
+./sa_sandbox.py -f wingweight -tr 150 -e S_w A -l
+./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f -l
 """
 
 import argparse
@@ -54,9 +48,9 @@ def parse_arguments():
     parser.add_argument(
         "-e",
         "--exclude",
-        type=int,
+        type=str,
         nargs="+",
-        help="Columns to exclude from fitting the surrogate model",
+        help="Variable names to exclude from fitting the surrogate model",
     )
 
     parser.add_argument(
@@ -143,10 +137,44 @@ def main():
         objective_function, n_train, n_test, b1, b2, b12
     )
 
+    # Define variable names based on objective function
+    if objective_function == "wingweight":
+        variable_names = [
+            "S_w",
+            "W_fw",
+            "A",
+            "Lambda",
+            "q",
+            "lambda",
+            "t_c",
+            "N_z",
+            "W_dg",
+            "W_p",
+        ]
+    elif objective_function == "borehole":
+        variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
+    elif objective_function == "otlcircuit":
+        variable_names = ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"]
+    elif objective_function == "piston":
+        variable_names = ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"]
+    else:
+        variable_names = [f"x{i}" for i in range(1, regular_dim + 1)]
+
+    # Apply exclusions by converting variable names to indices
     if exclude is not None:
-        x_train = np.copy(np.delete(x_train, exclude, axis=1))
-        x_test = np.copy(np.delete(x_test, exclude, axis=1))
-        bounds = np.delete(bounds, exclude, axis=0)
+        exclude_indices = []
+        for var_name in exclude:
+            if var_name not in variable_names:
+                raise ValueError(
+                    f"Variable '{var_name}' not found in {objective_function}. "
+                    f"Valid variables: {variable_names}"
+                )
+            exclude_indices.append(variable_names.index(var_name))
+
+        x_train = np.copy(np.delete(x_train, exclude_indices, axis=1))
+        x_test = np.copy(np.delete(x_test, exclude_indices, axis=1))
+        bounds = np.delete(bounds, exclude_indices, axis=0)
+        variable_names = [name for name in variable_names if name not in exclude]
 
     dim = x_train.shape[1]
 
@@ -185,33 +213,6 @@ def main():
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
         pred_test, y_test, x_test
     )
-
-    if objective_function == "wingweight":
-        variable_names = [
-            "S_w",
-            "W_fw",
-            "A",
-            "Lambda",
-            "q",
-            "lambda",
-            "t_c",
-            "N_z",
-            "W_dg",
-            "W_p",
-        ]
-    elif objective_function == "borehole":
-        variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
-    elif objective_function == "otlcircuit":
-        variable_names = ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"]
-    elif objective_function == "piston":
-        variable_names = ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"]
-    else:
-        variable_names = [f"x{i}" for i in range(1, regular_dim + 1)]
-
-    if exclude is not None:
-        variable_names = list(
-            np.delete(np.array(variable_names, dtype=object), exclude)
-        )
 
     problem = {
         "num_vars": dim,
