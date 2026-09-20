@@ -5,7 +5,7 @@ data, and saves a log message and plot of the fitted surface if desired.
 
 Usage examples:
 
-./gp_sandbox.py -h
+./gp_sandbox.py --help
 ./gp_sandbox.py
 ./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic --plots
 ./gp_sandbox.py --objective_function=parabola --kernels=matern --plots

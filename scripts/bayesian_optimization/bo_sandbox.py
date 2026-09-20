@@ -9,7 +9,7 @@ Supports EI, PI, UCB, PV, and random acquisition strategies.
 
 Usage examples:
 
-./bo_sandbox.py -h
+./bo_sandbox.py --help
 ./bo_sandbox.py
 ./bo_sandbox.py --objective_function parabola --acquisition EI --init_design lhd --save_animation
 ./bo_sandbox.py --objective_function parabola --acquisition EI --n_iteration 15

@@ -8,7 +8,7 @@ learning rate. It saves two metric plots to the directory containing this script
 Usage examples:
 
 # See help
-./nn_fromdata.py -h
+./nn_fromdata.py --help
 
 # Train a neural net with hidden layers of sizes 10 and 20
 ./nn_fromdata.py --hidden_sizes 10 20

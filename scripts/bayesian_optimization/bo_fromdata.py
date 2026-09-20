@@ -9,7 +9,7 @@ functions on real data.
 
 Usage examples:
 
-./bo_fromdata.py -h
+./bo_fromdata.py --help
 ./bo_fromdata.py
 ./bo_fromdata.py --dataset JAG --n_iter 15 --n_initial 10
 ./bo_fromdata.py --dataset borehole --n_iter 20 --kernel rbf --seed 123

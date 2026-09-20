@@ -4,7 +4,7 @@ Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurroga
 
 Usage examples:
 
-./gp_fromdata.py -h
+./gp_fromdata.py --help
 ./gp_fromdata.py
 ./gp_fromdata.py -d JAG --n_train=200 --kernel=rbf --isotropic
 ./gp_fromdata.py -d JAG --n_train=300 --kernel=matern --log

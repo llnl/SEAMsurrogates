@@ -10,7 +10,7 @@ and saves relevant plots.
 Usage:
 
 # Get help (shows all options including available datasets, kernels, and variables)
-./sa_fromdata.py -h
+./sa_fromdata.py --help
 
 # JAG dataset: exclude variables x4 and x5
 ./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5

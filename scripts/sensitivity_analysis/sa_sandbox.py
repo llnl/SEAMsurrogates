@@ -6,7 +6,7 @@ and runs a sensitivity analysis with the fitted GP model.
 
 Usage examples:
 
-./sa_sandbox.py -h
+./sa_sandbox.py --help
 ./sa_sandbox.py
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200 --exclude Beta

@@ -10,7 +10,7 @@ within working directory.
 Usage examples:
 
 # See help.
-./nn_sandbox.py -h
+./nn_sandbox.py --help
 
 # Train a NN on the ackley function with default settings.
 ./nn_sandbox.py
