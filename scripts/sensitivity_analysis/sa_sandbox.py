@@ -37,21 +37,12 @@ def parse_arguments():
         description="Perform sensitivity analysis on synthetic test functions using GP surrogates.",
     )
 
-    parser.add_argument("--b1", type=float, default=1, help="parabola beta_1 parameter")
-    parser.add_argument("--b2", type=float, default=1, help="parabola beta_2 parameter")
-    parser.add_argument(
-        "--b12", type=float, default=1, help="parabola beta_12 parameter"
-    )
+    experiment = parser.add_argument_group("experiment options")
+    gp_options = parser.add_argument_group("GP options")
+    output = parser.add_argument_group("output options")
+    parabola = parser.add_argument_group("parabola-only options")
 
-    parser.add_argument(
-        "-e",
-        "--exclude",
-        type=str,
-        nargs="+",
-        help="Variable names to exclude from fitting the surrogate model",
-    )
-
-    parser.add_argument(
+    experiment.add_argument(
         "-f",
         "--objective_function",
         type=str,
@@ -60,7 +51,7 @@ def parse_arguments():
         help="Choose objective function.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-tr",
         "--n_train",
         type=int,
@@ -68,7 +59,7 @@ def parse_arguments():
         help="Number of points to have in training data set.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-te",
         "--n_test",
         type=int,
@@ -76,25 +67,43 @@ def parse_arguments():
         help="Number of points to have in testing data set.",
     )
 
-    parser.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Save output in file based on objective function and kernel; if file already exists, append.",
+    experiment.add_argument(
+        "-e",
+        "--exclude",
+        type=str,
+        nargs="+",
+        help="Variable names to exclude from fitting the surrogate model",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (same lengthscale for all inputs).",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "--fixed_nugget",
         type=float,
         default=None,
         help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+    )
+
+    output.add_argument(
+        "-l",
+        "--log",
+        action="store_true",
+        help="Save output in file based on objective function and kernel; if file already exists, append.",
+    )
+
+    parabola.add_argument(
+        "--b1", type=float, default=1, help="parabola beta_1 parameter"
+    )
+    parabola.add_argument(
+        "--b2", type=float, default=1, help="parabola beta_2 parameter"
+    )
+    parabola.add_argument(
+        "--b12", type=float, default=1, help="parabola beta_12 parameter"
     )
 
     return parser.parse_args()
