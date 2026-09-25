@@ -7,10 +7,10 @@ Usage examples:
 ./gp_fromdata.py --help
 ./gp_fromdata.py
 ./gp_fromdata.py -d JAG --n_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py -d JAG --n_train=300 --kernel=matern --log
-./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --plot
+./gp_fromdata.py -d JAG --n_train=300 --kernel=matern
+./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
 ./gp_fromdata.py -d borehole --n_train=200 --kernel=matern
-./gp_fromdata.py -d hst_H --n_train=200 --kernel=matern --normalize_y --plot
+./gp_fromdata.py -d hst_H --n_train=200 --kernel=matern --normalize_y
 """
 
 import argparse
@@ -113,20 +113,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Append results to output log file.",
-    )
-
-    parser.add_argument(
-        "-p",
-        "--plot",
-        action="store_true",
-        help="Create observed vs predicted parity plot with 95 percent intervals.",
-    )
-
-    parser.add_argument(
         "--LHD",
         action="store_true",
         help="Use an LHD design (passed into split_data if supported).",
@@ -165,8 +151,6 @@ def main():
     scale_inputs = args.scale_inputs
     lengthscale_bounds = tuple(args.lengthscale_bounds)
     noise_bounds = tuple(args.noise_bounds)
-    do_log = args.log
-    do_plot = args.plot
     seed = args.seed
     use_lhd = args.LHD
 
@@ -255,15 +239,12 @@ def main():
 
     print(log_message)
 
-    if do_log:
-        log_results(
-            log_message,
-            path_to_log=results_dir / f"{dataset}.txt",
-        )
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{dataset}.txt",
+    )
 
-    if do_plot:
-        # Uses your class method that calls evaluate() internally
-        gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
+    gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":
