@@ -9,22 +9,11 @@ within working directory.
 
 Usage examples:
 
-# See help.
 ./nn_sandbox.py --help
-
-# Train a NN on the ackley function with default settings.
 ./nn_sandbox.py
-
-# Train a NN on the griewank function with 200 epochs and a custom learning rate.
-./nn_sandbox.py --objective_function=griewank -n 200 -l 0.001
-
-# Train a NN with custom hidden layer sizes and batch size.
-./nn_sandbox.py --hidden_sizes 16 8 -b 10
-
-# Train with custom number of training and test points
-./nn_sandbox.py --n_train 200 --n_test 50
-
-# Train and compare multiple NNs with different hidden layer sizes and learning rates.
+./nn_sandbox.py --objective_function=griewank --n_epochs 200 --learning_rate 0.001
+./nn_sandbox.py --hidden_sizes 16 8 --batch_size 20
+./nn_sandbox.py --objective_function=branin --hidden_sizes 64 32 16 --n_test 500
 ./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
 """
 
