@@ -7,20 +7,14 @@ length scale adjustment, and exclusion of specific input variables.
 The script evaluates model performance, computes Sobol sensitivity indices,
 and saves relevant plots.
 
-Usage:
+Usage examples:
 
-# Get help (shows all options including available datasets, kernels, and variables)
 ./sa_fromdata.py --help
-
-# JAG dataset: exclude variables x4 and x5
+./sa_fromdata.py
 ./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
-
-# Borehole dataset with all variables and with r and Tu excluded
-./scripts/sensitivity_analysis/sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
-./scripts/sensitivity_analysis/sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu --log
-
-# Use periodic kernel with normalized inputs
-./sa_fromdata.py --kernel periodic --normalize_x -tr 200 -te 100
+./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale_x
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu --log
 """
 
 import argparse
@@ -54,16 +48,16 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--scale_inputs",
-        dest="scale_inputs",
+        "-sx",
+        "--scale_x",
         action="store_true",
         default=True,
         help="Normalize inputs to unit cube (GPSurrogate.scale_inputs).",
     )
 
     parser.add_argument(
-        "--no-scale_inputs",
-        dest="scale_inputs",
+        "--no-scale_x",
+        dest="scale_x",
         action="store_false",
         help="Disable input normalization.",
     )
@@ -152,7 +146,7 @@ def main():
     """
     args = parse_arguments()
     dataset = args.dataset
-    scale_inputs = args.scale_inputs
+    scale_x = args.scale_x
     normalize_y = args.normalize_y
     n_train = args.n_train
     n_test = args.n_test
@@ -199,7 +193,7 @@ def main():
         y_test=y_test,
         kernel=args.kernel,
         isotropic=args.isotropic,
-        scale_inputs=scale_inputs,
+        scale_inputs=scale_x,
         scale_outputs=normalize_y,
         noise_bounds=noise_bounds,
     )
@@ -249,7 +243,7 @@ def main():
         f"Number of testing points: {n_test}\n"
         f"Kernel: {args.kernel}\n"
         f"Isotropic: {args.isotropic}\n"
-        f"Scale inputs: {scale_inputs}\n"
+        f"Scale x: {scale_x}\n"
         f"Normalize y: {normalize_y}\n"
         f"Noise bounds: {noise_bounds}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
