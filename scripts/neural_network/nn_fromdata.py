@@ -3,23 +3,16 @@
 """
 This script trains a neural network on a chosen dataset. It provides options
 for specifying the number of epochs, batch size, sizes of hidden layers, and
-learning rate. It saves two metric plots to the directory containing this script.
+learning rate. It saves loss and prediction plots to the directory containing
+this script.
 
 Usage examples:
 
-# See help
 ./nn_fromdata.py --help
-
-# Train a neural net with hidden layers of sizes 10 and 20
-./nn_fromdata.py --hidden_sizes 10 20
-
-# Train a neural net with hidden layers of sizes 5 and 10, a batch size 20,
-#   and 200 epochs
-./nn_fromdata.py --hidden_sizes 5 10 -b 20 -n 200
-
-# Train a neural net with layers of size 60 and 60, a learning rate of 0.02,
-#   and a batch size of 40
-./nn_fromdata.py --hidden_sizes 60 60 -n 600 -l 0.02 -b 40
+./nn_fromdata.py
+./nn_fromdata.py -d JAG --hidden_sizes 10 20
+./nn_fromdata.py -d JAG --hidden_sizes 15 15 --batch_size 20 --n_epochs 400
+./nn_fromdata.py -d borehole --hidden_sizes 60 60 --batch_size 40 --n_epochs 600 --learning_rate 0.02
 """
 
 import argparse
