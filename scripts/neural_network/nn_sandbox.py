@@ -11,8 +11,8 @@ Usage examples:
 
 ./nn_sandbox.py --help
 ./nn_sandbox.py
-./nn_sandbox.py --objective_function=griewank --n_epochs 200 --learning_rate 0.001
-./nn_sandbox.py --hidden_sizes 16 8 --batch_size 20
+./nn_sandbox.py --objective_function=griewank --epochs 200 --learning_rate 0.001
+./nn_sandbox.py --hidden_sizes 16 8 --batch_size 20 --epochs 250
 ./nn_sandbox.py --objective_function=branin --hidden_sizes 64 32 16 --n_test 500
 ./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
 """
@@ -93,11 +93,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-n",
-        "--n_epochs",
+        "-e",
+        "--epochs",
         type=int,
         default=100,
-        help="Number of epochs for training.",
+        help="Number of training epochs.",
     )
 
     parser.add_argument(
@@ -331,7 +331,7 @@ def main():
     normalize_y = args.normalize_y
     scale_y = args.scale_y
     seed = args.seed
-    n_epochs = args.n_epochs
+    epochs = args.epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -466,7 +466,7 @@ def main():
                     x_test,
                     y_test,
                     hidden_sizes,
-                    n_epochs,
+                    epochs,
                     lr,
                     batch_size,
                     seed,
@@ -499,7 +499,7 @@ def main():
             x_test,
             y_test,
             hidden_sizes,
-            n_epochs,
+            epochs,
             learning_rate,
             batch_size,
             seed,

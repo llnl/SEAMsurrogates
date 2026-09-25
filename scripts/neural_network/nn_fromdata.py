@@ -11,8 +11,8 @@ Usage examples:
 ./nn_fromdata.py --help
 ./nn_fromdata.py
 ./nn_fromdata.py -d JAG --hidden_sizes 10 20
-./nn_fromdata.py -d JAG --hidden_sizes 15 15 --batch_size 20 --n_epochs 400
-./nn_fromdata.py -d borehole --hidden_sizes 60 60 --batch_size 40 --n_epochs 600 --learning_rate 0.02
+./nn_fromdata.py -d JAG --hidden_sizes 15 15 --batch_size 20 --epochs 400
+./nn_fromdata.py -d borehole --hidden_sizes 60 60 --batch_size 40 --epochs 600 --learning_rate 0.02
 """
 
 import argparse
@@ -72,11 +72,11 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "-n",
-        "--n_epochs",
+        "-e",
+        "--epochs",
         type=int,
         default=100,
-        help="Number of epochs for training.",
+        help="Number of training epochs.",
     )
 
     parser.add_argument(
@@ -125,7 +125,7 @@ def main() -> None:
     n_test = args.n_test
     seed = args.seed
     LHD = args.LHD
-    n_epochs = args.n_epochs
+    epochs = args.epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -178,7 +178,7 @@ def main() -> None:
         x_test,
         y_test,
         hidden_sizes,
-        n_epochs,
+        epochs,
         learning_rate,
         batch_size,
         seed,
