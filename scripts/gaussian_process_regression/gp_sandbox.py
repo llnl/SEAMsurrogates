@@ -91,13 +91,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Save output in file based on objective function and kernel; if file exists, append.",
-    )
-
-    parser.add_argument(
         "-p",
         "--plots",
         action="store_true",
@@ -139,7 +132,6 @@ def main():
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
     plots = args.plots
-    do_log = args.log
     isotropic = args.isotropic
     seed = args.seed
 
@@ -227,13 +219,12 @@ def main():
         log_message = "\n".join(log_lines)
         print(log_message)
 
-        if do_log:
-            results_dir = Path(__file__).parent / "results"
-            log_results(
-                log_message,
-                path_to_log=results_dir
-                / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
-            )
+        results_dir = Path(__file__).parent / "results"
+        log_results(
+            log_message,
+            path_to_log=results_dir
+            / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
+        )
 
         if plots:
             gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)

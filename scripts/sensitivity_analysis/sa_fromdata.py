@@ -14,7 +14,7 @@ Usage examples:
 ./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
 ./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale_x
 ./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu --log
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu
 """
 
 import argparse
@@ -99,12 +99,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--log",
-        action="store_true",
-        help="Append results to results/<dataset>.txt",
-    )
-
-    parser.add_argument(
         "--noise_bounds",
         type=float,
         nargs=2,
@@ -151,7 +145,6 @@ def main():
     normalize_y = args.normalize_y
     n_train = args.n_train
     n_test = args.n_test
-    do_log = args.log
     exclude = args.exclude
     noise_bounds = tuple(args.noise_bounds)
 
@@ -256,9 +249,8 @@ def main():
     )
     print(log_message)
 
-    if do_log:
-        results_dir = Path(__file__).parent / "results"
-        log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
+    results_dir = Path(__file__).parent / "results"
+    log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
     sa.plot_test_predictions(x_test, y_test, gp_model, dataset)

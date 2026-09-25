@@ -11,8 +11,8 @@ Usage examples:
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200 --exclude Beta
 ./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
-./sa_sandbox.py -f wingweight -tr 150 -e S_w A -l
-./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f -l
+./sa_sandbox.py -f wingweight -tr 150 -e S_w A
+./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
 """
 
 import argparse
@@ -40,7 +40,6 @@ def parse_arguments():
 
     experiment = parser.add_argument_group("experiment options")
     gp_options = parser.add_argument_group("GP options")
-    output = parser.add_argument_group("output options")
     parabola = parser.add_argument_group("parabola options")
 
     experiment.add_argument(
@@ -90,13 +89,6 @@ def parse_arguments():
         help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
     )
 
-    output.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Save output in file based on objective function and kernel; if file already exists, append.",
-    )
-
     parabola.add_argument(
         "--b1",
         type=float,
@@ -136,7 +128,6 @@ def main():
     objective_function = args.objective_function
     n_train = args.n_train
     n_test = args.n_test
-    do_log = args.log
     b1 = args.b1
     b2 = args.b2
     b12 = args.b12
@@ -245,11 +236,10 @@ def main():
 
     print(log_message)
 
-    if do_log:
-        log_results(
-            log_message,
-            path_to_log=results_dir / f"{objective_function}.txt",
-        )
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{objective_function}.txt",
+    )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
     sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
