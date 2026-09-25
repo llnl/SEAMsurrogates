@@ -126,7 +126,7 @@ def parse_arguments():
         "--isotropic",
         action="store_true",
         default=False,
-        help="Use isotropic kernel (same lengthscale for all dimensions). Default is anisotropic.",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
     return parser.parse_args()

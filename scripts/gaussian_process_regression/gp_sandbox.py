@@ -108,8 +108,7 @@ def parse_arguments():
         "-i",
         "--isotropic",
         action="store_true",
-        help="Specify that the kernel function is isotropic (same length scale "
-        "for all inputs).",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
     parser.add_argument(

@@ -87,7 +87,7 @@ def parse_arguments() -> argparse.Namespace:
         "-i",
         "--isotropic",
         action="store_true",
-        help="Force GP kernel to be isotropic (single lengthscale).",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
     parser.add_argument(
         "-s",

@@ -80,7 +80,7 @@ def parse_arguments():
         "-i",
         "--isotropic",
         action="store_true",
-        help="Use isotropic kernel (same lengthscale for all inputs).",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
     gp_options.add_argument(
