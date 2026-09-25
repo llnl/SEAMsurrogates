@@ -84,6 +84,13 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    parser.add_argument(
         "--init_design",
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
@@ -170,7 +177,7 @@ def main() -> None:
     acquisition_functions = ["EI", "PI", "UCB", "PV", "random"]
 
     base_kwargs = {
-        "isotropic": False,
+        "isotropic": args.isotropic,
         "n_acquire": n_iter,
         "seed": seed,
         "noise_bounds": noise_bounds,
