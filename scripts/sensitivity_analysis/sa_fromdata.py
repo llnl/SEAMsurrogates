@@ -123,6 +123,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-i",
         "--isotropic",
         action="store_true",
         default=False,
