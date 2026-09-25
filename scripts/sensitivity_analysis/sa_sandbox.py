@@ -10,6 +10,7 @@ Usage examples:
 ./sa_sandbox.py
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200
 ./sa_sandbox.py --objective_function otlcircuit --n_train 200 --exclude Beta
+./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A -l
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f -l
 """
@@ -40,7 +41,7 @@ def parse_arguments():
     experiment = parser.add_argument_group("experiment options")
     gp_options = parser.add_argument_group("GP options")
     output = parser.add_argument_group("output options")
-    parabola = parser.add_argument_group("parabola-only options")
+    parabola = parser.add_argument_group("parabola options")
 
     experiment.add_argument(
         "-f",
@@ -97,13 +98,22 @@ def parse_arguments():
     )
 
     parabola.add_argument(
-        "--b1", type=float, default=1, help="parabola beta_1 parameter"
+        "--b1",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the x1^2 term.",
     )
     parabola.add_argument(
-        "--b2", type=float, default=1, help="parabola beta_2 parameter"
+        "--b2",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the x2^2 term.",
     )
     parabola.add_argument(
-        "--b12", type=float, default=1, help="parabola beta_12 parameter"
+        "--b12",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the interaction term.",
     )
 
     return parser.parse_args()
