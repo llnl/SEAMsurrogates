@@ -207,10 +207,10 @@ class GPSurrogate:
         x_test: Optional test input array of shape (n_test, n_features).
         y_test: Optional test target array of shape (n_test,) or (n_test, 1).
         kernel: Kernel type, one of "rbf", "matern", or "periodic".
-        isotropic: If True, use a shared lengthscale. If False, use ARD.
+        isotropic: If True, use a shared lengthscale. If False, use different lengthscales for each input.
         scale_inputs: Whether to normalize inputs to the unit cube.
         scale_outputs: Whether to standardize outputs.
-        lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
+        lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1]. Defaults to [1e-2,10]
         noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
     """
 
