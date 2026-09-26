@@ -32,6 +32,14 @@ def parse_arguments():
         description="Train GP surrogate models on synthetic test functions.",
     )
 
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducibility.",
+    )
+
     experiment = parser.add_argument_group("experiment options")
     gp_options = parser.add_argument_group("GP model options")
 
@@ -57,14 +65,6 @@ def parse_arguments():
         type=int,
         default=100,
         help="Number of points in testing data set.",
-    )
-
-    experiment.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=None,
-        help="Random seed for reproducibility.",
     )
 
     gp_options.add_argument(
