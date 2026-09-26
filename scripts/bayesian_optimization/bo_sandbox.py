@@ -11,11 +11,11 @@ Usage examples:
 
 ./bo_sandbox.py --help
 ./bo_sandbox.py
-./bo_sandbox.py --objective-function parabola --acquisition EI --init-design lhd --save-animation
-./bo_sandbox.py --objective-function parabola --acquisition EI --n-iteration 15
-./bo_sandbox.py --objective-function parabola --acquisition random --n-iteration 15 --n-initial 10
-./bo_sandbox.py --objective-function ackley --acquisition UCB --n-initial 3 --n-iteration 20 --beta 2.0
-./bo_sandbox.py --objective-function branin --acquisition UCB --n-iteration 20 --n-initial 3 --seed 2
+./bo_sandbox.py --test-function parabola --acquisition EI --init-design lhd --save-animation
+./bo_sandbox.py --test-function parabola --acquisition EI --n-iteration 15
+./bo_sandbox.py --test-function parabola --acquisition random --n-iteration 15 --n-initial 10
+./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iteration 20 --beta 2.0
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iteration 20 --n-initial 3 --seed 2
 """
 
 import argparse
@@ -53,7 +53,7 @@ def parse_arguments() -> argparse.Namespace:
 
     experiment.add_argument(
         "-f",
-        "--objective-function",
+        "--test-function",
         type=str,
         default="parabola",
         help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
@@ -399,7 +399,7 @@ def main() -> None:
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"
 
-    synth_function = load_test_function(args.objective_function)
+    synth_function = load_test_function(args.test_function)
     bounds_low = [b[0] for b in synth_function._bounds]
     bounds_high = [b[1] for b in synth_function._bounds]
 
@@ -414,12 +414,10 @@ def main() -> None:
         ]
     ).reshape(x1_grid.shape)
 
-    global_optima, global_optimum_value = bo.get_synth_global_optima(
-        args.objective_function
-    )
+    global_optima, global_optimum_value = bo.get_synth_global_optima(args.test_function)
 
     x_sample, y_sample = bo.sample_data(
-        args.objective_function,
+        args.test_function,
         bounds_low,
         bounds_high,
         args.n_initial,
@@ -429,7 +427,7 @@ def main() -> None:
     )
 
     bopt = bo.BayesianOptimizer(
-        objective_function=args.objective_function,
+        objective_function=args.test_function,
         x_init=x_sample,
         y_init=y_sample,
         kernel=args.kernel,
@@ -448,7 +446,7 @@ def main() -> None:
         x_sample=x_sample,
         synth_function=synth_function,
         global_optima=global_optima,
-        objective_function=args.objective_function,
+        objective_function=args.test_function,
         kernel=args.kernel,
         n_initial=args.n_initial,
         n_iteration=args.n_iteration,
@@ -474,7 +472,7 @@ def main() -> None:
     )
 
     if args.save_animation and frames:
-        save_gif(frames, args.objective_function, plots_dir)
+        save_gif(frames, args.test_function, plots_dir)
 
     plot_convergence(
         acquired_maxima,

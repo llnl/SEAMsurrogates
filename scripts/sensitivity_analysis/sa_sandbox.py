@@ -8,8 +8,8 @@ Usage examples:
 
 ./sa_sandbox.py --help
 ./sa_sandbox.py
-./sa_sandbox.py --objective-function otlcircuit --n-train 200
-./sa_sandbox.py --objective-function otlcircuit --n-train 200 --exclude Beta
+./sa_sandbox.py --test-function otlcircuit --n-train 200
+./sa_sandbox.py --test-function otlcircuit --n-train 200 --exclude Beta
 ./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
@@ -52,11 +52,11 @@ def parse_arguments():
 
     experiment.add_argument(
         "-f",
-        "--objective-function",
+        "--test-function",
         type=str,
         choices=["parabola", "otlcircuit", "piston", "wingweight", "borehole"],
         default="parabola",
-        help="Choose objective function.",
+        help="Choose test function.",
     )
 
     experiment.add_argument(
@@ -142,7 +142,7 @@ def main():
     model on hold-out data, and plot or log results.
     """
     args = parse_arguments()
-    objective_function = args.objective_function
+    objective_function = args.test_function
     n_train = args.n_train
     n_test = args.n_test
     b1 = args.b1

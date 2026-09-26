@@ -7,10 +7,10 @@ Usage examples:
 
 ./gp_sandbox.py --help
 ./gp_sandbox.py
-./gp_sandbox.py --objective-function=parabola --kernel=matern --isotropic
-./gp_sandbox.py --objective-function=parabola --kernel=matern
-./gp_sandbox.py --objective-function=branin --kernel=rbf --seed 1
-./gp_sandbox.py --objective-function=ackley -k rbf -tr 200
+./gp_sandbox.py --test-function=parabola --kernel=matern --isotropic
+./gp_sandbox.py --test-function=parabola --kernel=matern
+./gp_sandbox.py --test-function=branin --kernel=rbf --seed 1
+./gp_sandbox.py --test-function=ackley -k rbf -tr 200
 """
 
 import argparse
@@ -45,10 +45,10 @@ def parse_arguments():
 
     experiment.add_argument(
         "-f",
-        "--objective-function",
+        "--test-function",
         type=str,
         default="parabola",
-        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+        help="Choose test function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
     experiment.add_argument(
@@ -118,7 +118,7 @@ def log_results(log_message: str, path_to_log: Path) -> None:
 def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
-    objective_function = args.objective_function
+    objective_function = args.test_function
     kernel = args.kernel
     n_train = args.n_train
     n_test = args.n_test

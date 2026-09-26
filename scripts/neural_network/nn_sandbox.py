@@ -11,9 +11,9 @@ Usage examples:
 
 ./nn_sandbox.py --help
 ./nn_sandbox.py
-./nn_sandbox.py --objective-function=griewank --epochs 200 --learning-rate 0.001
+./nn_sandbox.py --test-function=griewank --epochs 200 --learning-rate 0.001
 ./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
-./nn_sandbox.py --objective-function=branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --test-function=branin --hidden-sizes 64 32 16 --n-test 500
 ./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
@@ -53,10 +53,10 @@ def parse_arguments():
 
     experiment.add_argument(
         "-f",
-        "--objective-function",
+        "--test-function",
         type=str,
         default="ackley",
-        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+        help="Choose test function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
     experiment.add_argument(
@@ -328,7 +328,7 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-    objective_function = args.objective_function
+    objective_function = args.test_function
     normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
