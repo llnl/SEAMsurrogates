@@ -48,18 +48,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-sx",
-        "--scale-x",
-        action="store_true",
-        default=True,
-        help="Normalize inputs to unit cube (GPSurrogate.scale_inputs).",
-    )
-
-    parser.add_argument(
         "--no-scale-x",
         dest="scale_x",
         action="store_false",
-        help="Disable input normalization.",
+        default=True,
+        help="Disable input normalization (default: scale inputs to unit cube).",
     )
 
     parser.add_argument(
