@@ -46,7 +46,10 @@ def parse_arguments():
         help="Random seed for reproducibility.",
     )
 
-    parser.add_argument(
+    data_options = parser.add_argument_group("data options")
+    gp_options = parser.add_argument_group("GP model options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -55,23 +58,23 @@ def parse_arguments():
         help="Which dataset to use (default: JAG).",
     )
 
-    parser.add_argument(
-        "--no-scale-x",
-        dest="scale_x",
-        action="store_false",
-        default=True,
-        help="Disable input normalization (default: scale inputs to unit cube).",
+    data_options.add_argument(
+        "-tr",
+        "--n-train",
+        type=int,
+        default=400,
+        help="Number of train samples (default: 400).",
     )
 
-    parser.add_argument(
-        "-ny",
-        "--normalize-y",
-        action="store_true",
-        default=False,
-        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    data_options.add_argument(
+        "-te",
+        "--n-test",
+        type=int,
+        default=100,
+        help="Number of test samples (default: 100).",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-e",
         "--exclude",
         type=str,
@@ -83,32 +86,7 @@ def parse_arguments():
         ),
     )
 
-    parser.add_argument(
-        "-tr",
-        "--n-train",
-        type=int,
-        default=400,
-        help="Number of train samples (default: 400).",
-    )
-
-    parser.add_argument(
-        "-te",
-        "--n-test",
-        type=int,
-        default=100,
-        help="Number of test samples (default: 100).",
-    )
-
-    parser.add_argument(
-        "--noise-bounds",
-        type=float,
-        nargs=2,
-        default=(1e-8, 1e-1),
-        metavar=("LOW", "HIGH"),
-        help="Bounds for likelihood noise constraint.",
-    )
-
-    parser.add_argument(
+    gp_options.add_argument(
         "-k",
         "--kernel",
         type=str,
@@ -117,12 +95,37 @@ def parse_arguments():
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         default=False,
         help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    gp_options.add_argument(
+        "--no-scale-x",
+        dest="scale_x",
+        action="store_false",
+        default=True,
+        help="Disable input normalization (default: scale inputs to unit cube).",
+    )
+
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
     )
 
     return parser.parse_args()

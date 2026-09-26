@@ -39,14 +39,58 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on synthetic test functions.",
     )
+
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    experiment = parser.add_argument_group("experiment options")
+    bo_options = parser.add_argument_group("Bayesian optimization options")
+
+    experiment.add_argument(
         "-f",
         "--objective-function",
         type=str,
         default="parabola",
         help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
-    parser.add_argument(
+
+    experiment.add_argument(
+        "-in",
+        "--n-initial",
+        type=int,
+        default=10,
+        help="Number of initial samples before Bayesian optimization.",
+    )
+
+    experiment.add_argument(
+        "-it",
+        "--n-iteration",
+        type=int,
+        default=10,
+        help="Number of Bayesian optimization acquisitions.",
+    )
+
+    experiment.add_argument(
+        "--init-design",
+        type=str,
+        choices=["random", "lhd", "maximin_lhd"],
+        default="random",
+        help="Initial design strategy for BO.",
+    )
+
+    experiment.add_argument(
+        "-save",
+        "--save-animation",
+        action="store_true",
+        help="Save the animation instead of displaying it interactively.",
+    )
+
+    bo_options.add_argument(
         "-acq",
         "--acquisition",
         type=str,
@@ -54,21 +98,16 @@ def parse_arguments() -> argparse.Namespace:
         default="EI",
         help="Choice of acquisition function.",
     )
-    parser.add_argument(
-        "-it",
-        "--n-iteration",
-        type=int,
-        default=10,
-        help="Number of Bayesian optimization acquisitions.",
+
+    bo_options.add_argument(
+        "-beta",
+        "--beta",
+        type=float,
+        default=2.0,
+        help="Tuning parameter for UCB method only.",
     )
-    parser.add_argument(
-        "-in",
-        "--n-initial",
-        type=int,
-        default=10,
-        help="Number of initial samples before Bayesian optimization.",
-    )
-    parser.add_argument(
+
+    bo_options.add_argument(
         "-k",
         "--kernel",
         type=str,
@@ -76,39 +115,14 @@ def parse_arguments() -> argparse.Namespace:
         default="matern",
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
-    parser.add_argument(
+
+    bo_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
-    parser.add_argument(
-        "--init-design",
-        type=str,
-        choices=["random", "lhd", "maximin_lhd"],
-        default="random",
-        help="Initial design strategy for BO.",
-    )
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Set random initial seed.",
-    )
-    parser.add_argument(
-        "-save",
-        "--save-animation",
-        action="store_true",
-        help="Save the animation instead of displaying it interactively.",
-    )
-    parser.add_argument(
-        "-beta",
-        "--beta",
-        type=float,
-        default=2.0,
-        help="Tuning parameter for UCB method only.",
-    )
+
     return parser.parse_args()
 
 

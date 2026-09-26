@@ -34,6 +34,17 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    bo_options = parser.add_argument_group("Bayesian optimization options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -42,15 +53,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Which dataset to use.",
     )
 
-    parser.add_argument(
-        "-it",
-        "--n-iter",
-        type=int,
-        default=10,
-        help="Number of BO iterations.",
-    )
-
-    parser.add_argument(
+    data_options.add_argument(
         "-in",
         "--n-initial",
         type=int,
@@ -58,7 +61,31 @@ def parse_arguments() -> argparse.Namespace:
         help="Number of initial sample points.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
+        "-it",
+        "--n-iter",
+        type=int,
+        default=10,
+        help="Number of BO iterations.",
+    )
+
+    data_options.add_argument(
+        "--init-design",
+        type=str,
+        choices=["random", "lhd", "maximin_lhd"],
+        default="random",
+        help="Initial design strategy for Bayesian optimization.",
+    )
+
+    bo_options.add_argument(
+        "-beta",
+        "--beta",
+        type=float,
+        default=2.0,
+        help="Exploration parameter for UCB.",
+    )
+
+    bo_options.add_argument(
         "-k",
         "--kernel",
         type=str,
@@ -67,38 +94,14 @@ def parse_arguments() -> argparse.Namespace:
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
-    parser.add_argument(
+    bo_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed.",
-    )
-
-    parser.add_argument(
-        "-beta",
-        "--beta",
-        type=float,
-        default=2.0,
-        help="Exploration parameter for UCB.",
-    )
-
-    parser.add_argument(
-        "--init-design",
-        type=str,
-        choices=["random", "lhd", "maximin_lhd"],
-        default="random",
-        help="Initial design strategy for Bayesian optimization.",
-    )
-
-    parser.add_argument(
+    bo_options.add_argument(
         "--fixed-nugget",
         type=float,
         default=None,

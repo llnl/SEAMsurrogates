@@ -33,6 +33,17 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    nn_options = parser.add_argument_group("neural network options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -41,7 +52,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Which dataset to use (default: JAG).",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-tr",
         "--n-train",
         type=int,
@@ -49,7 +60,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Number of train samples (default: 400).",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-te",
         "--n-test",
         type=int,
@@ -57,37 +68,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Number of test samples (default: 100).",
     )
 
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Random number generator seed.",
-    )
-
-    parser.add_argument(
+    data_options.add_argument(
         "--LHD",
         action="store_true",
         help="Use an LHD design.",
     )
 
-    parser.add_argument(
-        "-e",
-        "--epochs",
-        type=int,
-        default=100,
-        help="Number of training epochs.",
-    )
-
-    parser.add_argument(
-        "-b",
-        "--batch-size",
-        type=int,
-        default=5,
-        help="Batch size for training.",
-    )
-
-    parser.add_argument(
+    nn_options.add_argument(
         "-hs",
         "--hidden-sizes",
         type=int,
@@ -96,7 +83,23 @@ def parse_arguments() -> argparse.Namespace:
         help="Sizes of hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=100,
+        help="Number of training epochs.",
+    )
+
+    nn_options.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Batch size for training.",
+    )
+
+    nn_options.add_argument(
         "-l",
         "--learning-rate",
         type=float,
@@ -104,7 +107,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Learning rate for SGD optimization.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-vp",
         "--verbose-plot",
         action="store_true",

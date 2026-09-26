@@ -41,50 +41,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-f",
-        "--objective-function",
-        type=str,
-        default="ackley",
-        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
-    )
-
-    parser.add_argument(
-        "-nx",
-        "--normalize-x",
-        action="store_true",
-        default=False,
-        help="Whether or not to normalize the input values by removing the "
-        "mean and scaling to unit-variance per dimension.",
-    )
-
-    parser.add_argument(
-        "-sx",
-        "--scale-x",
-        action="store_true",
-        default=False,
-        help="Whether or not to scale the input values to [0,1] using min-max "
-        "scaling per dimension.",
-    )
-
-    parser.add_argument(
-        "-ny",
-        "--normalize-y",
-        action="store_true",
-        default=False,
-        help="Whether or not to normalize the output values by removing the "
-        "mean and scaling to unit-variance.",
-    )
-
-    parser.add_argument(
-        "-sy",
-        "--scale-y",
-        action="store_true",
-        default=False,
-        help="Whether or not to scale the output values to [0,1] using min-max"
-        " scaling.",
-    )
-
-    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -92,37 +48,32 @@ def parse_arguments():
         help="Random seed for reproducibility.",
     )
 
-    parser.add_argument(
-        "-e",
-        "--epochs",
-        type=int,
-        default=100,
-        help="Number of training epochs.",
+    experiment = parser.add_argument_group("experiment options")
+    nn_options = parser.add_argument_group("neural network options")
+
+    experiment.add_argument(
+        "-f",
+        "--objective-function",
+        type=str,
+        default="ackley",
+        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
-    parser.add_argument(
-        "-b",
-        "--batch-size",
-        type=int,
-        default=5,
-        help="Batch size for training.",
-    )
-
-    parser.add_argument(
+    experiment.add_argument(
         "--n-train",
         type=int,
         default=90,
         help="Number of training points.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "--n-test",
         type=int,
         default=10,
         help="Number of testing points.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-hs",
         "--hidden-sizes",
         type=int,
@@ -131,7 +82,23 @@ def parse_arguments():
         help="Sizes of hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=100,
+        help="Number of training epochs.",
+    )
+
+    nn_options.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Batch size for training.",
+    )
+
+    nn_options.add_argument(
         "-l",
         "--learning-rate",
         type=float,
@@ -139,7 +106,43 @@ def parse_arguments():
         help="Learning rate for SGD optimization.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-nx",
+        "--normalize-x",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the input values by removing the "
+        "mean and scaling to unit-variance per dimension.",
+    )
+
+    nn_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Whether or not to scale the input values to [0,1] using min-max "
+        "scaling per dimension.",
+    )
+
+    nn_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the output values by removing the "
+        "mean and scaling to unit-variance.",
+    )
+
+    nn_options.add_argument(
+        "-sy",
+        "--scale-y",
+        action="store_true",
+        default=False,
+        help="Whether or not to scale the output values to [0,1] using min-max"
+        " scaling.",
+    )
+
+    nn_options.add_argument(
         "-mt",
         "--multi-train",
         action="store_true",
@@ -147,7 +150,7 @@ def parse_arguments():
         help="If set, trains across multiple hidden dims and learning rates.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-mh",
         "--multi-hidden-sizes",
         type=int,
@@ -156,7 +159,7 @@ def parse_arguments():
         help="List of sizes to apply to both (two) hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-ml",
         "--multi-learning-rates",
         type=float,
@@ -165,7 +168,7 @@ def parse_arguments():
         help="List of learning rates to try.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-sp",
         "--surface-plot",
         action="store_true",
@@ -174,7 +177,7 @@ def parse_arguments():
         "Only works when -mt is NOT flagged.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-vp",
         "--verbose-plot",
         action="store_true",
