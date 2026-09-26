@@ -3,7 +3,7 @@
 """
 Animate Bayesian Optimization on synthetic test functions.
 
-This script visualizes the BO process on 2D test functions, showing the objective
+This script visualizes the BO process on 2D test functions, showing the test function
 surface, acquisition function evolution, and GP mean predictions over iterations.
 Supports EI, PI, UCB, PV, and random acquisition strategies.
 
@@ -171,14 +171,14 @@ def setup_figure(
     x_sample: np.ndarray,
     synth_function: object,
     global_optima: list,
-    objective_function: str,
+    test_function: str,
     kernel: str,
     n_initial: int,
     n_iteration: int,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
-        f"Bayesian Optimization of {objective_function} w/ {kernel} kernel\n",
+        f"Bayesian Optimization of {test_function} w/ {kernel} kernel\n",
         fontsize=16,
     )
 
@@ -187,7 +187,7 @@ def setup_figure(
     ax3 = fig.add_subplot(133, projection="3d")
 
     title_lines = [
-        f"{objective_function} with {kernel} kernel",
+        f"{test_function} with {kernel} kernel",
         f"Initial Samples: {n_initial} | Acquired Samples: {n_iteration}",
     ]
 
@@ -202,7 +202,7 @@ def setup_figure(
     contour = ax1.contourf(
         x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", alpha=0.3
     )
-    plt.colorbar(contour, ax=ax1, label=f"Value of {objective_function}")
+    plt.colorbar(contour, ax=ax1, label=f"Value of {test_function}")
     ax1.scatter(
         x_sample[:, 0],
         x_sample[:, 1],
@@ -381,10 +381,10 @@ def plot_convergence(
         plt.show()
 
 
-def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
+def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
     plots_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
-    path = plots_dir / f"bayes_opt_animation_{objective_function}_{ts}.gif"
+    path = plots_dir / f"bayes_opt_animation_{test_function}_{ts}.gif"
     imageio.mimsave(path, frames, fps=2)
     print(f"Animation saved as {path}")
 
@@ -427,7 +427,7 @@ def main() -> None:
     )
 
     bopt = bo.BayesianOptimizer(
-        objective_function=args.test_function,
+        test_function=args.test_function,
         x_init=x_sample,
         y_init=y_sample,
         kernel=args.kernel,
@@ -446,7 +446,7 @@ def main() -> None:
         x_sample=x_sample,
         synth_function=synth_function,
         global_optima=global_optima,
-        objective_function=args.test_function,
+        test_function=args.test_function,
         kernel=args.kernel,
         n_initial=args.n_initial,
         n_iteration=args.n_iteration,

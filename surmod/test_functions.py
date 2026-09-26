@@ -325,58 +325,58 @@ def scale_inputs(
     return x_scaled
 
 
-def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
+def get_input_bounds(test_function: str) -> list[tuple[float, float]]:
     """
     Return the physical input bounds for the provided test functions.
 
     Args:
-        objective_function: One of "parabola", "otlcircuit", "piston",
+        test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
     """
-    return list(get_input_spec(objective_function)[2])
+    return list(get_input_spec(test_function)[2])
 
 
-def get_variable_names(objective_function: str) -> list[str]:
+def get_variable_names(test_function: str) -> list[str]:
     """
     Return the variable names for the provided test function.
 
     Args:
-        objective_function: One of "parabola", "otlcircuit", "piston",
+        test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
 
     Returns:
         List of variable names in the order they appear in the function's input.
 
     Raises:
-        ValueError: If the objective function is not recognized.
+        ValueError: If the test function is not recognized.
     """
-    if objective_function not in FUNCTION_SPECS:
+    if test_function not in FUNCTION_SPECS:
         available = ", ".join(FUNCTION_SPECS)
         raise ValueError(
-            f"Test function '{objective_function}' not found. Available: {available}."
+            f"Test function '{test_function}' not found. Available: {available}."
         )
 
-    config = FUNCTION_SPECS[objective_function]
+    config = FUNCTION_SPECS[test_function]
     return list(config["variable_names"])  # type: ignore[arg-type]
 
 
 def get_input_spec(
-    objective_function: str,
+    test_function: str,
 ) -> tuple[int, Callable, list[tuple[float, float]]]:
     """
     Return the dimension, callable, and bounds for a provided test function.
 
     Args:
-        objective_function: One of "parabola", "otlcircuit", "piston",
+        test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
     """
-    if objective_function not in FUNCTION_SPECS:
+    if test_function not in FUNCTION_SPECS:
         available = ", ".join(FUNCTION_SPECS)
         raise ValueError(
-            f"Test function '{objective_function}' not found. Available: {available}."
+            f"Test function '{test_function}' not found. Available: {available}."
         )
 
-    config = FUNCTION_SPECS[objective_function]
+    config = FUNCTION_SPECS[test_function]
     function_name = str(config["function_name"])
     function = globals()[function_name]
     return int(config["dim"]), function, list(config["bounds"])  # type: ignore[arg-type]
@@ -526,7 +526,7 @@ def borehole(
 
 
 def load_test_function(
-    objective_function: str | type,
+    test_function: str | type,
     dim: int | None = None,
     negate: bool = True,
     bounds: list[tuple[float, float]] | None = None,
@@ -536,7 +536,7 @@ def load_test_function(
     Loads a test function instance for simulating data.
 
     Args:
-        objective_function: Either a string name of a test function or the test
+        test_function: Either a string name of a test function or the test
             function class itself. Supported string names: "parabola", "ackley",
             "griewank", "branin", "holder_table", "six_hump_camel".
         dim: Dimension for the test function (if applicable).
@@ -548,7 +548,7 @@ def load_test_function(
         SyntheticTestFunction: An instance of the requested test function.
 
     Raises:
-        ValueError: If the specified objective function name is not recognized.
+        ValueError: If the specified test function name is not recognized.
     """
     # Registry of common test functions with default parameters
     DEFAULT_CONFIGS = {
@@ -579,8 +579,8 @@ def load_test_function(
     }
 
     # If it's already a class, use it directly
-    if isinstance(objective_function, type):
-        test_function_class = objective_function
+    if isinstance(test_function, type):
+        test_function_class = test_function
         # Use provided parameters
         init_kwargs = {"negate": negate, **kwargs}
         if dim is not None:
@@ -589,14 +589,14 @@ def load_test_function(
             init_kwargs["bounds"] = bounds
     else:
         # Look up string name in registry
-        if objective_function not in DEFAULT_CONFIGS:
+        if test_function not in DEFAULT_CONFIGS:
             available = ", ".join(DEFAULT_CONFIGS.keys())
             raise ValueError(
-                f"Test function '{objective_function}' not found. "
+                f"Test function '{test_function}' not found. "
                 f"Available: {available}, or pass the class directly."
             )
 
-        config = DEFAULT_CONFIGS[objective_function]
+        config = DEFAULT_CONFIGS[test_function]
         test_function_class = config["class"]
 
         # Build kwargs with defaults, overridden by explicit parameters
@@ -671,7 +671,7 @@ def sample_parabola(
 
 
 def simulate_data(
-    objective_function: str,
+    test_function: str,
     n_train: int,
     n_test: int,
     seed: int = 1,
@@ -680,7 +680,7 @@ def simulate_data(
     Simulates training and testing data from a specified test function.
 
     Args:
-        objective_function (str): The name of the objective function to simulate
+        test_function (str): The name of the test function to simulate
             data from. Supported values are "parabola", "ackley", "griewank",
             "branin", "holder_table", and "six_hump_camel".
         n_train (int): Number of training samples to generate.
@@ -696,11 +696,11 @@ def simulate_data(
                 - y_test (np.ndarray): Testing target data of shape (n_test,).
 
     Raises:
-        ValueError: If the specified objective function name is not recognized.
+        ValueError: If the specified test function name is not recognized.
     """
     # Set-up simulation
     n_total = n_train + n_test
-    test_function = load_test_function(objective_function)
+    test_function = load_test_function(test_function)
     bounds_low = [b[0] for b in test_function._bounds]
     bounds_high = [b[1] for b in test_function._bounds]
 

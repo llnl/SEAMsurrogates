@@ -142,7 +142,7 @@ def main():
     model on hold-out data, and plot or log results.
     """
     args = parse_arguments()
-    objective_function = args.test_function
+    test_function = args.test_function
     n_train = args.n_train
     n_test = args.n_test
     b1 = args.b1
@@ -157,15 +157,15 @@ def main():
     plots_dir = Path(__file__).parent / "plots"
     results_dir = Path(__file__).parent / "results"
 
-    _, _, bounds_list = get_input_spec(objective_function)
+    _, _, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
-        objective_function, n_train, n_test, b1, b2, b12, seed=seed
+        test_function, n_train, n_test, b1, b2, b12, seed=seed
     )
 
     # Get variable names from test_functions module
-    variable_names = get_variable_names(objective_function)
+    variable_names = get_variable_names(test_function)
 
     # Apply exclusions by converting variable names to indices
     if exclude is not None:
@@ -173,7 +173,7 @@ def main():
         for var_name in exclude:
             if var_name not in variable_names:
                 raise ValueError(
-                    f"Variable '{var_name}' not found in {objective_function}. "
+                    f"Variable '{var_name}' not found in {test_function}. "
                     f"Valid variables: {variable_names}"
                 )
             exclude_indices.append(variable_names.index(var_name))
@@ -238,7 +238,7 @@ def main():
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_message = (
         f"Run timestamp (%m%d_%H%M%S): {timestamp}\n"
-        f"Test Function: {objective_function}\n"
+        f"Test Function: {test_function}\n"
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
         f"Kernel: {kernel}\n"
@@ -258,11 +258,11 @@ def main():
 
     log_results(
         log_message,
-        path_to_log=results_dir / f"{objective_function}.txt",
+        path_to_log=results_dir / f"{test_function}.txt",
     )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
-    sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
+    sa.plot_test_predictions(x_test, y_test, gp_model, test_function)
 
     sa.sobol_plot(
         Si["S1"],
@@ -270,10 +270,10 @@ def main():
         problem["names"],
         Si["S1_conf"],
         Si["ST_conf"],
-        objective_function,
+        test_function,
     )
 
-    if objective_function == "parabola":
+    if test_function == "parabola":
         input1 = np.linspace(bounds[0, 0], bounds[0, 1], 100)
         input2 = np.linspace(bounds[1, 0], bounds[1, 1], 100)
         grid_input1, grid_input2 = np.meshgrid(input1, input2)
@@ -289,7 +289,7 @@ def main():
 
         plots_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png")
+        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{test_function}_{timestamp}.png")
 
 
 if __name__ == "__main__":

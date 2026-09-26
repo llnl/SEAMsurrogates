@@ -218,7 +218,7 @@ def plot_surface_3d(
             and be callable on a torch.Tensor.
         model: The PyTorch neural net model to make predictions from.
         title (str): Title for the plot and output file, usually
-            the objective data/function name.
+            the test data/function name.
         resolution (int, optional): Number of points per dimension
             for the surface grid. Default is 50.
         angle (tuple[float, float], optional):
@@ -328,7 +328,7 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-    objective_function = args.test_function
+    test_function = args.test_function
     normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
@@ -354,7 +354,7 @@ def main():
     plots_dir = script_dir / "plots"
 
     # Generate random data from test function
-    synthetic_function = load_test_function(objective_function)
+    synthetic_function = load_test_function(test_function)
     input_size = synthetic_function.dim
     torch.manual_seed(seed)
 
@@ -410,7 +410,7 @@ def main():
     if normalize_y or scale_y:
         # Note: if y is normalized or scaled, all losses and metrics during
         # training and testing are computed in this transformed space, not in
-        # the original output units of the objective function.
+        # the original output units of the test function.
 
         # Create the scaler and fit it on training data
         if normalize_y:
@@ -418,7 +418,7 @@ def main():
                 "Output data is being normalized to have mean 0, variance 1 "
                 "based on training data.\n"
                 "Note: training and testing losses will be in normalized units, "
-                "not in the original objective function units.\n"
+                "not in the original test function units.\n"
             )
             scaler_y_train = StandardScaler()
 
@@ -427,7 +427,7 @@ def main():
                 "Output data is being scaled using min-max scaling based on "
                 "training data.\n"
                 "Note: training and testing losses will be in scaled units, "
-                "not in the original objective function units.\n"
+                "not in the original test function units.\n"
             )
             scaler_y_train = MinMaxScaler()
 
@@ -452,7 +452,7 @@ def main():
             len(multi_learning_rates),
             figsize=(15, 15),
         )
-        fig.suptitle(f"Training and Testing Losses - {objective_function}", fontsize=16)
+        fig.suptitle(f"Training and Testing Losses - {test_function}", fontsize=16)
 
         # Train and test FFNN
         n = len(multi_hidden_sizes)
@@ -489,7 +489,7 @@ def main():
             multi_learning_rates,
             multi_hidden_sizes,
             axs,
-            objective_function,
+            test_function,
             plots_dir,
         )
 
@@ -524,19 +524,19 @@ def main():
                 scale_y,
                 n_train,
                 n_test,
-                objective_function,
+                test_function,
                 plots_dir,
             )
 
         else:
             # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, objective_function, plots_dir)
+            nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(
                 synthetic_function,
                 model,
-                title=objective_function,
+                title=test_function,
                 plots_dir=plots_dir,
                 resolution=50,
                 angle=(30, 120),

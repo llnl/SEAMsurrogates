@@ -24,7 +24,7 @@ from surmod.test_functions import load_test_function, sample_parabola
 
 
 def sample_data(
-    objective_function: str,
+    test_function: str,
     bounds_low: float | Sequence[float] | np.ndarray,
     bounds_high: float | Sequence[float] | np.ndarray,
     n_initial: int,
@@ -34,10 +34,10 @@ def sample_data(
     **design_kwargs,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Generate input and output samples from the specified synthetic objective.
+    Generate input and output samples from the specified synthetic test function.
 
     Args:
-        objective_function: Name of the objective function.
+        test_function: Name of the test function.
         bounds_low: Lower bounds.
         bounds_high: Upper bounds.
         n_initial: Number of initial points.
@@ -51,9 +51,9 @@ def sample_data(
             x_sample: shape (n_initial, input_size)
             y_sample: shape (n_initial,)
     """
-    test_function = load_test_function(objective_function)
+    synthetic_function = load_test_function(test_function)
 
-    if objective_function == "parabola" and init_design == "random":
+    if test_function == "parabola" and init_design == "random":
         x_data = sample_parabola(
             n_initial, bounds_low, bounds_high, input_size, seed=seed
         )
@@ -68,7 +68,7 @@ def sample_data(
         )
 
     x_tensor = torch.as_tensor(x_data, dtype=torch.float32)
-    y_tensor = test_function(x_tensor)
+    y_tensor = synthetic_function(x_tensor)
 
     x_sample = x_tensor.detach().cpu().numpy()
     y_sample = y_tensor.detach().cpu().numpy().reshape(-1)
@@ -77,7 +77,7 @@ def sample_data(
 
 
 def get_synth_global_optima(
-    objective_function: str,
+    test_function: str,
 ) -> tuple[list[list[float]], float]:
     global_optima = {
         "ackley": ([[0, 0]], 0.0),
@@ -102,12 +102,10 @@ def get_synth_global_optima(
         ),
     }
 
-    if objective_function not in global_optima:
-        raise ValueError(
-            f"Objective function '{objective_function}' is not recognized."
-        )
+    if test_function not in global_optima:
+        raise ValueError(f"Objective function '{test_function}' is not recognized.")
 
-    return global_optima[objective_function]
+    return global_optima[test_function]
 
 
 def select_initial_dataset_indices(
@@ -173,7 +171,7 @@ def select_initial_dataset_indices(
 class BayesianOptimizer:
     def __init__(
         self,
-        objective_function: str,
+        test_function: str,
         x_init: np.ndarray,
         y_init: np.ndarray,
         kernel: str = "matern",
@@ -202,7 +200,7 @@ class BayesianOptimizer:
         provided dataset.
 
         Args:
-            objective_function: Name of the objective function to optimize.
+            test_function: Name of the test function to optimize.
             x_init: Initial input observations.
             y_init: Initial objective values corresponding to ``x_init``.
             kernel: Kernel used by the Gaussian process surrogate. Defaults to
@@ -227,7 +225,7 @@ class BayesianOptimizer:
             **acquisition_kwargs: Additional acquisition-function parameters, such
                 as ``beta`` for UCB.
         """
-        self.objective_function = objective_function
+        self.test_function = test_function
         self.x_init = np.asarray(x_init, dtype=float)
         self.y_init = np.asarray(y_init, dtype=float).reshape(-1)
 
@@ -258,8 +256,8 @@ class BayesianOptimizer:
         self._rng = np.random.RandomState(seed)
 
     def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
-        """Evaluate the objective function at a proposed point."""
-        synthetic_function = load_test_function(self.objective_function)
+        """Evaluate the test function at a proposed point."""
+        synthetic_function = load_test_function(self.test_function)
 
         bounds = self._get_objective_bounds().cpu().numpy()
         x_next = np.asarray(x_next, dtype=np.float64).reshape(-1)
@@ -296,8 +294,8 @@ class BayesianOptimizer:
         return self.gp_model
 
     def _get_objective_bounds(self) -> torch.Tensor:
-        """Return the objective function bounds as a two-row tensor."""
-        synthetic_function = load_test_function(self.objective_function)
+        """Return the test function bounds as a two-row tensor."""
+        synthetic_function = load_test_function(self.test_function)
         bounds_low = [b[0] for b in synthetic_function._bounds]
         bounds_high = [b[1] for b in synthetic_function._bounds]
 
@@ -550,7 +548,7 @@ def plot_acquisition_comparison(
     kernel: str = "rbf",
     n_iter: int = 10,
     n_initial: int = 5,
-    objective_data: str = "___ data",
+    test_data: str = "___ data",
     beta: float = 2.0,
     plots_dir: Path = Path("plots"),
 ) -> None:
@@ -609,7 +607,7 @@ def plot_acquisition_comparison(
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
         plots_dir
-        / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_initial}_{timestamp}.png"
+        / f"bo_{test_data}_{kernel}_maxit_{n_iter}_init_{n_initial}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")
     print(f"Figure saved to {filepath}")

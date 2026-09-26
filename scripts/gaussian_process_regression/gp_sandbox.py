@@ -118,7 +118,7 @@ def log_results(log_message: str, path_to_log: Path) -> None:
 def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
-    objective_function = args.test_function
+    test_function = args.test_function
     kernel = args.kernel
     n_train = args.n_train
     n_test = args.n_test
@@ -133,7 +133,7 @@ def main():
 
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
-        objective_function,
+        test_function,
         n_train,
         n_test,
         seed=seed,
@@ -188,7 +188,7 @@ def main():
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
         f"Run timestamp (%m%d_%H%M%S): {timestamp}",
-        f"Test Function: {objective_function}",
+        f"Test Function: {test_function}",
         f"Number of training points: {n_train}",
         f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
@@ -216,14 +216,14 @@ def main():
     log_results(
         log_message,
         path_to_log=results_dir
-        / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
+        / f"{test_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
     )
 
-    gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
+    gp.plot_test_predictions(dataset=test_function, plots_dir=plots_dir)
 
     gp.plot_predictive_mean(
         test_rmse=test_rmse,
-        objective_function=objective_function,
+        test_function=test_function,
         scale_x=scale_x,
         normalize_y=normalize_y,
         plots_dir=plots_dir,
@@ -231,7 +231,7 @@ def main():
 
     gp.plot_predictive_std_dev(
         test_rmse=test_rmse,
-        objective_function=objective_function,
+        test_function=test_function,
         scale_x=scale_x,
         normalize_y=normalize_y,
         plots_dir=plots_dir,

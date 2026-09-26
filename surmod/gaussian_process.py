@@ -589,7 +589,7 @@ class GPSurrogate:
     def plot_predictive_mean(
         self,
         test_rmse: float,
-        objective_function: str,
+        test_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
@@ -603,7 +603,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
-        test_function = test_functions.load_test_function(objective_function)
+        test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -648,7 +648,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_function} Test Function and GP Mean",
+            f"{test_function} Test Function and GP Mean",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -665,7 +665,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{objective_function}_gp_mean_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -673,7 +673,7 @@ class GPSurrogate:
     def plot_predictive_std_dev(
         self,
         test_rmse: float,
-        objective_function: str,
+        test_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
@@ -687,7 +687,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
-        test_function = test_functions.load_test_function(objective_function)
+        test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -724,7 +724,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_function} GP Predictive Standard Deviation",
+            f"{test_function} GP Predictive Standard Deviation",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -744,7 +744,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{objective_function}_gp_std_dev_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
