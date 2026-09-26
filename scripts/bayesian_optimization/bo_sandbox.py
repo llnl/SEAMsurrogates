@@ -105,9 +105,9 @@ def parse_arguments() -> argparse.Namespace:
         "-k",
         "--kernel",
         type=str,
-        choices=["matern", "rbf", "periodic"],
+        choices=["rbf", "matern", "periodic"],
         default="matern",
-        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
+        help="GP kernel function.",
     )
     bo_options.add_argument(
         "-i",

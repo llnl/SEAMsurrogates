@@ -92,7 +92,7 @@ def parse_arguments():
         type=str,
         choices=["rbf", "matern", "periodic"],
         default="matern",
-        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
+        help="GP kernel function.",
     )
 
     gp_options.add_argument(
