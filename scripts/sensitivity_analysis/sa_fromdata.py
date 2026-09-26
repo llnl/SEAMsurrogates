@@ -194,6 +194,7 @@ def main():
         scale_inputs=scale_x,
         scale_outputs=normalize_y,
         noise_bounds=noise_bounds,
+        seed=seed,
     )
     gp_model.fit()
 

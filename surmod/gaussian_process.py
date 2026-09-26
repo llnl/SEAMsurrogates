@@ -212,6 +212,7 @@ class GPSurrogate:
         scale_outputs: Whether to standardize outputs.
         lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1]. Defaults to [1e-2,10]
         noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
+        seed: Random seed for reproducible hyperparameter optimization.
     """
 
     def __init__(
@@ -229,6 +230,7 @@ class GPSurrogate:
         outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
         optimization_restarts: int = 3,
         fixed_noise: float | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Initialize the GP surrogate model.
@@ -246,6 +248,7 @@ class GPSurrogate:
             outputscale_bounds: Bounds on the variance scale parameter, current option is for output scaled to mean 0, variance1. Defaults to [1e-3,1e3]
             noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-8,1e-1]
             optimization_restarts: Number of times to randomly initialize the hyperparameter optimization. Defaults to 5
+            seed: Random seed for reproducible hyperparameter optimization.
         """
         self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
         self.y_train: torch.Tensor = torch.as_tensor(
@@ -266,6 +269,7 @@ class GPSurrogate:
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
         self.optimization_restarts: int = optimization_restarts
+        self.seed: int | None = seed
         self.model: SingleTaskGP | None = None
         self.mll: ExactMarginalLogLikelihood | None = None
         self.lengthscale_bounds = lengthscale_bounds
@@ -358,6 +362,7 @@ class GPSurrogate:
         best_model, best_mll, best_loss = fit_gpytorch_mll_multistart(
             self._build_fresh_model_and_mll,
             n_restarts=self.optimization_restarts,
+            seed=self.seed,
         )
 
         if best_model is None or best_mll is None:

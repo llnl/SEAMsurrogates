@@ -180,6 +180,7 @@ def main():
         scale_outputs=normalize_y,
         lengthscale_bounds=lengthscale_bounds,
         noise_bounds=noise_bounds,
+        seed=seed,
     )
 
     start_time = time.perf_counter()

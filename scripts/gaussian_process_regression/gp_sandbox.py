@@ -158,6 +158,7 @@ def main():
         scale_outputs=normalize_y,
         fixed_noise=fixed_noise,
         noise_bounds=noise_bounds,
+        seed=seed,
     )
 
     start_time = time.perf_counter()

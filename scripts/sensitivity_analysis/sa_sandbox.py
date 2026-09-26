@@ -199,6 +199,7 @@ def main():
         scale_inputs=True,  # SA data are now in physical units
         scale_outputs=True,  # matches old normalize_y=True intent
         noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+        seed=seed,
     )
 
     start_time = time.perf_counter()
