@@ -58,7 +58,6 @@ def parse_arguments() -> argparse.Namespace:
         default="parabola",
         help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
-
     experiment.add_argument(
         "-in",
         "--n-initial",
@@ -66,7 +65,6 @@ def parse_arguments() -> argparse.Namespace:
         default=10,
         help="Number of initial samples before Bayesian optimization.",
     )
-
     experiment.add_argument(
         "-it",
         "--n-iteration",
@@ -74,7 +72,6 @@ def parse_arguments() -> argparse.Namespace:
         default=10,
         help="Number of Bayesian optimization acquisitions.",
     )
-
     experiment.add_argument(
         "--init-design",
         type=str,
@@ -82,7 +79,6 @@ def parse_arguments() -> argparse.Namespace:
         default="random",
         help="Initial design strategy for BO.",
     )
-
     experiment.add_argument(
         "-save",
         "--save-animation",
@@ -98,7 +94,6 @@ def parse_arguments() -> argparse.Namespace:
         default="EI",
         help="Choice of acquisition function.",
     )
-
     bo_options.add_argument(
         "-beta",
         "--beta",
@@ -106,7 +101,6 @@ def parse_arguments() -> argparse.Namespace:
         default=2.0,
         help="Tuning parameter for UCB method only.",
     )
-
     bo_options.add_argument(
         "-k",
         "--kernel",
@@ -115,7 +109,6 @@ def parse_arguments() -> argparse.Namespace:
         default="matern",
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
-
     bo_options.add_argument(
         "-i",
         "--isotropic",
