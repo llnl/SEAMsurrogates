@@ -31,7 +31,10 @@ def parse_arguments():
         description="Train GP surrogate models on datasets from data/.",
     )
 
-    parser.add_argument(
+    data_options = parser.add_argument_group("data options")
+    gp_options = parser.add_argument_group("GP model options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -40,7 +43,7 @@ def parse_arguments():
         help="Which dataset to use.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-tr",
         "--n-train",
         type=int,
@@ -48,7 +51,7 @@ def parse_arguments():
         help="Number of train samples.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-te",
         "--n-test",
         type=int,
@@ -56,14 +59,21 @@ def parse_arguments():
         help="Number of test samples.",
     )
 
-    parser.add_argument(
-        "-ny",
-        "--normalize-y",
-        action="store_true",
-        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    data_options.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random number generator seed.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
+        "--LHD",
+        action="store_true",
+        help="Use an LHD design (passed into split_data if supported).",
+    )
+
+    gp_options.add_argument(
         "-k",
         "--kernel",
         type=str,
@@ -72,14 +82,14 @@ def parse_arguments():
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "--no-scale-inputs",
         dest="scale_inputs",
         action="store_false",
@@ -87,7 +97,14 @@ def parse_arguments():
         help="Disable input normalization (default: scale inputs to unit cube).",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
         "--lengthscale-bounds",
         type=float,
         nargs=2,
@@ -96,27 +113,13 @@ def parse_arguments():
         help="Bounds for kernel lengthscale constraint.",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "--noise-bounds",
         type=float,
         nargs=2,
         default=(1e-8, 1e-1),
         metavar=("LOW", "HIGH"),
         help="Bounds for likelihood noise constraint.",
-    )
-
-    parser.add_argument(
-        "--LHD",
-        action="store_true",
-        help="Use an LHD design (passed into split_data if supported).",
-    )
-
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Random number generator seed.",
     )
 
     return parser.parse_args()

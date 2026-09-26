@@ -32,7 +32,10 @@ def parse_arguments():
         description="Train GP surrogate models on synthetic test functions.",
     )
 
-    parser.add_argument(
+    experiment = parser.add_argument_group("experiment options")
+    gp_options = parser.add_argument_group("GP model options")
+
+    experiment.add_argument(
         "-f",
         "--objective-function",
         type=str,
@@ -40,7 +43,7 @@ def parse_arguments():
         help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-tr",
         "--n-train",
         type=int,
@@ -48,7 +51,7 @@ def parse_arguments():
         help="Number of points in training data set.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-te",
         "--n-test",
         type=int,
@@ -56,30 +59,15 @@ def parse_arguments():
         help="Number of points in testing data set.",
     )
 
-    parser.add_argument(
-        "-sx",
-        "--scale-x",
-        action="store_true",
-        default=False,
-        help="Scale the input values to [0,1] per dimension using training data.",
-    )
-
-    parser.add_argument(
-        "-ny",
-        "--normalize-y",
-        action="store_true",
-        default=False,
-        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
-    )
-
-    parser.add_argument(
-        "--fixed-nugget",
-        type=float,
+    experiment.add_argument(
+        "-s",
+        "--seed",
+        type=int,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        help="Random seed for reproducibility.",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "-k",
         "--kernel",
         type=str,
@@ -88,19 +76,34 @@ def parse_arguments():
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
+    gp_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--fixed-nugget",
+        type=float,
         default=None,
-        help="Random seed for reproducibility.",
+        help="Fix the likelihood noise (nugget).",
     )
 
     return parser.parse_args()
