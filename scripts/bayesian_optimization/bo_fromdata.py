@@ -11,10 +11,10 @@ Usage examples:
 
 ./bo_fromdata.py --help
 ./bo_fromdata.py
-./bo_fromdata.py --dataset JAG --n_iter 15 --n_initial 10
-./bo_fromdata.py --dataset borehole --n_iter 20 --kernel rbf --seed 123
-./bo_fromdata.py --dataset JAG --kernel matern --beta 2.0 --init_design lhd
-./bo_fromdata.py --dataset borehole --init_design maximin_lhd --fixed_nugget 1e-7
+./bo_fromdata.py --dataset JAG --n-iter 15 --n-initial 10
+./bo_fromdata.py --dataset borehole --n-iter 20 --kernel rbf --seed 123
+./bo_fromdata.py --dataset JAG --kernel matern --beta 2.0 --init-design lhd
+./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
 """
 
 import argparse
@@ -44,7 +44,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-it",
-        "--n_iter",
+        "--n-iter",
         type=int,
         default=10,
         help="Number of BO iterations.",
@@ -52,7 +52,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-in",
-        "--n_initial",
+        "--n-initial",
         type=int,
         default=5,
         help="Number of initial sample points.",
@@ -91,7 +91,7 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--init_design",
+        "--init-design",
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
         default="random",
@@ -99,7 +99,7 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--fixed_nugget",
+        "--fixed-nugget",
         type=float,
         default=None,
         help="Fix GP likelihood noise tightly around this nugget value.",

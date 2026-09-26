@@ -11,10 +11,10 @@ Usage examples:
 
 ./nn_sandbox.py --help
 ./nn_sandbox.py
-./nn_sandbox.py --objective_function=griewank --epochs 200 --learning_rate 0.001
-./nn_sandbox.py --hidden_sizes 16 8 --batch_size 20 --epochs 250
-./nn_sandbox.py --objective_function=branin --hidden_sizes 64 32 16 --n_test 500
-./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
+./nn_sandbox.py --objective-function=griewank --epochs 200 --learning-rate 0.001
+./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
+./nn_sandbox.py --objective-function=branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
 import argparse
@@ -42,7 +42,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-f",
-        "--objective_function",
+        "--objective-function",
         type=str,
         default="ackley",
         help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
@@ -50,7 +50,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-nx",
-        "--normalize_x",
+        "--normalize-x",
         action="store_true",
         default=False,
         help="Whether or not to normalize the input values by removing the "
@@ -59,7 +59,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-sx",
-        "--scale_x",
+        "--scale-x",
         action="store_true",
         default=False,
         help="Whether or not to scale the input values to [0,1] using min-max "
@@ -68,7 +68,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-ny",
-        "--normalize_y",
+        "--normalize-y",
         action="store_true",
         default=False,
         help="Whether or not to normalize the output values by removing the "
@@ -77,7 +77,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-sy",
-        "--scale_y",
+        "--scale-y",
         action="store_true",
         default=False,
         help="Whether or not to scale the output values to [0,1] using min-max"
@@ -102,21 +102,21 @@ def parse_arguments():
 
     parser.add_argument(
         "-b",
-        "--batch_size",
+        "--batch-size",
         type=int,
         default=5,
         help="Batch size for training.",
     )
 
     parser.add_argument(
-        "--n_train",
+        "--n-train",
         type=int,
         default=90,
         help="Number of training points.",
     )
 
     parser.add_argument(
-        "--n_test",
+        "--n-test",
         type=int,
         default=10,
         help="Number of testing points.",
@@ -124,7 +124,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-hs",
-        "--hidden_sizes",
+        "--hidden-sizes",
         type=int,
         nargs="+",
         default=[12, 12],
@@ -133,7 +133,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-l",
-        "--learning_rate",
+        "--learning-rate",
         type=float,
         default=0.00001,
         help="Learning rate for SGD optimization.",
@@ -141,7 +141,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-mt",
-        "--multi_train",
+        "--multi-train",
         action="store_true",
         default=False,
         help="If set, trains across multiple hidden dims and learning rates.",
@@ -149,7 +149,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-mh",
-        "--multi_hidden_sizes",
+        "--multi-hidden-sizes",
         type=int,
         nargs="+",
         default=[8, 12, 16],
@@ -158,7 +158,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-ml",
-        "--multi_learning_rates",
+        "--multi-learning-rates",
         type=float,
         nargs="+",
         default=[1e-3, 1e-4, 1e-5],
@@ -167,7 +167,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-sp",
-        "--surface_plot",
+        "--surface-plot",
         action="store_true",
         default=False,
         help="If set, generates a surface plot of surrogate and test function "
@@ -176,7 +176,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-vp",
-        "--verbose_plot",
+        "--verbose-plot",
         action="store_true",
         default=False,
         help="If set, includes (hyper)parameter values in loss plot title "

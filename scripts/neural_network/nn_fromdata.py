@@ -10,9 +10,9 @@ Usage examples:
 
 ./nn_fromdata.py --help
 ./nn_fromdata.py
-./nn_fromdata.py -d JAG --hidden_sizes 10 20
-./nn_fromdata.py -d JAG --hidden_sizes 15 15 --batch_size 20 --epochs 400
-./nn_fromdata.py -d borehole --hidden_sizes 60 60 --batch_size 40 --epochs 600 --learning_rate 0.02
+./nn_fromdata.py -d JAG --hidden-sizes 10 20
+./nn_fromdata.py -d JAG --hidden-sizes 15 15 --batch-size 20 --epochs 400
+./nn_fromdata.py -d borehole --hidden-sizes 60 60 --batch-size 40 --epochs 600 --learning-rate 0.02
 """
 
 import argparse
@@ -43,7 +43,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
@@ -51,7 +51,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
@@ -81,7 +81,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-b",
-        "--batch_size",
+        "--batch-size",
         type=int,
         default=5,
         help="Batch size for training.",
@@ -89,7 +89,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-hs",
-        "--hidden_sizes",
+        "--hidden-sizes",
         type=int,
         nargs="+",
         default=[5, 5],
@@ -98,7 +98,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-l",
-        "--learning_rate",
+        "--learning-rate",
         type=float,
         default=0.001,
         help="Learning rate for SGD optimization.",
@@ -106,7 +106,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-vp",
-        "--verbose_plot",
+        "--verbose-plot",
         action="store_true",
         default=False,
         help="If set, includes (hyper)parameter values in loss plot title.",

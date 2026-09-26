@@ -12,9 +12,9 @@ Usage examples:
 ./sa_fromdata.py --help
 ./sa_fromdata.py
 ./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
-./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale_x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y --exclude r Tu
+./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale-x
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu
 """
 
 import argparse
@@ -49,14 +49,14 @@ def parse_arguments():
 
     parser.add_argument(
         "-sx",
-        "--scale_x",
+        "--scale-x",
         action="store_true",
         default=True,
         help="Normalize inputs to unit cube (GPSurrogate.scale_inputs).",
     )
 
     parser.add_argument(
-        "--no-scale_x",
+        "--no-scale-x",
         dest="scale_x",
         action="store_false",
         help="Disable input normalization.",
@@ -64,7 +64,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-ny",
-        "--normalize_y",
+        "--normalize-y",
         action="store_true",
         default=False,
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
@@ -84,7 +84,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
@@ -92,14 +92,14 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
     )
 
     parser.add_argument(
-        "--noise_bounds",
+        "--noise-bounds",
         type=float,
         nargs=2,
         default=(1e-8, 1e-1),

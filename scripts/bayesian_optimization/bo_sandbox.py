@@ -11,11 +11,11 @@ Usage examples:
 
 ./bo_sandbox.py --help
 ./bo_sandbox.py
-./bo_sandbox.py --objective_function parabola --acquisition EI --init_design lhd --save_animation
-./bo_sandbox.py --objective_function parabola --acquisition EI --n_iteration 15
-./bo_sandbox.py --objective_function parabola --acquisition random --n_iteration 15 --n_initial 10
-./bo_sandbox.py --objective_function ackley --acquisition UCB --n_initial 3 --n_iteration 20 --beta 2.0
-./bo_sandbox.py --objective_function branin --acquisition UCB --n_iteration 20 --n_initial 3 --seed 2
+./bo_sandbox.py --objective-function parabola --acquisition EI --init-design lhd --save-animation
+./bo_sandbox.py --objective-function parabola --acquisition EI --n-iteration 15
+./bo_sandbox.py --objective-function parabola --acquisition random --n-iteration 15 --n-initial 10
+./bo_sandbox.py --objective-function ackley --acquisition UCB --n-initial 3 --n-iteration 20 --beta 2.0
+./bo_sandbox.py --objective-function branin --acquisition UCB --n-iteration 20 --n-initial 3 --seed 2
 """
 
 import argparse
@@ -41,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-f",
-        "--objective_function",
+        "--objective-function",
         type=str,
         default="parabola",
         help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
@@ -56,14 +56,14 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-it",
-        "--n_iteration",
+        "--n-iteration",
         type=int,
         default=10,
         help="Number of Bayesian optimization acquisitions.",
     )
     parser.add_argument(
         "-in",
-        "--n_initial",
+        "--n-initial",
         type=int,
         default=10,
         help="Number of initial samples before Bayesian optimization.",
@@ -83,7 +83,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
     parser.add_argument(
-        "--init_design",
+        "--init-design",
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
         default="random",
@@ -98,7 +98,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-save",
-        "--save_animation",
+        "--save-animation",
         action="store_true",
         help="Save the animation instead of displaying it interactively.",
     )

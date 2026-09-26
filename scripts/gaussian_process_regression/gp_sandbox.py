@@ -7,10 +7,10 @@ Usage examples:
 
 ./gp_sandbox.py --help
 ./gp_sandbox.py
-./gp_sandbox.py --objective_function=parabola --kernel=matern --isotropic
-./gp_sandbox.py --objective_function=parabola --kernel=matern
-./gp_sandbox.py --objective_function=branin --kernel=rbf --seed 1
-./gp_sandbox.py --objective_function=ackley -k rbf -tr 200
+./gp_sandbox.py --objective-function=parabola --kernel=matern --isotropic
+./gp_sandbox.py --objective-function=parabola --kernel=matern
+./gp_sandbox.py --objective-function=branin --kernel=rbf --seed 1
+./gp_sandbox.py --objective-function=ackley -k rbf -tr 200
 """
 
 import argparse
@@ -34,7 +34,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-f",
-        "--objective_function",
+        "--objective-function",
         type=str,
         default="parabola",
         help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
@@ -42,7 +42,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=100,
         help="Number of points in training data set.",
@@ -50,7 +50,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of points in testing data set.",
@@ -58,7 +58,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-sx",
-        "--scale_x",
+        "--scale-x",
         action="store_true",
         default=False,
         help="Scale the input values to [0,1] per dimension using training data.",
@@ -66,14 +66,14 @@ def parse_arguments():
 
     parser.add_argument(
         "-ny",
-        "--normalize_y",
+        "--normalize-y",
         action="store_true",
         default=False,
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
     )
 
     parser.add_argument(
-        "--fixed_nugget",
+        "--fixed-nugget",
         type=float,
         default=None,
         help="Fix the likelihood noise (nugget).",

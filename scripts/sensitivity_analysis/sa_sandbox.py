@@ -8,8 +8,8 @@ Usage examples:
 
 ./sa_sandbox.py --help
 ./sa_sandbox.py
-./sa_sandbox.py --objective_function otlcircuit --n_train 200
-./sa_sandbox.py --objective_function otlcircuit --n_train 200 --exclude Beta
+./sa_sandbox.py --objective-function otlcircuit --n-train 200
+./sa_sandbox.py --objective-function otlcircuit --n-train 200 --exclude Beta
 ./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
@@ -44,7 +44,7 @@ def parse_arguments():
 
     experiment.add_argument(
         "-f",
-        "--objective_function",
+        "--objective-function",
         type=str,
         choices=["parabola", "otlcircuit", "piston", "wingweight", "borehole"],
         default="parabola",
@@ -53,7 +53,7 @@ def parse_arguments():
 
     experiment.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=100,
         help="Number of points to have in training data set.",
@@ -61,7 +61,7 @@ def parse_arguments():
 
     experiment.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
@@ -92,7 +92,7 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "--fixed_nugget",
+        "--fixed-nugget",
         type=float,
         default=None,
         help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",

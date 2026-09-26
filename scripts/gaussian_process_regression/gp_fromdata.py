@@ -6,11 +6,11 @@ Usage examples:
 
 ./gp_fromdata.py --help
 ./gp_fromdata.py
-./gp_fromdata.py -d JAG --n_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py -d JAG --n_train=300 --kernel=matern
-./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize_y
-./gp_fromdata.py -d borehole --n_train=200 --kernel=matern
-./gp_fromdata.py -d hst_H --n_train=200 --kernel=matern --normalize_y
+./gp_fromdata.py -d JAG --n-train=200 --kernel=rbf --isotropic
+./gp_fromdata.py -d JAG --n-train=300 --kernel=matern
+./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
+./gp_fromdata.py -d borehole --n-train=200 --kernel=matern
+./gp_fromdata.py -d hst_H --n-train=200 --kernel=matern --normalize-y
 """
 
 import argparse
@@ -42,7 +42,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=50,
         help="Number of train samples.",
@@ -50,7 +50,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=500,
         help="Number of test samples.",
@@ -58,7 +58,7 @@ def parse_arguments():
 
     parser.add_argument(
         "-ny",
-        "--normalize_y",
+        "--normalize-y",
         action="store_true",
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
     )
@@ -80,7 +80,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--scale_inputs",
+        "--scale-inputs",
         dest="scale_inputs",
         action="store_true",
         default=True,
@@ -88,14 +88,14 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--no-scale_inputs",
+        "--no-scale-inputs",
         dest="scale_inputs",
         action="store_false",
         help="Disable input normalization.",
     )
 
     parser.add_argument(
-        "--lengthscale_bounds",
+        "--lengthscale-bounds",
         type=float,
         nargs=2,
         default=(1e-2, 100.0),
@@ -104,7 +104,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--noise_bounds",
+        "--noise-bounds",
         type=float,
         nargs=2,
         default=(1e-8, 1e-1),
