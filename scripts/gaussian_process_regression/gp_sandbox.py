@@ -7,11 +7,10 @@ Usage examples:
 
 ./gp_sandbox.py --help
 ./gp_sandbox.py
-./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic
-./gp_sandbox.py --objective_function=parabola --kernels=matern
-./gp_sandbox.py --objective_function=branin --kernels=rbf --seed 1
+./gp_sandbox.py --objective_function=parabola --kernel=matern --isotropic
+./gp_sandbox.py --objective_function=parabola --kernel=matern
+./gp_sandbox.py --objective_function=branin --kernel=rbf --seed 1
 ./gp_sandbox.py --objective_function=ackley -k rbf -tr 200
-./gp_sandbox.py -f "holder_table" -k rbf matern
 """
 
 import argparse
@@ -82,11 +81,10 @@ def parse_arguments():
 
     parser.add_argument(
         "-k",
-        "--kernels",
+        "--kernel",
         type=str,
-        nargs="+",
         choices=["matern", "rbf", "periodic"],
-        default=["matern"],
+        default="matern",
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
@@ -118,7 +116,7 @@ def main():
     """Simulate data, train GP model, evaluate, and plot/log results."""
     args = parse_arguments()
     objective_function = args.objective_function
-    kernels = args.kernels
+    kernel = args.kernel
     n_train = args.n_train
     n_test = args.n_test
     scale_x = args.scale_x
@@ -146,95 +144,94 @@ def main():
         fixed_noise = None
         noise_bounds = (1e-8, 1e-1)
 
-    for kernel in kernels:
-        gp = GPSurrogate(
-            x_train=x_train,
-            y_train=y_train,
-            x_test=x_test,
-            y_test=y_test,
-            kernel=kernel,
-            isotropic=isotropic,
-            scale_inputs=scale_x,
-            scale_outputs=normalize_y,
-            fixed_noise=fixed_noise,
-            noise_bounds=noise_bounds,
-        )
+    gp = GPSurrogate(
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test,
+        kernel=kernel,
+        isotropic=isotropic,
+        scale_inputs=scale_x,
+        scale_outputs=normalize_y,
+        fixed_noise=fixed_noise,
+        noise_bounds=noise_bounds,
+    )
 
-        start_time = time.perf_counter()
-        gp.fit()
-        elapsed_time = time.perf_counter() - start_time
+    start_time = time.perf_counter()
+    gp.fit()
+    elapsed_time = time.perf_counter() - start_time
 
-        pred_train_mean, _pred_train_std = gp.predict(x_train)
-        pred_test_mean, pred_test_std = gp.predict(x_test)
+    pred_train_mean, _pred_train_std = gp.predict(x_train)
+    pred_test_mean, pred_test_std = gp.predict(x_test)
 
-        train_mae = mean_absolute_error(y_train, pred_train_mean)
-        test_mae = mean_absolute_error(y_test, pred_test_mean)
+    train_mae = mean_absolute_error(y_train, pred_train_mean)
+    test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-        train_rmse = root_mean_squared_error(y_train, pred_train_mean)
-        test_rmse = root_mean_squared_error(y_test, pred_test_mean)
+    train_rmse = root_mean_squared_error(y_train, pred_train_mean)
+    test_rmse = root_mean_squared_error(y_test, pred_test_mean)
 
-        train_max_abserr, train_max_input = gp.compute_max_error(
-            pred_train_mean, y_train, x_train
-        )
-        test_max_abserr, test_max_input = gp.compute_max_error(
-            pred_test_mean, y_test, x_test
-        )
-        fitted_params = gp.get_fitted_parameters()
-        lower = pred_test_mean - 1.96 * pred_test_std
-        upper = pred_test_mean + 1.96 * pred_test_std
-        coverage = np.mean((y_test >= lower) & (y_test <= upper))
+    train_max_abserr, train_max_input = gp.compute_max_error(
+        pred_train_mean, y_train, x_train
+    )
+    test_max_abserr, test_max_input = gp.compute_max_error(
+        pred_test_mean, y_test, x_test
+    )
+    fitted_params = gp.get_fitted_parameters()
+    lower = pred_test_mean - 1.96 * pred_test_std
+    upper = pred_test_mean + 1.96 * pred_test_std
+    coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
-        timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        log_lines = [
-            f"Run timestamp (%m%d_%H%M%S): {timestamp}",
-            f"Test Function: {objective_function}",
-            f"Number of training points: {n_train}",
-            f"Number of testing points: {n_test}",
-            f"Kernel: {kernel}",
-            f"Isotropic kernel: {isotropic}",
-            f"Learned noise: {fitted_params.get('noise')}",
-            f"Learned outputscale: {fitted_params.get('outputscale')}",
-            f"Learned lengthscale(s): {fitted_params.get('lengthscale')}",
-            f"Scale x values: {scale_x}",
-            f"Standardize outputs (normalize_y): {normalize_y}",
-            f"Fixed nugget: {fixed_nugget}",
-            f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
-            f"Train RMSE: {train_rmse:.5e}",
-            f"Test RMSE: {test_rmse:.5e}",
-            f"Test 95% interval coverage: {coverage:.2%}",
-            f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
-            f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
-            f"Train Mean abs err: {train_mae:.5e}",
-            f"Test Mean abs err:  {test_mae:.5e}",
-            f"Elapsed time for training GP: {elapsed_time:.3f} seconds\n",
-        ]
-        log_message = "\n".join(log_lines)
-        print(log_message)
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Test Function: {objective_function}",
+        f"Number of training points: {n_train}",
+        f"Number of testing points: {n_test}",
+        f"Kernel: {kernel}",
+        f"Isotropic kernel: {isotropic}",
+        f"Learned noise: {fitted_params.get('noise')}",
+        f"Learned outputscale: {fitted_params.get('outputscale')}",
+        f"Learned lengthscale(s): {fitted_params.get('lengthscale')}",
+        f"Scale x values: {scale_x}",
+        f"Standardize outputs (normalize_y): {normalize_y}",
+        f"Fixed nugget: {fixed_nugget}",
+        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
+        f"Train RMSE: {train_rmse:.5e}",
+        f"Test RMSE: {test_rmse:.5e}",
+        f"Test 95% interval coverage: {coverage:.2%}",
+        f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
+        f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
+        f"Train Mean abs err: {train_mae:.5e}",
+        f"Test Mean abs err:  {test_mae:.5e}",
+        f"Elapsed time for training GP: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
 
-        results_dir = Path(__file__).parent / "results"
-        log_results(
-            log_message,
-            path_to_log=results_dir
-            / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
-        )
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir
+        / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
+    )
 
-        gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
+    gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
 
-        gp.plot_predictive_mean(
-            test_rmse=test_rmse,
-            objective_function=objective_function,
-            scale_x=scale_x,
-            normalize_y=normalize_y,
-            plots_dir=plots_dir,
-        )
+    gp.plot_predictive_mean(
+        test_rmse=test_rmse,
+        objective_function=objective_function,
+        scale_x=scale_x,
+        normalize_y=normalize_y,
+        plots_dir=plots_dir,
+    )
 
-        gp.plot_predictive_std_dev(
-            test_rmse=test_rmse,
-            objective_function=objective_function,
-            scale_x=scale_x,
-            normalize_y=normalize_y,
-            plots_dir=plots_dir,
-        )
+    gp.plot_predictive_std_dev(
+        test_rmse=test_rmse,
+        objective_function=objective_function,
+        scale_x=scale_x,
+        normalize_y=normalize_y,
+        plots_dir=plots_dir,
+    )
 
 
 if __name__ == "__main__":
