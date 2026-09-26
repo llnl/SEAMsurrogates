@@ -77,17 +77,17 @@ def parse_arguments() -> argparse.Namespace:
         help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
     parser.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+    parser.add_argument(
         "--init_design",
         type=str,
         choices=["random", "lhd", "maximin_lhd"],
         default="random",
         help="Initial design strategy for BO.",
-    )
-    parser.add_argument(
-        "-i",
-        "--isotropic",
-        action="store_true",
-        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
     parser.add_argument(
         "-s",

@@ -91,17 +91,17 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-p",
-        "--plots",
-        action="store_true",
-        help="Save parity plot (observed vs predicted) with 95 percent intervals.",
-    )
-
-    parser.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--plots",
+        action="store_true",
+        help="Save parity plot (observed vs predicted) with 95 percent intervals.",
     )
 
     parser.add_argument(

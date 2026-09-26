@@ -68,6 +68,13 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -81,13 +88,6 @@ def parse_arguments() -> argparse.Namespace:
         type=float,
         default=2.0,
         help="Exploration parameter for UCB.",
-    )
-
-    parser.add_argument(
-        "-i",
-        "--isotropic",
-        action="store_true",
-        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
     parser.add_argument(
