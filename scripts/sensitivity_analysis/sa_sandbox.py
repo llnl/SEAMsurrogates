@@ -38,6 +38,14 @@ def parse_arguments():
         description="Perform sensitivity analysis on synthetic test functions using GP surrogates.",
     )
 
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
     experiment = parser.add_argument_group("experiment options")
     gp_options = parser.add_argument_group("GP options")
     parabola = parser.add_argument_group("parabola options")
@@ -143,6 +151,7 @@ def main():
     exclude = args.exclude
     kernel = args.kernel
     isotropic = args.isotropic
+    seed = args.seed
 
     # Set output directories relative to this script
     plots_dir = Path(__file__).parent / "plots"
@@ -152,7 +161,7 @@ def main():
     bounds = np.array(bounds_list, dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
-        objective_function, n_train, n_test, b1, b2, b12
+        objective_function, n_train, n_test, b1, b2, b12, seed=seed
     )
 
     # Get variable names from test_functions module

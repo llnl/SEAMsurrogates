@@ -39,6 +39,14 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    parser.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -140,6 +148,7 @@ def main():
     n_test = args.n_test
     exclude = args.exclude
     noise_bounds = tuple(args.noise_bounds)
+    seed = args.seed
 
     # Check data availability
     n_samples = n_test + n_train
@@ -149,7 +158,9 @@ def main():
         )
 
     df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
-    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=n_train)
+    x_train, x_test, y_train, y_test = data_processing.split_data(
+        df, n_train=n_train, seed=seed
+    )
 
     # Get variable names from dataset config (all columns except the last one which is 'y')
     variable_names = data_processing.DATASET_CONFIG[dataset]["columns"][:-1]
