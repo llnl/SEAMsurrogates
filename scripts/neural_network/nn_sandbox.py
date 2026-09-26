@@ -88,8 +88,8 @@ def parse_arguments():
         "-s",
         "--seed",
         type=int,
-        default=1,
-        help="Random number generator seed.",
+        default=42,
+        help="Random seed for reproducibility.",
     )
 
     parser.add_argument(

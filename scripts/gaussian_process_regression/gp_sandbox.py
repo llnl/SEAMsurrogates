@@ -36,7 +36,7 @@ def parse_arguments():
         "-s",
         "--seed",
         type=int,
-        default=None,
+        default=42,
         help="Random seed for reproducibility.",
     )
 
