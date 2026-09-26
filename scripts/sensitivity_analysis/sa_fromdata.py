@@ -113,7 +113,7 @@ def parse_arguments():
         type=str,
         choices=["rbf", "matern", "periodic"],
         default="matern",
-        help="Kernel type for Gaussian Process (default: matern).",
+        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
     parser.add_argument(

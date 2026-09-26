@@ -76,6 +76,15 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
+    )
+
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
@@ -132,6 +141,7 @@ def main():
     b2 = args.b2
     b12 = args.b12
     exclude = args.exclude
+    kernel = args.kernel
     isotropic = args.isotropic
 
     # Set output directories relative to this script
@@ -175,7 +185,7 @@ def main():
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        kernel="matern",
+        kernel=kernel,
         isotropic=isotropic,
         scale_inputs=True,  # SA data are now in physical units
         scale_outputs=True,  # matches old normalize_y=True intent
@@ -221,7 +231,7 @@ def main():
         f"Test Function: {objective_function}\n"
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
-        f"Kernel: matern\n"
+        f"Kernel: {kernel}\n"
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
         f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"

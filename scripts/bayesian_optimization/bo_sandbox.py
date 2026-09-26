@@ -74,7 +74,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["matern", "rbf", "periodic"],
         default="matern",
-        help="Kernel function used for GP surrogate.",
+        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
     parser.add_argument(
         "--init_design",

@@ -69,7 +69,7 @@ def parse_arguments():
         type=str,
         choices=["matern", "rbf", "periodic"],
         default="matern",
-        help="Kernel type for GPSurrogate.",
+        help="Choice of kernel function from 'rbf', 'matern', or 'periodic'.",
     )
 
     parser.add_argument(
