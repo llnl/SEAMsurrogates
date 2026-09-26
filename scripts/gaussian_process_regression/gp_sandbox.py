@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
 This script simulates data from a test function, fits a Gaussian process to the
-data, and saves a log message and plot of the fitted surface if desired.
+data, and saves a log message and plot of the fitted surface.
 
 Usage examples:
 
 ./gp_sandbox.py --help
 ./gp_sandbox.py
-./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic --plots
-./gp_sandbox.py --objective_function=parabola --kernels=matern --plots
-./gp_sandbox.py --objective_function=branin --kernels=rbf --seed 1 --plots
-./gp_sandbox.py --objective_function=ackley -k rbf -p -l -tr 200
-./gp_sandbox.py -f "holder_table" -k rbf matern -p -l
+./gp_sandbox.py --objective_function=parabola --kernels=matern --isotropic
+./gp_sandbox.py --objective_function=parabola --kernels=matern
+./gp_sandbox.py --objective_function=branin --kernels=rbf --seed 1
+./gp_sandbox.py --objective_function=ackley -k rbf -tr 200
+./gp_sandbox.py -f "holder_table" -k rbf matern
 """
 
 import argparse
@@ -98,13 +98,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-p",
-        "--plots",
-        action="store_true",
-        help="Save parity plot (observed vs predicted) with 95 percent intervals.",
-    )
-
-    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -131,7 +124,6 @@ def main():
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
-    plots = args.plots
     isotropic = args.isotropic
     seed = args.seed
 
@@ -226,24 +218,23 @@ def main():
             / f"{objective_function}_{kernel}_nugget-{fixed_nugget if fixed_nugget is not None else 'learned'}.txt",
         )
 
-        if plots:
-            gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
+        gp.plot_test_predictions(dataset=objective_function, plots_dir=plots_dir)
 
-            gp.plot_predictive_mean(
-                test_rmse=test_rmse,
-                objective_function=objective_function,
-                scale_x=scale_x,
-                normalize_y=normalize_y,
-                plots_dir=plots_dir,
-            )
+        gp.plot_predictive_mean(
+            test_rmse=test_rmse,
+            objective_function=objective_function,
+            scale_x=scale_x,
+            normalize_y=normalize_y,
+            plots_dir=plots_dir,
+        )
 
-            gp.plot_predictive_std_dev(
-                test_rmse=test_rmse,
-                objective_function=objective_function,
-                scale_x=scale_x,
-                normalize_y=normalize_y,
-                plots_dir=plots_dir,
-            )
+        gp.plot_predictive_std_dev(
+            test_rmse=test_rmse,
+            objective_function=objective_function,
+            scale_x=scale_x,
+            normalize_y=normalize_y,
+            plots_dir=plots_dir,
+        )
 
 
 if __name__ == "__main__":
