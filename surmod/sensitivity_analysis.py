@@ -1,6 +1,5 @@
 """
-Utility functions for simulating, evaluating, and visualizing surrogate modeling
-sensitivity analysis experiments using benchmark engineering test problems.
+Sensitivity analysis for surrogate models.
 """
 
 from collections.abc import Callable, Sequence
@@ -17,13 +16,13 @@ from surmod.test_functions import (
 
 
 def load_test_settings(
-    objective_function: str,
+    test_function: str,
 ) -> tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
     """
     Load the test function and its input dimension for simulating data.
 
     Args:
-        objective_function (str): Name of the objective function to load.
+        test_function (str): Name of the test function to load.
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
 
     Returns:
@@ -35,14 +34,14 @@ def load_test_settings(
                     from.
 
     Raises:
-        ValueError: If the provided objective_function is not recognized.
+        ValueError: If the provided test_function is not recognized.
     """
-    out_dim, test_function, _ = get_input_spec(objective_function)
+    out_dim, test_function, _ = get_input_spec(test_function)
     return out_dim, test_function
 
 
 def simulate_data(
-    objective_function: str,
+    test_function: str,
     n_train: int,
     n_test: int,
     b1: float,
@@ -54,7 +53,7 @@ def simulate_data(
     Simulate training and testing data from a selected test function.
 
     Args:
-        objective_function (str): Name of the objective function to use.
+        test_function (str): Name of the test function to use.
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
         n_train (int): Number of training samples to generate.
         n_test (int): Number of testing samples to generate.
@@ -72,7 +71,7 @@ def simulate_data(
     """
     # Set-up simulation
     n_total = n_train + n_test
-    out_dim, test_function, bounds_list = get_input_spec(objective_function)
+    out_dim, test_function_callable, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)
     bounds_low = bounds[:, 0]
     bounds_high = bounds[:, 1]
@@ -80,10 +79,10 @@ def simulate_data(
     # Sample random data from test function
     rng = np.random.default_rng(seed)
     x_data = rng.uniform(bounds_low, bounds_high, size=(n_total, out_dim))
-    if objective_function == "parabola":
-        y_data = test_function(x_data, b1, b2, b12)
+    if test_function == "parabola":
+        y_data = test_function_callable(x_data, b1, b2, b12)
     else:
-        y_data = test_function(x_data)
+        y_data = test_function_callable(x_data)
 
     # Split data into training and testing sets
     x_train = x_data.copy()[:n_train]
@@ -95,7 +94,7 @@ def simulate_data(
     return x_train, x_test, y_train, y_test
 
 
-def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> None:
+def plot_test_predictions(x_test, y_test, gp_model, test_function: str) -> None:
     """
     Plot GP predictions against observed test values with uncertainty intervals.
 
@@ -160,7 +159,7 @@ def plot_test_predictions(x_test, y_test, gp_model, objective_function: str) -> 
     )
     plot_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = plot_dir / f"test_predictions_{objective_function}_{timestamp}.png"
+    path_to_plot = plot_dir / f"test_predictions_{test_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")
 
@@ -171,7 +170,7 @@ def sobol_plot(
     variables: list[str],
     S1_conf: Sequence[float],
     ST_conf: Sequence[float],
-    objective_function: str,
+    test_function: str,
 ):
     """
     Plots first and total order Sobol sensitivity indices with confidence
@@ -183,7 +182,7 @@ def sobol_plot(
         variables (list[str]): List of variable names.
         S1_conf (Sequence[float]): Confidence intervals for first order indices.
         ST_conf (Sequence[float]): Confidence intervals for total order indices.
-        objective_function (str): Name of the objective function, used in the
+        test_function (str): Name of the test function, used in the
             saved plot filename.
 
     Returns:
@@ -217,6 +216,6 @@ def sobol_plot(
     )
     plot_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = plot_dir / f"sensitivity_{objective_function}_{timestamp}.png"
+    path_to_plot = plot_dir / f"sensitivity_{test_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

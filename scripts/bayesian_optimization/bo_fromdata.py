@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 
 """
-This script demonstrates Bayesian Optimization on a chosen dataset and compares
-performance across acquisition functions:
-- Expected Improvement (EI)
-- Probability of Improvement (PI)
-- Upper Confidence Bound (UCB)
-- Predictive Variance (PV)
-- Random
+Compare Bayesian Optimization acquisition functions on datasets.
+
+This script runs multiple BO strategies (EI, PI, UCB, PV, random) on a chosen dataset
+and plots their performance over iterations. Useful for benchmarking acquisition
+functions on real data.
 
 Usage examples:
 
-./bo_fromdata.py --dataset=JAG --n_iter=15 --n_init=10
-./bo_fromdata.py --dataset=borehole --n_iter=20 --kernel=rbf --seed=123
-./bo_fromdata.py --dataset=JAG --kernel=matern --beta=2.0 --init_design=lhd
-./bo_fromdata.py --dataset=borehole --init_design=maximin_lhd --fixed_nugget=1e-7
+./bo_fromdata.py --help
+./bo_fromdata.py
+./bo_fromdata.py --dataset JAG --n-iter 15 --n-initial 10
+./bo_fromdata.py --dataset borehole --n-iter 20 --kernel rbf --seed 123
+./bo_fromdata.py --dataset JAG --kernel matern --beta 2.0 --init-design lhd
+./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
 """
 
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +27,7 @@ import torch
 
 from surmod import bayesian_optimization as bo
 from surmod import data_processing
+from surmod.utils import log_results
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -34,6 +37,17 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    bo_options = parser.add_argument_group("Bayesian optimization options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -42,40 +56,31 @@ def parse_arguments() -> argparse.Namespace:
         help="Which dataset to use.",
     )
 
-    parser.add_argument(
-        "-it",
-        "--n_iter",
-        type=int,
-        default=10,
-        help="Number of BO iterations.",
-    )
-
-    parser.add_argument(
+    data_options.add_argument(
         "-in",
-        "--n_init",
+        "--n-initial",
         type=int,
         default=5,
         help="Number of initial sample points.",
     )
 
-    parser.add_argument(
-        "-k",
-        "--kernel",
-        type=str,
-        choices=["matern", "rbf", "periodic"],
-        default="matern",
-        help="Choose kernel.",
-    )
-
-    parser.add_argument(
-        "-s",
-        "--seed",
+    data_options.add_argument(
+        "-it",
+        "--n-iter",
         type=int,
-        default=42,
-        help="Random seed.",
+        default=10,
+        help="Number of BO iterations.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
+        "--init-design",
+        type=str,
+        choices=["random", "lhd", "maximin_lhd"],
+        default="random",
+        help="Initial design strategy for Bayesian optimization.",
+    )
+
+    bo_options.add_argument(
         "-beta",
         "--beta",
         type=float,
@@ -83,19 +88,61 @@ def parse_arguments() -> argparse.Namespace:
         help="Exploration parameter for UCB.",
     )
 
-    parser.add_argument(
-        "--init_design",
+    bo_options.add_argument(
+        "-k",
+        "--kernel",
         type=str,
-        choices=["random", "lhd", "maximin_lhd"],
-        default="random",
-        help="Initial design strategy for Bayesian optimization.",
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="GP kernel function.",
     )
 
-    parser.add_argument(
-        "--fixed_nugget",
+    bo_options.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    bo_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    bo_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    bo_options.add_argument(
+        "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix GP likelihood noise tightly around this nugget value.",
+        help="Fix the likelihood noise (nugget).",
+    )
+
+    bo_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    bo_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
     )
 
     return parser.parse_args()
@@ -105,7 +152,7 @@ def main() -> None:
     args = parse_arguments()
     dataset = args.dataset
     kernel = args.kernel
-    n_init = args.n_init
+    n_initial = args.n_initial
     n_iter = args.n_iter
     seed = args.seed
 
@@ -116,7 +163,7 @@ def main() -> None:
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"
 
-    n_samples = n_init + n_iter
+    n_samples = n_initial + n_iter
     if n_samples > 10000:
         raise ValueError(
             f"Total samples ({n_samples}) exceed existing dataset size limit (10000)."
@@ -124,12 +171,14 @@ def main() -> None:
 
     df = data_processing.load_data(dataset=dataset, n_samples=10000, random=False)
 
-    if n_init > len(df):
-        raise ValueError(f"n_init ({n_init}) cannot exceed dataset size ({len(df)}).")
-
-    if n_init + n_iter > len(df):
+    if n_initial > len(df):
         raise ValueError(
-            f"n_init + n_iter ({n_init + n_iter}) exceeds dataset size ({len(df)})."
+            f"n_initial ({n_initial}) cannot exceed dataset size ({len(df)})."
+        )
+
+    if n_initial + n_iter > len(df):
+        raise ValueError(
+            f"n_initial + n_iter ({n_initial + n_iter}) exceeds dataset size ({len(df)})."
         )
 
     data = df.to_numpy()
@@ -168,7 +217,7 @@ def main() -> None:
     acquisition_functions = ["EI", "PI", "UCB", "PV", "random"]
 
     base_kwargs = {
-        "isotropic": False,
+        "isotropic": args.isotropic,
         "n_acquire": n_iter,
         "seed": seed,
         "noise_bounds": noise_bounds,
@@ -180,6 +229,7 @@ def main() -> None:
     optimizers = {}
     max_y_histories = {}
 
+    start_time = time.time()
     for acq_func in acquisition_functions:
         kwargs = base_kwargs.copy()
         kwargs["acquisition_function"] = acq_func
@@ -187,10 +237,11 @@ def main() -> None:
             kwargs["beta"] = args.beta
 
         optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
-        max_y_history = optimizer.bayes_opt(df, n_init)[2]
+        max_y_history = optimizer.bayes_opt(df, n_initial)[2]
 
         optimizers[acq_func] = optimizer
         max_y_histories[acq_func] = max_y_history
+    elapsed_time = time.time() - start_time
 
     bo.plot_acquisition_comparison(
         max_y_histories["EI"],
@@ -200,10 +251,38 @@ def main() -> None:
         max_y_histories["random"],
         kernel,
         n_iter,
-        n_init,
+        n_initial,
         f"{dataset}_{args.init_design}",
         beta=args.beta,
         plots_dir=plots_dir,
+    )
+
+    # Log results
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Dataset: {dataset}",
+        f"Kernel: {kernel}",
+        f"Isotropic: {args.isotropic}",
+        f"Initial design: {args.init_design}",
+        f"Number of initial points: {n_initial}",
+        f"Number of BO iterations: {n_iter}",
+        f"Beta (UCB): {args.beta}",
+        f"Fixed nugget: {fixed_noise}",
+        f"Best EI final value: {max_y_histories['EI'][-1]:.5e}",
+        f"Best PI final value: {max_y_histories['PI'][-1]:.5e}",
+        f"Best UCB final value: {max_y_histories['UCB'][-1]:.5e}",
+        f"Best PV final value: {max_y_histories['PV'][-1]:.5e}",
+        f"Best random final value: {max_y_histories['random'][-1]:.5e}",
+        f"Elapsed time for all BO runs: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
+
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{dataset}_{args.init_design}_bo_comparison.txt",
     )
 
 

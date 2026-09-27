@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 
 """
-This script simulates data from a test function, fits a Gaussian process,
-and runs a sensitivity analysis with the fitted GP model.
+Perform sensitivity analysis on synthetic test functions using GP surrogates.
 
-Note: Column exclusion uses zero-based indexing.
+This script trains a GP surrogate on test function data and computes Sobol
+sensitivity indices to identify important input variables. Supports variable
+exclusion and customizable test functions.
 
-Usage:
+Usage examples:
 
-# Make script executable
-chmod +x ./sa_sandbox.py
-
-# Get help
-./sa_sandbox.py -h
-
-# Perform sensitivity analysis on otlcircuit function with 200 training points
-./sa_sandbox.py -f otlcircuit -tr 200
-
-# Perform sensitivity analysis on wingweight function with 150 training points,
-# excluding columns 2 and 3 (zero-based indexing), and save results to log file
-./sa_sandbox.py -f wingweight -tr 150 -e 2 3 -l
+./sa_sandbox.py --help
+./sa_sandbox.py
+./sa_sandbox.py --test-function otlcircuit --n-train 200
+./sa_sandbox.py --test-function otlcircuit --n-train 200 --exclude Beta
+./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
+./sa_sandbox.py -f wingweight -tr 150 -e S_w A
+./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
 """
 
 import argparse
@@ -31,12 +27,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import root_mean_squared_error as rmse
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod import sensitivity_analysis as sa
-from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
-from surmod.test_functions import get_input_spec
+from surmod.gaussian_process import GPSurrogate
+from surmod.test_functions import get_input_spec, get_variable_names
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -46,74 +42,128 @@ def parse_arguments():
         description="Perform sensitivity analysis on synthetic test functions using GP surrogates.",
     )
 
-    parser.add_argument("--b1", type=float, default=1, help="parabola beta_1 parameter")
-    parser.add_argument("--b2", type=float, default=1, help="parabola beta_2 parameter")
     parser.add_argument(
-        "--b12", type=float, default=1, help="parabola beta_12 parameter"
-    )
-
-    parser.add_argument(
-        "-e",
-        "--exclude",
+        "-s",
+        "--seed",
         type=int,
-        nargs="+",
-        help="Columns to exclude from fitting the surrogate model",
+        default=42,
+        help="Random seed for reproducibility.",
     )
 
-    parser.add_argument(
+    experiment = parser.add_argument_group("experiment options")
+    gp_options = parser.add_argument_group("GP options")
+    parabola = parser.add_argument_group("parabola options")
+
+    experiment.add_argument(
         "-f",
-        "--objective_function",
+        "--test-function",
         type=str,
         choices=["parabola", "otlcircuit", "piston", "wingweight", "borehole"],
         default="parabola",
-        help="Choose objective function.",
+        help="Choose test function.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=100,
-        help="Number of points to have in training data set.",
+        help="Number of training samples.",
     )
 
-    parser.add_argument(
+    experiment.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of points to have in testing data set.",
     )
 
-    parser.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Save output in file based on objective function and kernel; if file already exists, append.",
+    experiment.add_argument(
+        "-e",
+        "--exclude",
+        type=str,
+        nargs="+",
+        help="Variable names to exclude from fitting the surrogate model",
     )
 
-    parser.add_argument(
+    gp_options.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="GP kernel function.",
+    )
+
+    gp_options.add_argument(
         "-i",
         "--isotropic",
         action="store_true",
-        help="Use isotropic kernel (same lengthscale for all inputs).",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
-    parser.add_argument(
-        "--fixed_nugget",
+    gp_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+        help="Fix the likelihood noise (nugget).",
+    )
+
+    gp_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    gp_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
+    )
+
+    parabola.add_argument(
+        "--b1",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the x1^2 term.",
+    )
+    parabola.add_argument(
+        "--b2",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the x2^2 term.",
+    )
+    parabola.add_argument(
+        "--b12",
+        type=float,
+        default=1,
+        help="Parabola coefficient for the interaction term.",
     )
 
     return parser.parse_args()
-
-
-def log_results(log_message: str, path_to_log: Path | str) -> None:
-    path = Path(path_to_log)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(log_message + "\n")
 
 
 def main():
@@ -123,48 +173,68 @@ def main():
     model on hold-out data, and plot or log results.
     """
     args = parse_arguments()
-    objective_function = args.objective_function
+    test_function = args.test_function
     n_train = args.n_train
     n_test = args.n_test
-    do_log = args.log
     b1 = args.b1
     b2 = args.b2
     b12 = args.b12
     exclude = args.exclude
+    kernel = args.kernel
     isotropic = args.isotropic
+    lengthscale_bounds = tuple(args.lengthscale_bounds)
+    noise_bounds_arg = tuple(args.noise_bounds)
+    seed = args.seed
 
     # Set output directories relative to this script
     plots_dir = Path(__file__).parent / "plots"
     results_dir = Path(__file__).parent / "results"
 
-    regular_dim, _, bounds_list = get_input_spec(objective_function)
+    _, _, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)
 
     x_train, x_test, y_train, y_test = sa.simulate_data(
-        objective_function, n_train, n_test, b1, b2, b12
+        test_function, n_train, n_test, b1, b2, b12, seed=seed
     )
 
+    # Get variable names from test_functions module
+    variable_names = get_variable_names(test_function)
+
+    # Apply exclusions by converting variable names to indices
     if exclude is not None:
-        x_train = np.copy(np.delete(x_train, exclude, axis=1))
-        x_test = np.copy(np.delete(x_test, exclude, axis=1))
-        bounds = np.delete(bounds, exclude, axis=0)
+        exclude_indices = []
+        for var_name in exclude:
+            if var_name not in variable_names:
+                raise ValueError(
+                    f"Variable '{var_name}' not found in {test_function}. "
+                    f"Valid variables: {variable_names}"
+                )
+            exclude_indices.append(variable_names.index(var_name))
+
+        x_train = np.copy(np.delete(x_train, exclude_indices, axis=1))
+        x_test = np.copy(np.delete(x_test, exclude_indices, axis=1))
+        bounds = np.delete(bounds, exclude_indices, axis=0)
+        variable_names = [name for name in variable_names if name not in exclude]
 
     dim = x_train.shape[1]
 
-    noise_bounds = None
-    if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
+    # Handle fixed nugget
+    fixed_noise = args.fixed_nugget
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds_arg
 
     gp_model = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        kernel="matern",
+        kernel=kernel,
         isotropic=isotropic,
-        scale_inputs=True,  # SA data are now in physical units
-        scale_outputs=True,  # matches old normalize_y=True intent
-        noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+        scale_inputs=args.scale_x,
+        scale_outputs=args.normalize_y,
+        fixed_noise=fixed_noise,
+        lengthscale_bounds=lengthscale_bounds,
+        noise_bounds=noise_bounds_to_use,
+        seed=seed,
     )
 
     start_time = time.perf_counter()
@@ -177,8 +247,8 @@ def main():
     train_mae = mean_absolute_error(y_train, pred_train)
     test_mae = mean_absolute_error(y_test, pred_test)
 
-    train_rmse = rmse(y_train, pred_train)
-    test_rmse = rmse(y_test, pred_test)
+    train_rmse = root_mean_squared_error(y_train, pred_train)
+    test_rmse = root_mean_squared_error(y_test, pred_test)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
         pred_train, y_train, x_train
@@ -186,33 +256,6 @@ def main():
     test_max_abserr, test_max_input = GPSurrogate.compute_max_error(
         pred_test, y_test, x_test
     )
-
-    if objective_function == "wingweight":
-        variable_names = [
-            "S_w",
-            "W_fw",
-            "A",
-            "Lambda",
-            "q",
-            "lambda",
-            "t_c",
-            "N_z",
-            "W_dg",
-            "W_p",
-        ]
-    elif objective_function == "borehole":
-        variable_names = ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"]
-    elif objective_function == "otlcircuit":
-        variable_names = ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"]
-    elif objective_function == "piston":
-        variable_names = ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"]
-    else:
-        variable_names = [f"x{i}" for i in range(1, regular_dim + 1)]
-
-    if exclude is not None:
-        variable_names = list(
-            np.delete(np.array(variable_names, dtype=object), exclude)
-        )
 
     problem = {
         "num_vars": dim,
@@ -230,32 +273,32 @@ def main():
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_message = (
         f"Run timestamp (%m%d_%H%M%S): {timestamp}\n"
-        f"Test Function: {objective_function}\n"
+        f"Test Function: {test_function}\n"
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
-        f"Kernel: matern\n"
+        f"Kernel: {kernel}\n"
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
-        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
+        f"Lengthscale bounds: {lengthscale_bounds}\n"
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
-        f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
-        f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
+        f"Train Max abs err: {train_max_abserr:.3e} | Location: {train_max_input}\n"
+        f"Test Max abs err: {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"
-        f"Test MAE:  {test_mae:.3e}\n"
+        f"Test MAE: {test_mae:.3e}\n"
         f"Elapsed time for training GP: {elapsed_time:.3f} seconds\n"
     )
 
     print(log_message)
 
-    if do_log:
-        log_results(
-            log_message,
-            path_to_log=results_dir / f"{objective_function}.txt",
-        )
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{test_function}.txt",
+    )
 
     # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
-    sa.plot_test_predictions(x_test, y_test, gp_model, objective_function)
+    sa.plot_test_predictions(x_test, y_test, gp_model, test_function)
 
     sa.sobol_plot(
         Si["S1"],
@@ -263,10 +306,10 @@ def main():
         problem["names"],
         Si["S1_conf"],
         Si["ST_conf"],
-        objective_function,
+        test_function,
     )
 
-    if objective_function == "parabola":
+    if test_function == "parabola":
         input1 = np.linspace(bounds[0, 0], bounds[0, 1], 100)
         input2 = np.linspace(bounds[1, 0], bounds[1, 1], 100)
         grid_input1, grid_input2 = np.meshgrid(input1, input2)
@@ -282,7 +325,7 @@ def main():
 
         plots_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{objective_function}_{timestamp}.png")
+        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{test_function}_{timestamp}.png")
 
 
 if __name__ == "__main__":

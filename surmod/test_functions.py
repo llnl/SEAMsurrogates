@@ -16,6 +16,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {
         "dim": 2,
         "function_name": "parabola",
+        "variable_names": ["x1", "x2"],
         "bounds": [
             (-8.0, 8.0),  # x1
             (-8.0, 8.0),  # x2
@@ -24,6 +25,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "otlcircuit": {
         "dim": 6,
         "function_name": "otlcircuit",
+        "variable_names": ["R_b1", "R_b2", "R_f", "R_c1", "R_c2", "Beta"],
         "bounds": [
             (50.0, 150.0),  # Rb1 (kOhms)
             (25.0, 70.0),  # Rb2 (kOhms)
@@ -36,6 +38,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "piston": {
         "dim": 7,
         "function_name": "piston",
+        "variable_names": ["M", "S", "V_0", "k", "P_0", "T_a", "T_0"],
         "bounds": [
             (30.0, 60.0),  # M (kg)
             (0.005, 0.02),  # S (m^2)
@@ -49,6 +52,18 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "wingweight": {
         "dim": 10,
         "function_name": "wingweight",
+        "variable_names": [
+            "S_w",
+            "W_fw",
+            "A",
+            "Lambda",
+            "q",
+            "lambda",
+            "t_c",
+            "N_z",
+            "W_dg",
+            "W_p",
+        ],
         "bounds": [
             (150.0, 200.0),  # Sw (ft^2)
             (220.0, 300.0),  # Wfw (lb)
@@ -65,6 +80,7 @@ FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "borehole": {
         "dim": 8,
         "function_name": "borehole",
+        "variable_names": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw"],
         "bounds": [
             (0.05, 0.15),  # rw (m)
             (100.0, 50000.0),  # r (m)
@@ -309,34 +325,58 @@ def scale_inputs(
     return x_scaled
 
 
-def get_input_bounds(objective_function: str) -> list[tuple[float, float]]:
+def get_input_bounds(test_function: str) -> list[tuple[float, float]]:
     """
     Return the physical input bounds for the provided test functions.
 
     Args:
-        objective_function: One of "parabola", "otlcircuit", "piston",
+        test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
     """
-    return list(get_input_spec(objective_function)[2])
+    return list(get_input_spec(test_function)[2])
+
+
+def get_variable_names(test_function: str) -> list[str]:
+    """
+    Return the variable names for the provided test function.
+
+    Args:
+        test_function: One of "parabola", "otlcircuit", "piston",
+            "wingweight", or "borehole".
+
+    Returns:
+        List of variable names in the order they appear in the function's input.
+
+    Raises:
+        ValueError: If the test function is not recognized.
+    """
+    if test_function not in FUNCTION_SPECS:
+        available = ", ".join(FUNCTION_SPECS)
+        raise ValueError(
+            f"Test function '{test_function}' not found. Available: {available}."
+        )
+
+    config = FUNCTION_SPECS[test_function]
+    return list(config["variable_names"])  # type: ignore[arg-type]
 
 
 def get_input_spec(
-    objective_function: str,
+    test_function: str,
 ) -> tuple[int, Callable, list[tuple[float, float]]]:
     """
     Return the dimension, callable, and bounds for a provided test function.
 
     Args:
-        objective_function: One of "parabola", "otlcircuit", "piston",
+        test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
     """
-    if objective_function not in FUNCTION_SPECS:
+    if test_function not in FUNCTION_SPECS:
         available = ", ".join(FUNCTION_SPECS)
         raise ValueError(
-            f"Test function '{objective_function}' not found. Available: {available}."
+            f"Test function '{test_function}' not found. Available: {available}."
         )
 
-    config = FUNCTION_SPECS[objective_function]
+    config = FUNCTION_SPECS[test_function]
     function_name = str(config["function_name"])
     function = globals()[function_name]
     return int(config["dim"]), function, list(config["bounds"])  # type: ignore[arg-type]
@@ -486,7 +526,7 @@ def borehole(
 
 
 def load_test_function(
-    objective_function: str | type,
+    test_function: str | type,
     dim: int | None = None,
     negate: bool = True,
     bounds: list[tuple[float, float]] | None = None,
@@ -496,7 +536,7 @@ def load_test_function(
     Loads a test function instance for simulating data.
 
     Args:
-        objective_function: Either a string name of a test function or the test
+        test_function: Either a string name of a test function or the test
             function class itself. Supported string names: "parabola", "ackley",
             "griewank", "branin", "holder_table", "six_hump_camel".
         dim: Dimension for the test function (if applicable).
@@ -508,7 +548,7 @@ def load_test_function(
         SyntheticTestFunction: An instance of the requested test function.
 
     Raises:
-        ValueError: If the specified objective function name is not recognized.
+        ValueError: If the specified test function name is not recognized.
     """
     # Registry of common test functions with default parameters
     DEFAULT_CONFIGS = {
@@ -539,8 +579,8 @@ def load_test_function(
     }
 
     # If it's already a class, use it directly
-    if isinstance(objective_function, type):
-        test_function_class = objective_function
+    if isinstance(test_function, type):
+        test_function_class = test_function
         # Use provided parameters
         init_kwargs = {"negate": negate, **kwargs}
         if dim is not None:
@@ -549,14 +589,14 @@ def load_test_function(
             init_kwargs["bounds"] = bounds
     else:
         # Look up string name in registry
-        if objective_function not in DEFAULT_CONFIGS:
+        if test_function not in DEFAULT_CONFIGS:
             available = ", ".join(DEFAULT_CONFIGS.keys())
             raise ValueError(
-                f"Test function '{objective_function}' not found. "
+                f"Test function '{test_function}' not found. "
                 f"Available: {available}, or pass the class directly."
             )
 
-        config = DEFAULT_CONFIGS[objective_function]
+        config = DEFAULT_CONFIGS[test_function]
         test_function_class = config["class"]
 
         # Build kwargs with defaults, overridden by explicit parameters
@@ -580,8 +620,58 @@ def load_test_function(
     return test_function_class(**init_kwargs)
 
 
+def sample_parabola(
+    n_initial: int,
+    bounds_low: float | list[float] | npt.NDArray,
+    bounds_high: float | list[float] | npt.NDArray,
+    input_size: int,
+    radius: float = 7,
+    seed: int = 1,
+) -> npt.NDArray:
+    """
+    Generate samples for parabola test function with norm > radius constraint.
+
+    Uses rejection sampling to ensure all points have L2 norm > radius,
+    avoiding samples too close to the origin.
+
+    Args:
+        n_initial: Number of samples to generate.
+        bounds_low: Lower bounds for each dimension.
+        bounds_high: Upper bounds for each dimension.
+        input_size: Input dimension.
+        radius: Minimum L2 norm constraint (default: 7).
+        seed: Random seed (default: 1).
+
+    Returns:
+        Array of shape (n_initial, input_size) with all samples having norm > radius.
+
+    Raises:
+        RuntimeError: If unable to generate n_initial samples after max_attempts.
+    """
+    rng = np.random.default_rng(seed)
+    samples = []
+    attempts = 0
+    max_attempts = 100000
+
+    while len(samples) < n_initial:
+        if attempts >= max_attempts:
+            raise RuntimeError(
+                f"Failed to generate {n_initial} samples with norm > {radius} "
+                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
+                f"Consider reducing radius or expanding bounds."
+            )
+
+        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
+        attempts += 1
+
+        if np.linalg.norm(x_point) > radius:
+            samples.append(x_point)
+
+    return np.array(samples)
+
+
 def simulate_data(
-    objective_function: str,
+    test_function: str,
     n_train: int,
     n_test: int,
     seed: int = 1,
@@ -590,7 +680,7 @@ def simulate_data(
     Simulates training and testing data from a specified test function.
 
     Args:
-        objective_function (str): The name of the objective function to simulate
+        test_function (str): The name of the test function to simulate
             data from. Supported values are "parabola", "ackley", "griewank",
             "branin", "holder_table", and "six_hump_camel".
         n_train (int): Number of training samples to generate.
@@ -606,11 +696,11 @@ def simulate_data(
                 - y_test (np.ndarray): Testing target data of shape (n_test,).
 
     Raises:
-        ValueError: If the specified objective function name is not recognized.
+        ValueError: If the specified test function name is not recognized.
     """
     # Set-up simulation
     n_total = n_train + n_test
-    test_function = load_test_function(objective_function)
+    test_function = load_test_function(test_function)
     bounds_low = [b[0] for b in test_function._bounds]
     bounds_high = [b[1] for b in test_function._bounds]
 

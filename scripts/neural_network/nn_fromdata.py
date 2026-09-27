@@ -1,31 +1,24 @@
 #!/usr/bin/env python3
 
 """
-This script trains a neural network on a chosen dataset. It provides options
-for specifying the number of epochs, batch size, sizes of hidden layers, and
-learning rate. It saves two metric plots to the directory containing this script.
+Train neural network surrogate models on datasets from data/.
 
-Usage:
+This script trains feedforward neural networks on real datasets, with options
+for customizing network architecture, learning rate, batch size, and data scaling.
+Results are saved as plots and loss histories.
 
-# Make script executable
-chmod +x ./nn_fromdata.py
+Usage examples:
 
-# See help
-./nn_fromdata.py -h
-
-# Train a neural net with hidden layers of sizes 10 and 20
-./nn_fromdata.py --hidden_sizes 10 20
-
-# Train a neural net with hidden layers of sizes 5 and 10, a batch size 20,
-#   and 200 epochs
-./nn_fromdata.py --hidden_sizes 5 10 -b 20 -n 200
-
-# Train a neural net with layers of size 60 and 60, a learning rate of 0.02,
-#   and a batch size of 40
-./nn_fromdata.py --hidden_sizes 60 60 -n 600 -l 0.02 -b 40
+./nn_fromdata.py --help
+./nn_fromdata.py
+./nn_fromdata.py -d JAG --hidden-sizes 10 20
+./nn_fromdata.py -d JAG --hidden-sizes 15 15 --batch-size 20 --epochs 400
+./nn_fromdata.py -d borehole --hidden-sizes 60 60 --batch-size 40 --epochs 600 --learning-rate 0.02
 """
 
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -33,6 +26,7 @@ import torch
 
 from surmod import data_processing
 from surmod import neural_network as nn
+from surmod.utils import log_results
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -43,6 +37,17 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    nn_options = parser.add_argument_group("neural network options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -51,72 +56,64 @@ def parse_arguments() -> argparse.Namespace:
         help="Which dataset to use (default: JAG).",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=400,
         help="Number of train samples (default: 400).",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=100,
         help="Number of test samples (default: 100).",
     )
 
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Random number generator seed.",
-    )
-
-    parser.add_argument(
+    data_options.add_argument(
         "--LHD",
         action="store_true",
         help="Use an LHD design.",
     )
 
-    parser.add_argument(
-        "-n",
-        "--n_epochs",
+    nn_options.add_argument(
+        "-hs",
+        "--hidden-sizes",
         type=int,
-        default=100,
-        help="Number of epochs for training.",
+        nargs="+",
+        default=[15, 15],
+        help="Sizes of hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=100,
+        help="Number of training epochs.",
+    )
+
+    nn_options.add_argument(
         "-b",
-        "--batch_size",
+        "--batch-size",
         type=int,
         default=5,
         help="Batch size for training.",
     )
 
-    parser.add_argument(
-        "-hs",
-        "--hidden_sizes",
-        type=int,
-        nargs="+",
-        default=[5, 5],
-        help="Sizes of hidden layers.",
-    )
-
-    parser.add_argument(
+    nn_options.add_argument(
         "-l",
-        "--learning_rate",
+        "--learning-rate",
         type=float,
         default=0.001,
         help="Learning rate for SGD optimization.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-vp",
-        "--verbose_plot",
+        "--verbose-plot",
         action="store_true",
         default=False,
         help="If set, includes (hyper)parameter values in loss plot title.",
@@ -135,7 +132,7 @@ def main() -> None:
     n_test = args.n_test
     seed = args.seed
     LHD = args.LHD
-    n_epochs = args.n_epochs
+    epochs = args.epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -182,22 +179,47 @@ def main() -> None:
     y_test = torch.tensor(y_test, dtype=torch.float32)
 
     # Train the neural net
+    start_time = time.time()
     model, train_losses, test_losses = nn.train(
         x_train,
         y_train,
         x_test,
         y_test,
         hidden_sizes,
-        n_epochs,
+        epochs,
         learning_rate,
         batch_size,
         seed,
         initialize_weights_normal,
     )
+    elapsed_time = time.time() - start_time
+
+    # Log results
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Dataset: {dataset}",
+        f"Number of training points: {n_train}",
+        f"Number of testing points: {x_test.shape[0]}",
+        f"Hidden layer sizes: {hidden_sizes}",
+        f"Learning rate: {learning_rate}",
+        f"Batch size: {batch_size}",
+        f"Epochs: {epochs}",
+        f"Final train loss: {train_losses[-1]:.5e}",
+        f"Final test loss: {test_losses[-1]:.5e}",
+        f"Elapsed time for training NN: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
+
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{dataset}_nn.txt",
+    )
 
     if verbose_plot:
-        # Plot train and test loss over epochs with (hyper)parameters included
-        #   scaling for JAG data (not currently implemented; not needed)
+        # Plot train and test loss over epochs with hyperparameters included
         nn.plot_losses_verbose(
             train_losses,
             test_losses,

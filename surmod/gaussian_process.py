@@ -1,6 +1,7 @@
 """
 Gaussian process surrogate modeling with BoTorch and GPyTorch.
 """
+
 import copy
 import warnings
 from datetime import datetime
@@ -19,6 +20,7 @@ from gpytorch.constraints import Interval
 from gpytorch.kernels import MaternKernel, PeriodicKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from numpy.typing import NDArray
+from sklearn.metrics import mean_squared_error, root_mean_squared_error
 
 from surmod import test_functions
 
@@ -205,11 +207,12 @@ class GPSurrogate:
         x_test: Optional test input array of shape (n_test, n_features).
         y_test: Optional test target array of shape (n_test,) or (n_test, 1).
         kernel: Kernel type, one of "rbf", "matern", or "periodic".
-        isotropic: If True, use a shared lengthscale. If False, use ARD.
+        isotropic: If True, use a shared lengthscale. If False, use different lengthscales for each input.
         scale_inputs: Whether to normalize inputs to the unit cube.
         scale_outputs: Whether to standardize outputs.
-        lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
+        lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1]. Defaults to [1e-2,10]
         noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
+        seed: Random seed for reproducible hyperparameter optimization.
     """
 
     def __init__(
@@ -227,6 +230,7 @@ class GPSurrogate:
         outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
         optimization_restarts: int = 3,
         fixed_noise: float | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Initialize the GP surrogate model.
@@ -244,6 +248,7 @@ class GPSurrogate:
             outputscale_bounds: Bounds on the variance scale parameter, current option is for output scaled to mean 0, variance1. Defaults to [1e-3,1e3]
             noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-8,1e-1]
             optimization_restarts: Number of times to randomly initialize the hyperparameter optimization. Defaults to 5
+            seed: Random seed for reproducible hyperparameter optimization.
         """
         self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
         self.y_train: torch.Tensor = torch.as_tensor(
@@ -264,6 +269,7 @@ class GPSurrogate:
         self.scale_inputs: bool = scale_inputs
         self.scale_outputs: bool = scale_outputs
         self.optimization_restarts: int = optimization_restarts
+        self.seed: int | None = seed
         self.model: SingleTaskGP | None = None
         self.mll: ExactMarginalLogLikelihood | None = None
         self.lengthscale_bounds = lengthscale_bounds
@@ -356,6 +362,7 @@ class GPSurrogate:
         best_model, best_mll, best_loss = fit_gpytorch_mll_multistart(
             self._build_fresh_model_and_mll,
             n_restarts=self.optimization_restarts,
+            seed=self.seed,
         )
 
         if best_model is None or best_mll is None:
@@ -417,8 +424,8 @@ class GPSurrogate:
         mean, std = self.predict(self.x_test, include_nugget=include_nugget)
         y_true = self.y_test.squeeze(-1).cpu().numpy()
 
-        mse = np.mean((y_true - mean) ** 2)
-        rmse = np.sqrt(mse)
+        mse = mean_squared_error(y_true, mean)
+        rmse = root_mean_squared_error(y_true, mean)
         lower = mean - 1.96 * std
         upper = mean + 1.96 * std
         coverage = np.mean((y_true >= lower) & (y_true <= upper))
@@ -582,7 +589,7 @@ class GPSurrogate:
     def plot_predictive_mean(
         self,
         test_rmse: float,
-        objective_function: str,
+        test_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
@@ -596,7 +603,8 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
-        test_function = test_functions.load_test_function(objective_function)
+        test_function_name = test_function
+        test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -641,7 +649,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_function} Test Function and GP Mean",
+            f"{test_function} Test Function and GP Mean",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -658,7 +666,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{objective_function}_gp_mean_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function_name}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -666,7 +674,7 @@ class GPSurrogate:
     def plot_predictive_std_dev(
         self,
         test_rmse: float,
-        objective_function: str,
+        test_function: str,
         scale_x: bool = False,
         normalize_y: bool = False,
         plots_dir: Path = Path("plots"),
@@ -680,7 +688,8 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
-        test_function = test_functions.load_test_function(objective_function)
+        test_function_name = test_function
+        test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
 
@@ -717,7 +726,7 @@ class GPSurrogate:
         )
 
         title_lines = [
-            f"{objective_function} GP Predictive Standard Deviation",
+            f"{test_function} GP Predictive Standard Deviation",
             f"Training samples: {len(x_train_plot)}",
             f"Alpha: {alpha_like}",
             f"kernel: {self.get_fitted_kernel_label()}",
@@ -737,7 +746,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{objective_function}_gp_std_dev_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function_name}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")

@@ -1,31 +1,20 @@
 #!/usr/bin/env python3
 
 """
-This script performs a sensitivity analysis on a chosen dataset by training a
-Gaussian Process (GP) surrogate model. It allows for flexible kernel selection,
-length scale adjustment, and exclusion of specific input variables.
-The script evaluates model performance, computes Sobol sensitivity indices,
-and saves relevant plots.
+Perform sensitivity analysis on datasets from data/ using GP surrogates.
 
-Note:
-- For JAG data there are 5 input variables: x1, x2, x3, x4, x5
-- For borehole data there are 8 input variables: rw, r, Tu, Hu, Tl, Hl, L, Kw
+This script trains a GP surrogate on real data and computes Sobol sensitivity
+indices to identify important input variables. Supports variable exclusion and
+customizable GP configurations.
 
-Usage:
+Usage examples:
 
-# Make script executable
-chmod +x ./sa_fromdata.py
-
-# Get help
-./sa_fromdata.py -h
-
-# Perform sensitivity analysis with 200 training points, 150 testing points,
-# excluding variables x4 and x5
-./sa_fromdata.py -tr 200 -te 150 --exclude x4 x5
-
-# Perform sensitivity analysis with 150 training points, 100 testing points,
-# excluding variables x2 and x3, and save results to log file
-./sa_fromdata.py -tr 150 -e x2 x3 --log
+./sa_fromdata.py --help
+./sa_fromdata.py
+./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5 --scale-x
+./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale-x
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --scale-x
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu --scale-x
 """
 
 import argparse
@@ -35,13 +24,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from SALib.analyze import sobol
 from SALib.sample import saltelli
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import root_mean_squared_error as rmse
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod import data_processing
 from surmod import sensitivity_analysis as sa
-from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
+from surmod.gaussian_process import GPSurrogate
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -52,6 +40,17 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    gp_options = parser.add_argument_group("GP model options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
@@ -60,15 +59,23 @@ def parse_arguments():
         help="Which dataset to use (default: JAG).",
     )
 
-    parser.add_argument(
-        "-nx",
-        "--normalize_x",
-        action="store_true",
-        default=False,
-        help="Whether or not to normalize the input values by removing the mean and scaling to unit-variance per dimension.",
+    data_options.add_argument(
+        "-tr",
+        "--n-train",
+        type=int,
+        default=400,
+        help="Number of training samples.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
+        "-te",
+        "--n-test",
+        type=int,
+        default=100,
+        help="Number of test samples.",
+    )
+
+    data_options.add_argument(
         "-e",
         "--exclude",
         type=str,
@@ -80,43 +87,65 @@ def parse_arguments():
         ),
     )
 
-    parser.add_argument(
-        "-tr",
-        "--n_train",
-        type=int,
-        default=400,
-        help="Number of train samples (default: 400).",
+    gp_options.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="GP kernel function.",
     )
 
-    parser.add_argument(
-        "-te",
-        "--n_test",
-        type=int,
-        default=100,
-        help="Number of test samples (default: 100).",
-    )
-
-    parser.add_argument(
-        "--log",
+    gp_options.add_argument(
+        "-i",
+        "--isotropic",
         action="store_true",
-        help="Append results to results/<dataset>.txt",
+        default=False,
+        help="Use isotropic kernel (single lengthscale for all inputs).",
     )
 
-    parser.add_argument(
-        "--fixed_nugget",
+    gp_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+        help="Fix the likelihood noise (nugget).",
+    )
+
+    gp_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    gp_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
     )
 
     return parser.parse_args()
-
-
-def log_results(log_message: str, path_to_log: Path | str) -> None:
-    path = Path(path_to_log)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(log_message + "\n")
 
 
 def main():
@@ -126,11 +155,15 @@ def main():
     """
     args = parse_arguments()
     dataset = args.dataset
-    normalize_x = args.normalize_x
+    scale_x = args.scale_x
+    normalize_y = args.normalize_y
     n_train = args.n_train
     n_test = args.n_test
-    do_log = args.log
     exclude = args.exclude
+    fixed_nugget = args.fixed_nugget
+    lengthscale_bounds = tuple(args.lengthscale_bounds)
+    noise_bounds = tuple(args.noise_bounds)
+    seed = args.seed
 
     # Check data availability
     n_samples = n_test + n_train
@@ -140,7 +173,9 @@ def main():
         )
 
     df = data_processing.load_data(dataset=dataset, n_samples=n_samples, random=False)
-    x_train, x_test, y_train, y_test = data_processing.split_data(df, n_train=n_train)
+    x_train, x_test, y_train, y_test = data_processing.split_data(
+        df, n_train=n_train, seed=seed
+    )
 
     # Get variable names from dataset config (all columns except the last one which is 'y')
     variable_names = data_processing.DATASET_CONFIG[dataset]["columns"][:-1]
@@ -163,16 +198,9 @@ def main():
 
     _, dim = x_train.shape
 
-    x_scaler = None
-    if normalize_x:
-        x_scaler = StandardScaler()
-        x_train = x_scaler.fit_transform(x_train)
-        x_test = x_scaler.transform(x_test)
-
-    # Fixed nugget -> noise_bounds
-    noise_bounds = None
-    if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
+    # Handle fixed nugget
+    fixed_noise = fixed_nugget
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
 
     # Train GPSurrogate
     gp_model = GPSurrogate(
@@ -180,13 +208,14 @@ def main():
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        kernel="matern",
-        isotropic=True,
-        # you already optionally StandardScaler'ed X above, avoid double scaling
-        scale_inputs=False,
-        # keep output standardization on (matches your old normalize_y=True intent)
-        scale_outputs=True,
-        noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+        kernel=args.kernel,
+        isotropic=args.isotropic,
+        scale_inputs=scale_x,
+        scale_outputs=normalize_y,
+        fixed_noise=fixed_noise,
+        lengthscale_bounds=lengthscale_bounds,
+        noise_bounds=noise_bounds_to_use,
+        seed=seed,
     )
     gp_model.fit()
 
@@ -198,8 +227,8 @@ def main():
     train_mae = mean_absolute_error(y_train, pred_train_mean)
     test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_rmse = rmse(y_train, pred_train_mean)
-    test_rmse = rmse(y_test, pred_test_mean)
+    train_rmse = root_mean_squared_error(y_train, pred_train_mean)
+    test_rmse = root_mean_squared_error(y_test, pred_test_mean)
 
     train_max_abserr, train_max_input = GPSurrogate.compute_max_error(
         pred_train_mean, y_train, x_train
@@ -232,23 +261,24 @@ def main():
     log_message = (
         f"Number of training points: {n_train}\n"
         f"Number of testing points: {n_test}\n"
-        f"Kernel: matern\n"
-        f"Isotropic: True\n"
-        f"Normalize x values: {normalize_x}\n"
-        f"Fixed nugget: {args.fixed_nugget}\n"
-        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
+        f"Kernel: {args.kernel}\n"
+        f"Isotropic: {args.isotropic}\n"
+        f"Scale x: {scale_x}\n"
+        f"Normalize y: {normalize_y}\n"
+        f"Fixed nugget: {fixed_nugget}\n"
+        f"Lengthscale bounds: {lengthscale_bounds}\n"
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
-        f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
-        f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
+        f"Train Max abs err: {train_max_abserr:.3e} | Location: {train_max_input}\n"
+        f"Test Max abs err: {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"
-        f"Test MAE:  {test_mae:.3e}\n"
+        f"Test MAE: {test_mae:.3e}\n"
     )
     print(log_message)
 
-    if do_log:
-        results_dir = Path(__file__).parent / "results"
-        log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
+    results_dir = Path(__file__).parent / "results"
+    log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
     sa.plot_test_predictions(x_test, y_test, gp_model, dataset)

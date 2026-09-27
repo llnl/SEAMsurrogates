@@ -1,3 +1,7 @@
+"""
+Bayesian optimization for sequential function optimization.
+"""
+
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -16,61 +20,11 @@ from botorch.optim import optimize_acqf
 
 from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
-from surmod.test_functions import load_test_function
-
-
-def sample_parabola(
-    n_initial: int,
-    bounds_low: float | Sequence[float] | np.ndarray,
-    bounds_high: float | Sequence[float] | np.ndarray,
-    input_size: int,
-    radius: float = 7,
-    seed: int = 1,
-) -> np.ndarray:
-    """
-    Generate uniformly distributed samples within specified bounds, retaining
-    only points whose Euclidean norm exceeds a given radius.
-
-    Args:
-        n_initial: Number of samples to generate.
-        bounds_low: Lower bounds for sampling each dimension.
-        bounds_high: Upper bounds for sampling each dimension.
-        input_size: Number of dimensions for each sample.
-        radius: Minimum Euclidean norm required for a sample. Defaults to 7.
-        seed: Seed for the random number generator. Defaults to 1.
-
-    Raises:
-        RuntimeError: If the requested number of samples cannot be generated
-            within the maximum number of attempts.
-
-    Returns:
-        An array of shape `(n_initial, input_size)` containing the sampled
-        points with Euclidean norm greater than `radius`.
-    """
-    rng = np.random.default_rng(seed)
-    samples = []
-    attempts = 0
-    max_attempts = 100000
-
-    while len(samples) < n_initial:
-        if attempts >= max_attempts:
-            raise RuntimeError(
-                f"Failed to generate {n_initial} samples with norm > {radius} "
-                f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
-                f"Consider reducing radius or expanding bounds."
-            )
-
-        x_point = rng.uniform(bounds_low, bounds_high, size=input_size)
-        attempts += 1
-
-        if np.linalg.norm(x_point) > radius:
-            samples.append(x_point)
-
-    return np.array(samples)
+from surmod.test_functions import load_test_function, sample_parabola
 
 
 def sample_data(
-    objective_function: str,
+    test_function: str,
     bounds_low: float | Sequence[float] | np.ndarray,
     bounds_high: float | Sequence[float] | np.ndarray,
     n_initial: int,
@@ -80,10 +34,10 @@ def sample_data(
     **design_kwargs,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Generate input and output samples from the specified synthetic objective.
+    Generate input and output samples from the specified synthetic test function.
 
     Args:
-        objective_function: Name of the objective function.
+        test_function: Name of the test function.
         bounds_low: Lower bounds.
         bounds_high: Upper bounds.
         n_initial: Number of initial points.
@@ -97,9 +51,9 @@ def sample_data(
             x_sample: shape (n_initial, input_size)
             y_sample: shape (n_initial,)
     """
-    test_function = load_test_function(objective_function)
+    synthetic_function = load_test_function(test_function)
 
-    if objective_function == "parabola" and init_design == "random":
+    if test_function == "parabola" and init_design == "random":
         x_data = sample_parabola(
             n_initial, bounds_low, bounds_high, input_size, seed=seed
         )
@@ -114,7 +68,7 @@ def sample_data(
         )
 
     x_tensor = torch.as_tensor(x_data, dtype=torch.float32)
-    y_tensor = test_function(x_tensor)
+    y_tensor = synthetic_function(x_tensor)
 
     x_sample = x_tensor.detach().cpu().numpy()
     y_sample = y_tensor.detach().cpu().numpy().reshape(-1)
@@ -123,7 +77,7 @@ def sample_data(
 
 
 def get_synth_global_optima(
-    objective_function: str,
+    test_function: str,
 ) -> tuple[list[list[float]], float]:
     global_optima = {
         "ackley": ([[0, 0]], 0.0),
@@ -148,17 +102,15 @@ def get_synth_global_optima(
         ),
     }
 
-    if objective_function not in global_optima:
-        raise ValueError(
-            f"Objective function '{objective_function}' is not recognized."
-        )
+    if test_function not in global_optima:
+        raise ValueError(f"Objective function '{test_function}' is not recognized.")
 
-    return global_optima[objective_function]
+    return global_optima[test_function]
 
 
 def select_initial_dataset_indices(
     x: np.ndarray,
-    n_init: int,
+    n_initial: int,
     method: str = "random",
     seed: int = 42,
     **design_kwargs,
@@ -173,29 +125,29 @@ def select_initial_dataset_indices(
 
     Args:
         x: Dataset inputs, assumed already normalized to [0,1], shape (n, d)
-        n_init: Number of initial points
+        n_initial: Number of initial points
         method: 'random', 'lhd', or 'maximin_lhd'
         seed: Random seed
         design_kwargs: Extra arguments forwarded to generate_initial_design()
 
     Returns:
-        Array of selected row indices, shape (n_init,)
+        Array of selected row indices, shape (n_initial,)
     """
     rng = np.random.default_rng(seed)
     n_rows, dim = x.shape
 
-    if n_init > n_rows:
-        raise ValueError("n_init cannot exceed number of available dataset rows.")
+    if n_initial > n_rows:
+        raise ValueError("n_initial cannot exceed number of available dataset rows.")
 
     method = method.lower()
 
     if method == "random":
-        return rng.choice(n_rows, size=n_init, replace=False)
+        return rng.choice(n_rows, size=n_initial, replace=False)
 
     targets = generate_initial_design(
         bounds_low=np.zeros(dim),
         bounds_high=np.ones(dim),
-        n_samples=n_init,
+        n_samples=n_initial,
         method=method,
         seed=seed,
         **design_kwargs,
@@ -219,7 +171,7 @@ def select_initial_dataset_indices(
 class BayesianOptimizer:
     def __init__(
         self,
-        objective_function: str,
+        test_function: str,
         x_init: np.ndarray,
         y_init: np.ndarray,
         kernel: str = "matern",
@@ -227,7 +179,12 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        noise_bounds: tuple[float, float] | None = None,
+        scale_inputs: bool = True,
+        scale_outputs: bool = True,
+        lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
+        noise_bounds: tuple[float, float] = (1e-8, 1e-1),
+        outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
+        optimization_restarts: int = 3,
         fixed_noise: float | None = None,
         init_design: str = "random",
         init_design_kwargs: dict | None = None,
@@ -243,7 +200,7 @@ class BayesianOptimizer:
         provided dataset.
 
         Args:
-            objective_function: Name of the objective function to optimize.
+            test_function: Name of the test function to optimize.
             x_init: Initial input observations.
             y_init: Initial objective values corresponding to ``x_init``.
             kernel: Kernel used by the Gaussian process surrogate. Defaults to
@@ -254,7 +211,12 @@ class BayesianOptimizer:
                 ``"EI"``.
             n_acquire: Number of observations to acquire. Defaults to 10.
             seed: Random seed used for reproducible sampling. Defaults to 42.
-            noise_bounds: Optional lower and upper bounds for model noise.
+            scale_inputs: Whether to normalize GP inputs to [0, 1].
+            scale_outputs: Whether to standardize GP outputs.
+            lengthscale_bounds: Lower and upper GP lengthscale parameter bounds.
+            noise_bounds: Lower and upper GP nugget parameter bounds.
+            outputscale_bounds: Lower and upper GP output variance scale bounds.
+            optimization_restarts: Number of GP hyperparameter restarts.
             fixed_noise: Optional fixed noise value for the Gaussian process.
             init_design: Initial design strategy used for dataset optimization.
                 Defaults to ``"random"``.
@@ -263,7 +225,7 @@ class BayesianOptimizer:
             **acquisition_kwargs: Additional acquisition-function parameters, such
                 as ``beta`` for UCB.
         """
-        self.objective_function = objective_function
+        self.test_function = test_function
         self.x_init = np.asarray(x_init, dtype=float)
         self.y_init = np.asarray(y_init, dtype=float).reshape(-1)
 
@@ -275,7 +237,12 @@ class BayesianOptimizer:
         self.acquisition = acquisition_function
         self.n_acquire = n_acquire
         self.seed = seed
+        self.scale_inputs = scale_inputs
+        self.scale_outputs = scale_outputs
+        self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
+        self.outputscale_bounds = outputscale_bounds
+        self.optimization_restarts = optimization_restarts
         self.fixed_noise = fixed_noise
         self.acquisition_kwargs = acquisition_kwargs
 
@@ -286,10 +253,11 @@ class BayesianOptimizer:
         self.gp_model: GPSurrogate | None = None
         self.init_design = init_design
         self.init_design_kwargs = init_design_kwargs or {}
+        self._rng = np.random.RandomState(seed)
 
     def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
-        """Evaluate the objective function at a proposed point."""
-        synthetic_function = load_test_function(self.objective_function)
+        """Evaluate the test function at a proposed point."""
+        synthetic_function = load_test_function(self.test_function)
 
         bounds = self._get_objective_bounds().cpu().numpy()
         x_next = np.asarray(x_next, dtype=np.float64).reshape(-1)
@@ -314,19 +282,20 @@ class BayesianOptimizer:
             y_train=self.y_all_data,
             kernel=self.kernel,
             isotropic=self.isotropic,
-            scale_inputs=True,
-            scale_outputs=True,
-            noise_bounds=(
-                self.noise_bounds if self.noise_bounds is not None else (1e-8, 1e-3)
-            ),
+            scale_inputs=self.scale_inputs,
+            scale_outputs=self.scale_outputs,
+            lengthscale_bounds=self.lengthscale_bounds,
+            noise_bounds=self.noise_bounds,
+            outputscale_bounds=self.outputscale_bounds,
+            optimization_restarts=self.optimization_restarts,
             fixed_noise=self.fixed_noise,
         )
         self.gp_model.fit()
         return self.gp_model
 
     def _get_objective_bounds(self) -> torch.Tensor:
-        """Return the objective function bounds as a two-row tensor."""
-        synthetic_function = load_test_function(self.objective_function)
+        """Return the test function bounds as a two-row tensor."""
+        synthetic_function = load_test_function(self.test_function)
         bounds_low = [b[0] for b in synthetic_function._bounds]
         bounds_high = [b[1] for b in synthetic_function._bounds]
 
@@ -364,12 +333,11 @@ class BayesianOptimizer:
         raw_samples: int = 1000,
     ) -> np.ndarray:
         """Find the next point to evaluate using the configured strategy."""
-        rng = np.random.RandomState(self.seed)
         bounds_t = self._get_objective_bounds()
         bounds = bounds_t.cpu().numpy()
 
         if self.acquisition.lower() == "random":
-            x_next = rng.uniform(bounds[0], bounds[1])
+            x_next = self._rng.uniform(bounds[0], bounds[1])
             return np.clip(
                 np.asarray(x_next, dtype=np.float64).reshape(-1), bounds[0], bounds[1]
             )
@@ -393,10 +361,8 @@ class BayesianOptimizer:
         x_candidates: np.ndarray,
     ) -> np.ndarray:
         """Score candidate points using the configured acquisition strategy."""
-        rng = np.random.RandomState(self.seed)
-
         if self.acquisition.lower() == "random":
-            return rng.uniform(size=x_candidates.shape[0])
+            return self._rng.uniform(size=x_candidates.shape[0])
 
         acq_func = self._build_analytic_acquisition()
         x_tensor = torch.as_tensor(x_candidates, dtype=torch.float64).unsqueeze(1)
@@ -508,7 +474,7 @@ class BayesianOptimizer:
     def bayes_opt(
         self,
         df: pd.DataFrame | None = None,
-        n_init: int = 10,
+        n_initial: int = 10,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         if df is not None:
             df = df.copy()
@@ -517,8 +483,8 @@ class BayesianOptimizer:
             y = df.iloc[:, -1].to_numpy(dtype=float).reshape(-1)
 
             n_total = len(df)
-            if n_init > n_total:
-                raise ValueError("n_init cannot exceed the number of rows in df.")
+            if n_initial > n_total:
+                raise ValueError("n_initial cannot exceed the number of rows in df.")
 
             # Only for LHD / maximin-LHD matching, not for GP training
             x_min = x.min(axis=0)
@@ -528,7 +494,7 @@ class BayesianOptimizer:
 
             initial_indices = select_initial_dataset_indices(
                 x=x_for_init,
-                n_init=n_init,
+                n_initial=n_initial,
                 method=self.init_design,
                 seed=self.seed,
                 **self.init_design_kwargs,
@@ -581,8 +547,8 @@ def plot_acquisition_comparison(
     max_output_random: np.ndarray,
     kernel: str = "rbf",
     n_iter: int = 10,
-    n_init: int = 5,
-    objective_data: str = "___ data",
+    n_initial: int = 5,
+    test_data: str = "___ data",
     beta: float = 2.0,
     plots_dir: Path = Path("plots"),
 ) -> None:
@@ -641,7 +607,7 @@ def plot_acquisition_comparison(
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
         plots_dir
-        / f"bo_{objective_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
+        / f"bo_{test_data}_{kernel}_maxit_{n_iter}_init_{n_initial}_{timestamp}.png"
     )
     plt.savefig(filepath, bbox_inches="tight")
     print(f"Figure saved to {filepath}")

@@ -1,37 +1,25 @@
 #!/usr/bin/env python3
 
 """
-This script trains a feedforward neural network (FFNN) surrogate model on
-synthetic test functions (Ackley, SixHumpCamel, or Griewank). It provides
-options for customizing the network architecture, learning rate, batch size,
-and for running multiple training configurations. Results are plotted and saved
-within working directory.
+Train neural network surrogate models on synthetic test functions.
 
-Usage:
+This script trains feedforward neural networks on 2D test functions, with options
+for customizing network architecture, learning rate, batch size, and data scaling.
+Supports single-run and multi-configuration training modes. Results are saved as
+plots and loss histories.
 
-# Make script executable
-chmod +x ./nn_sandbox.py
+Usage examples:
 
-# See help.
-./nn_sandbox.py -h
-
-# Train a NN on the ackley function with default settings.
+./nn_sandbox.py --help
 ./nn_sandbox.py
-
-# Train a NN on the griewank function with 200 epochs and a custom learning rate.
-./nn_sandbox.py --objective_function=griewank -n 200 -l 0.001
-
-# Train a NN with custom hidden layer sizes and batch size.
-./nn_sandbox.py --hidden_sizes 16 8 -b 10
-
-# Train with custom number of training and test points
-./nn_sandbox.py --n_train 200 --n_test 50
-
-# Train and compare multiple NNs with different hidden layer sizes and learning rates.
-./nn_sandbox.py --multi_train --multi_hidden_sizes 8 16 --multi_learning_rates 0.001 0.0001
+./nn_sandbox.py --test-function griewank --epochs 200 --learning-rate 0.001
+./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
+./nn_sandbox.py --test-function branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
 import argparse
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -45,6 +33,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
 from surmod.test_functions import load_test_function
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -55,142 +44,145 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-f",
-        "--objective_function",
-        type=str,
-        default="ackley",
-        help="Choose objective function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
-    )
-
-    parser.add_argument(
-        "-nx",
-        "--normalize_x",
-        action="store_true",
-        default=False,
-        help="Whether or not to normalize the input values by removing the "
-        "mean and scaling to unit-variance per dimension.",
-    )
-
-    parser.add_argument(
-        "-sx",
-        "--scale_x",
-        action="store_true",
-        default=False,
-        help="Whether or not to scale the input values to [0,1] using min-max "
-        "scaling per dimension.",
-    )
-
-    parser.add_argument(
-        "-ny",
-        "--normalize_y",
-        action="store_true",
-        default=False,
-        help="Whether or not to normalize the output values by removing the "
-        "mean and scaling to unit-variance.",
-    )
-
-    parser.add_argument(
-        "-sy",
-        "--scale_y",
-        action="store_true",
-        default=False,
-        help="Whether or not to scale the output values to [0,1] using min-max"
-        " scaling.",
-    )
-
-    parser.add_argument(
         "-s",
         "--seed",
         type=int,
-        default=1,
-        help="Random number generator seed.",
+        default=42,
+        help="Random seed for reproducibility.",
     )
 
-    parser.add_argument(
-        "-n",
-        "--n_epochs",
-        type=int,
-        default=100,
-        help="Number of epochs for training.",
+    experiment = parser.add_argument_group("experiment options")
+    nn_options = parser.add_argument_group("neural network options")
+
+    experiment.add_argument(
+        "-f",
+        "--test-function",
+        type=str,
+        default="ackley",
+        help="Test function to use. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
-    parser.add_argument(
-        "-b",
-        "--batch_size",
-        type=int,
-        default=5,
-        help="Batch size for training.",
-    )
-
-    parser.add_argument(
-        "--n_train",
+    experiment.add_argument(
+        "--n-train",
         type=int,
         default=90,
         help="Number of training points.",
     )
 
-    parser.add_argument(
-        "--n_test",
+    experiment.add_argument(
+        "--n-test",
         type=int,
         default=10,
         help="Number of testing points.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-hs",
-        "--hidden_sizes",
+        "--hidden-sizes",
         type=int,
         nargs="+",
         default=[12, 12],
         help="Sizes of hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=100,
+        help="Number of training epochs.",
+    )
+
+    nn_options.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Batch size for training.",
+    )
+
+    nn_options.add_argument(
         "-l",
-        "--learning_rate",
+        "--learning-rate",
         type=float,
         default=0.00001,
         help="Learning rate for SGD optimization.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
+        "-nx",
+        "--normalize-x",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the input values by removing the "
+        "mean and scaling to unit-variance per dimension.",
+    )
+
+    nn_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Whether or not to scale the input values to [0,1] using min-max "
+        "scaling per dimension.",
+    )
+
+    nn_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Whether or not to normalize the output values by removing the "
+        "mean and scaling to unit-variance.",
+    )
+
+    nn_options.add_argument(
+        "-sy",
+        "--scale-y",
+        action="store_true",
+        default=False,
+        help="Whether or not to scale the output values to [0,1] using min-max"
+        " scaling.",
+    )
+
+    nn_options.add_argument(
         "-mt",
-        "--multi_train",
+        "--multi-train",
         action="store_true",
         default=False,
         help="If set, trains across multiple hidden dims and learning rates.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-mh",
-        "--multi_hidden_sizes",
+        "--multi-hidden-sizes",
         type=int,
         nargs="+",
         default=[8, 12, 16],
         help="List of sizes to apply to both (two) hidden layers.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-ml",
-        "--multi_learning_rates",
+        "--multi-learning-rates",
         type=float,
         nargs="+",
         default=[1e-3, 1e-4, 1e-5],
         help="List of learning rates to try.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-sp",
-        "--surface_plot",
+        "--surface-plot",
         action="store_true",
         default=False,
         help="If set, generates a surface plot of surrogate and test function "
         "Only works when -mt is NOT flagged.",
     )
 
-    parser.add_argument(
+    nn_options.add_argument(
         "-vp",
-        "--verbose_plot",
+        "--verbose-plot",
         action="store_true",
         default=False,
         help="If set, includes (hyper)parameter values in loss plot title "
@@ -229,7 +221,7 @@ def plot_surface_3d(
             and be callable on a torch.Tensor.
         model: The PyTorch neural net model to make predictions from.
         title (str): Title for the plot and output file, usually
-            the objective data/function name.
+            the test data/function name.
         resolution (int, optional): Number of points per dimension
             for the surface grid. Default is 50.
         angle (tuple[float, float], optional):
@@ -339,13 +331,13 @@ def main():
     """
     # Parse command line arguments
     args = parse_arguments()
-    objective_function = args.objective_function
+    test_function = args.test_function
     normalize_x = args.normalize_x
     scale_x = args.scale_x
     normalize_y = args.normalize_y
     scale_y = args.scale_y
     seed = args.seed
-    n_epochs = args.n_epochs
+    epochs = args.epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
@@ -365,7 +357,7 @@ def main():
     plots_dir = script_dir / "plots"
 
     # Generate random data from test function
-    synthetic_function = load_test_function(objective_function)
+    synthetic_function = load_test_function(test_function)
     input_size = synthetic_function.dim
     torch.manual_seed(seed)
 
@@ -421,7 +413,7 @@ def main():
     if normalize_y or scale_y:
         # Note: if y is normalized or scaled, all losses and metrics during
         # training and testing are computed in this transformed space, not in
-        # the original output units of the objective function.
+        # the original output units of the test function.
 
         # Create the scaler and fit it on training data
         if normalize_y:
@@ -429,7 +421,7 @@ def main():
                 "Output data is being normalized to have mean 0, variance 1 "
                 "based on training data.\n"
                 "Note: training and testing losses will be in normalized units, "
-                "not in the original objective function units.\n"
+                "not in the original test function units.\n"
             )
             scaler_y_train = StandardScaler()
 
@@ -438,7 +430,7 @@ def main():
                 "Output data is being scaled using min-max scaling based on "
                 "training data.\n"
                 "Note: training and testing losses will be in scaled units, "
-                "not in the original objective function units.\n"
+                "not in the original test function units.\n"
             )
             scaler_y_train = MinMaxScaler()
 
@@ -463,7 +455,7 @@ def main():
             len(multi_learning_rates),
             figsize=(15, 15),
         )
-        fig.suptitle(f"Training and Testing Losses - {objective_function}", fontsize=16)
+        fig.suptitle(f"Training and Testing Losses - {test_function}", fontsize=16)
 
         # Train and test FFNN
         n = len(multi_hidden_sizes)
@@ -480,7 +472,7 @@ def main():
                     x_test,
                     y_test,
                     hidden_sizes,
-                    n_epochs,
+                    epochs,
                     lr,
                     batch_size,
                     seed,
@@ -500,24 +492,54 @@ def main():
             multi_learning_rates,
             multi_hidden_sizes,
             axs,
-            objective_function,
+            test_function,
             plots_dir,
         )
 
     # Default: Do one train/test run and plot loss over epochs results
     else:
         # Train and test FFNN
+        start_time = time.time()
         model, train_losses, test_losses = nn.train(
             x_train,
             y_train,
             x_test,
             y_test,
             hidden_sizes,
-            n_epochs,
+            epochs,
             learning_rate,
             batch_size,
             seed,
             initialize_weights_normal,
+        )
+        elapsed_time = time.time() - start_time
+
+        # Log results
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
+        log_lines = [
+            f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+            f"Test Function: {test_function}",
+            f"Number of training points: {n_train}",
+            f"Number of testing points: {n_test}",
+            f"Hidden layer sizes: {hidden_sizes}",
+            f"Learning rate: {learning_rate}",
+            f"Batch size: {batch_size}",
+            f"Epochs: {epochs}",
+            f"Normalize x: {normalize_x}",
+            f"Scale x: {scale_x}",
+            f"Normalize y: {normalize_y}",
+            f"Scale y: {scale_y}",
+            f"Final train loss: {train_losses[-1]:.5e}",
+            f"Final test loss: {test_losses[-1]:.5e}",
+            f"Elapsed time for training NN: {elapsed_time:.3f} seconds\n",
+        ]
+        log_message = "\n".join(log_lines)
+        print(log_message)
+
+        results_dir = Path(__file__).parent / "results"
+        log_results(
+            log_message,
+            path_to_log=results_dir / f"{test_function}_nn.txt",
         )
 
         if verbose_plot:
@@ -535,19 +557,19 @@ def main():
                 scale_y,
                 n_train,
                 n_test,
-                objective_function,
+                test_function,
                 plots_dir,
             )
 
         else:
             # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, objective_function, plots_dir)
+            nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(
                 synthetic_function,
                 model,
-                title=objective_function,
+                title=test_function,
                 plots_dir=plots_dir,
                 resolution=50,
                 angle=(30, 120),

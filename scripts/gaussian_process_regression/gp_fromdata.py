@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
-Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurrogate.
+Train GP surrogate models on datasets from data/.
+
+This script trains Gaussian Process surrogates on real datasets, with options
+for kernel selection, data scaling, and hyperparameter tuning. Results are saved
+as plots and logs.
 
 Usage examples:
 
-./gp_fromdata.py --n_train=200 --kernel=rbf --isotropic
-./gp_fromdata.py --n_train=200 --kernel=matern
-./gp_fromdata.py --n_train=200 --kernel=matern --normalize_y --plot
-./gp_fromdata.py --n_train=300 --kernel=matern --log
+./gp_fromdata.py --help
+./gp_fromdata.py
+./gp_fromdata.py -d JAG --n-train 200 --kernel rbf --isotropic
+./gp_fromdata.py -d JAG --n-train 300 --kernel matern
+./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --scale-x --normalize-y
+./gp_fromdata.py -d borehole --n-train 200 --kernel matern --scale-x
+./gp_fromdata.py -d hst_H --n-train 200 --kernel matern --scale-x --normalize-y
 """
 
 import argparse
@@ -16,11 +23,11 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import root_mean_squared_error as rmse
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod import data_processing
 from surmod.gaussian_process import GPSurrogate
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -30,70 +37,87 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility.",
+    )
+
+    data_options = parser.add_argument_group("data options")
+    gp_options = parser.add_argument_group("GP model options")
+
+    data_options.add_argument(
         "-d",
         "--dataset",
         type=str,
         choices=list(data_processing.DATASET_CONFIG.keys()),
         default="JAG",
-        help="Which dataset to use (default: JAG).",
+        help="Which dataset to use.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-tr",
-        "--n_train",
+        "--n-train",
         type=int,
         default=50,
-        help="Number of train samples.",
+        help="Number of training samples.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
         "-te",
-        "--n_test",
+        "--n-test",
         type=int,
         default=500,
         help="Number of test samples.",
     )
 
-    parser.add_argument(
+    data_options.add_argument(
+        "--LHD",
+        action="store_true",
+        help="Use an LHD design (passed into split_data if supported).",
+    )
+
+    gp_options.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="GP kernel function.",
+    )
+
+    gp_options.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+
+    gp_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    gp_options.add_argument(
         "-ny",
-        "--normalize_y",
+        "--normalize-y",
         action="store_true",
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
     )
 
-    parser.add_argument(
-        "-k",
-        "--kernel",
-        type=str,
-        choices=["matern", "rbf", "periodic"],
-        default="matern",
-        help="Kernel type for GPSurrogate.",
+    gp_options.add_argument(
+        "--fixed-nugget",
+        type=float,
+        default=None,
+        help="Fix the likelihood noise (nugget).",
     )
 
-    parser.add_argument(
-        "-i",
-        "--isotropic",
-        action="store_true",
-        help="Use isotropic kernel (shared lengthscale). Default is ARD.",
-    )
-
-    parser.add_argument(
-        "--scale_inputs",
-        dest="scale_inputs",
-        action="store_true",
-        default=True,
-        help="Normalize inputs to unit cube (GPSurrogate.scale_inputs).",
-    )
-
-    parser.add_argument(
-        "--no-scale_inputs",
-        dest="scale_inputs",
-        action="store_false",
-        help="Disable input normalization.",
-    )
-
-    parser.add_argument(
-        "--lengthscale_bounds",
+    gp_options.add_argument(
+        "--lengthscale-bounds",
         type=float,
         nargs=2,
         default=(1e-2, 100.0),
@@ -101,50 +125,16 @@ def parse_arguments():
         help="Bounds for kernel lengthscale constraint.",
     )
 
-    parser.add_argument(
-        "--noise_bounds",
+    gp_options.add_argument(
+        "--noise-bounds",
         type=float,
         nargs=2,
-        default=(1e-16, 1e-1),
+        default=(1e-8, 1e-1),
         metavar=("LOW", "HIGH"),
         help="Bounds for likelihood noise constraint.",
     )
 
-    parser.add_argument(
-        "-l",
-        "--log",
-        action="store_true",
-        help="Append results to output log file.",
-    )
-
-    parser.add_argument(
-        "-p",
-        "--plot",
-        action="store_true",
-        help="Create observed vs predicted parity plot with 95 percent intervals.",
-    )
-
-    parser.add_argument(
-        "--LHD",
-        action="store_true",
-        help="Use an LHD design (passed into split_data if supported).",
-    )
-
-    parser.add_argument(
-        "-s",
-        "--seed",
-        type=int,
-        default=42,
-        help="Random number generator seed.",
-    )
-
     return parser.parse_args()
-
-
-def log_results(log_message: str, path_to_log: Path) -> None:
-    path_to_log.parent.mkdir(parents=True, exist_ok=True)
-    with open(path_to_log, "a", encoding="utf-8") as f:
-        f.write(log_message)
 
 
 def main():
@@ -160,11 +150,10 @@ def main():
     normalize_y = args.normalize_y
     kernel = args.kernel
     isotropic = args.isotropic
-    scale_inputs = args.scale_inputs
+    scale_x = args.scale_x
+    fixed_nugget = args.fixed_nugget
     lengthscale_bounds = tuple(args.lengthscale_bounds)
     noise_bounds = tuple(args.noise_bounds)
-    do_log = args.log
-    do_plot = args.plot
     seed = args.seed
     use_lhd = args.LHD
 
@@ -187,6 +176,10 @@ def main():
     )
 
     # Build and fit BoTorch GP surrogate
+    # Handle fixed nugget
+    fixed_noise = fixed_nugget
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
+
     gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -194,10 +187,12 @@ def main():
         y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
-        scale_inputs=scale_inputs,
+        scale_inputs=scale_x,
         scale_outputs=normalize_y,
+        fixed_noise=fixed_noise,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds,
+        noise_bounds=noise_bounds_to_use,
+        seed=seed,
     )
 
     start_time = time.perf_counter()
@@ -212,8 +207,8 @@ def main():
     train_mae = mean_absolute_error(y_train, pred_train_mean)
     test_mae = mean_absolute_error(y_test, pred_test_mean)
 
-    train_rmse = rmse(y_train, pred_train_mean)
-    test_rmse = rmse(y_test, pred_test_mean)
+    train_rmse = root_mean_squared_error(y_train, pred_train_mean)
+    test_rmse = root_mean_squared_error(y_test, pred_test_mean)
 
     # Max absolute error locations
     train_max_abserr, train_max_input = gp.compute_max_error(
@@ -236,32 +231,30 @@ def main():
         f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
-        f"Scale inputs: {scale_inputs}",
+        f"Scale x: {scale_x}",
         f"Normalize y: {normalize_y}",
+        f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
-        f"Noise bounds: {noise_bounds}",
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
-        f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
-        f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
+        f"Train Max abs err: {train_max_abserr:.5e} | Location: {train_max_input}",
+        f"Test Max abs err: {test_max_abserr:.5e} | Location: {test_max_input}",
         f"Train Mean abs err: {train_mae:.5e}",
-        f"Test Mean abs err:  {test_mae:.5e}",
+        f"Test Mean abs err: {test_mae:.5e}",
         f"Training time: {elapsed_time:.3f} seconds",
     ]
     log_message = "\n".join(log_lines) + "\n"
 
     print(log_message)
 
-    if do_log:
-        log_results(
-            log_message,
-            path_to_log=results_dir / f"{dataset}.txt",
-        )
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{dataset}.txt",
+    )
 
-    if do_plot:
-        # Uses your class method that calls evaluate() internally
-        gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
+    gp.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
 
 if __name__ == "__main__":

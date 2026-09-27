@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 
 """
-This script creates an animation of Bayesian Optimization on a chosen
-synthetic objective function and plots performance of the chosen acquisition
-function: Expected Improvement (EI), Probability of Improvement (PI),
-Upper Confidence Bound (UCB), Predictive Variance (PV), or random.
+Animate Bayesian Optimization on synthetic test functions.
+
+This script visualizes the BO process on 2D test functions, showing the test function
+surface, acquisition function evolution, and GP mean predictions over iterations.
+Supports EI, PI, UCB, PV, and random acquisition strategies.
 
 Usage examples:
 
-./bo_sandbox.py --n_iteration=15 --acquisition=EI --objective_function=parabola
-./bo_sandbox.py --n_iteration=20 --acquisition=UCB --objective_function=ackley --beta=3.0
-./bo_sandbox.py --n_initial=5 --n_iteration=10 --acquisition=PI --kernel=rbf
-./bo_sandbox.py --acquisition=EI --init_design=lhd --save_animation
+./bo_sandbox.py --help
+./bo_sandbox.py
+./bo_sandbox.py --test-function parabola --acquisition EI --init-design lhd --save-animation
+./bo_sandbox.py --test-function parabola --acquisition EI --n-iter 15
+./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-initial 10
+./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iter 20 --beta 2.0
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --seed 2
 """
 
 import argparse
 import io
-import os
+import time
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -28,8 +32,8 @@ import numpy as np
 import torch
 
 from surmod import bayesian_optimization as bo
-from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import load_test_function
+from surmod.utils import log_results
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -37,29 +41,54 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Perform Bayesian optimization on synthetic test functions.",
     )
+
     parser.add_argument(
-        "-it",
-        "--n_iteration",
+        "-s",
+        "--seed",
         type=int,
-        default=10,
-        help="Number of Bayesian optimization acquisitions.",
+        default=42,
+        help="Random seed for reproducibility.",
     )
-    parser.add_argument(
+
+    experiment = parser.add_argument_group("experiment options")
+    bo_options = parser.add_argument_group("Bayesian optimization options")
+
+    experiment.add_argument(
+        "-f",
+        "--test-function",
+        type=str,
+        default="parabola",
+        help="Test function to use. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+    )
+    experiment.add_argument(
         "-in",
-        "--n_initial",
+        "--n-initial",
         type=int,
         default=10,
         help="Number of initial samples before Bayesian optimization.",
     )
-    parser.add_argument(
-        "-k",
-        "--kernel",
-        type=str,
-        choices=["matern", "rbf", "periodic"],
-        default="matern",
-        help="Kernel function used for GP surrogate.",
+    experiment.add_argument(
+        "-it",
+        "--n-iter",
+        type=int,
+        default=10,
+        help="Number of Bayesian optimization acquisitions.",
     )
-    parser.add_argument(
+    experiment.add_argument(
+        "--init-design",
+        type=str,
+        choices=["random", "lhd", "maximin_lhd"],
+        default="random",
+        help="Initial design strategy for BO.",
+    )
+    experiment.add_argument(
+        "-save",
+        "--save-animation",
+        action="store_true",
+        help="Save the animation instead of displaying it interactively.",
+    )
+
+    bo_options.add_argument(
         "-acq",
         "--acquisition",
         type=str,
@@ -67,42 +96,66 @@ def parse_arguments() -> argparse.Namespace:
         default="EI",
         help="Choice of acquisition function.",
     )
-    parser.add_argument(
-        "-f",
-        "--objective_function",
-        type=str,
-        default="parabola",
-        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
-    )
-    parser.add_argument(
-        "--init_design",
-        type=str,
-        choices=["random", "lhd", "maximin_lhd"],
-        default="random",
-        help="Initial design strategy for BO.",
-    )
-    parser.add_argument(
-        "-i",
-        "--isotropic",
-        action="store_true",
-        help="Force GP kernel to be isotropic (single lengthscale).",
-    )
-    parser.add_argument(
-        "-s", "--seed", type=int, default=42, help="Set random initial seed."
-    )
-    parser.add_argument(
-        "-save",
-        "--save_animation",
-        action="store_true",
-        help="Save the animation (useful for lightning AI users).",
-    )
-    parser.add_argument(
+    bo_options.add_argument(
         "-beta",
         "--beta",
         type=float,
         default=2.0,
         help="Tuning parameter for UCB method only.",
     )
+    bo_options.add_argument(
+        "-k",
+        "--kernel",
+        type=str,
+        choices=["rbf", "matern", "periodic"],
+        default="matern",
+        help="GP kernel function.",
+    )
+    bo_options.add_argument(
+        "-i",
+        "--isotropic",
+        action="store_true",
+        help="Use isotropic kernel (single lengthscale for all inputs).",
+    )
+    bo_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+    bo_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+    bo_options.add_argument(
+        "--fixed-nugget",
+        type=float,
+        default=None,
+        help="Fix the likelihood noise (nugget).",
+    )
+
+    bo_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    bo_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
+    )
+
     return parser.parse_args()
 
 
@@ -158,15 +211,14 @@ def setup_figure(
     x_sample: np.ndarray,
     synth_function: object,
     global_optima: list,
-    objective_function: str,
+    test_function: str,
     kernel: str,
     n_initial: int,
     n_iteration: int,
-    gp_initial: object,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
-        f"Bayesian Optimization of {objective_function} w/ {kernel} kernel\n",
+        f"Bayesian Optimization of {test_function} w/ {kernel} kernel\n",
         fontsize=16,
     )
 
@@ -175,7 +227,7 @@ def setup_figure(
     ax3 = fig.add_subplot(133, projection="3d")
 
     title_lines = [
-        f"{objective_function} with {kernel} kernel",
+        f"{test_function} with {kernel} kernel",
         f"Initial Samples: {n_initial} | Acquired Samples: {n_iteration}",
     ]
 
@@ -190,7 +242,7 @@ def setup_figure(
     contour = ax1.contourf(
         x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", alpha=0.3
     )
-    plt.colorbar(contour, ax=ax1, label=f"Value of {objective_function}")
+    plt.colorbar(contour, ax=ax1, label=f"Value of {test_function}")
     ax1.scatter(
         x_sample[:, 0],
         x_sample[:, 1],
@@ -210,7 +262,8 @@ def setup_figure(
 
     x_grid = np.vstack([x1_grid.ravel(), x2_grid.ravel()]).T
 
-    bopt.gp_model = gp_initial
+    # Fit initial GP for visualization
+    gp_initial = bopt.gp_model_fit()
     acq_init = bopt.score_candidates(x_grid)
 
     acq_init = acq_init.reshape(x1_grid.shape)
@@ -368,17 +421,16 @@ def plot_convergence(
         plt.show()
 
 
-def save_gif(frames: list, objective_function: str, plots_dir: Path) -> None:
+def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
     plots_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
-    path = plots_dir / f"bayes_opt_animation_{objective_function}_{ts}.gif"
+    path = plots_dir / f"bayes_opt_animation_{test_function}_{ts}.gif"
     imageio.mimsave(path, frames, fps=2)
     print(f"Animation saved as {path}")
 
 
 def main() -> None:
     args = parse_arguments()
-    os.environ["MPLCONFIGDIR"] = str(Path.cwd())
 
     # Set random seeds for reproducibility
     np.random.seed(args.seed)
@@ -387,7 +439,7 @@ def main() -> None:
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"
 
-    synth_function = load_test_function(args.objective_function)
+    synth_function = load_test_function(args.test_function)
     bounds_low = [b[0] for b in synth_function._bounds]
     bounds_high = [b[1] for b in synth_function._bounds]
 
@@ -402,12 +454,10 @@ def main() -> None:
         ]
     ).reshape(x1_grid.shape)
 
-    global_optima, global_optimum_value = bo.get_synth_global_optima(
-        args.objective_function
-    )
+    global_optima, global_optimum_value = bo.get_synth_global_optima(args.test_function)
 
     x_sample, y_sample = bo.sample_data(
-        args.objective_function,
+        args.test_function,
         bounds_low,
         bounds_high,
         args.n_initial,
@@ -417,26 +467,16 @@ def main() -> None:
     )
 
     bopt = bo.BayesianOptimizer(
-        objective_function=args.objective_function,
+        test_function=args.test_function,
         x_init=x_sample,
         y_init=y_sample,
         kernel=args.kernel,
         isotropic=args.isotropic,
         acquisition_function=args.acquisition,
-        n_acquire=args.n_iteration,
+        n_acquire=args.n_iter,
         seed=args.seed,
         beta=args.beta,
     )
-
-    gp_initial = GPSurrogate(
-        x_train=x_sample,
-        y_train=y_sample,
-        kernel=args.kernel,
-        isotropic=args.isotropic,
-        scale_inputs=True,
-        scale_outputs=True,
-    )
-    gp_initial.fit()
 
     fig, axes, handles, meta = setup_figure(
         bopt=bopt,
@@ -446,16 +486,16 @@ def main() -> None:
         x_sample=x_sample,
         synth_function=synth_function,
         global_optima=global_optima,
-        objective_function=args.objective_function,
+        test_function=args.test_function,
         kernel=args.kernel,
         n_initial=args.n_initial,
-        n_iteration=args.n_iteration,
-        gp_initial=gp_initial,
+        n_iteration=args.n_iter,
     )
 
     if not args.save_animation:
         plt.show(block=False)
 
+    start_time = time.time()
     snapshots = run_bayesian_optimization(
         bopt,
         x_grid,
@@ -471,9 +511,10 @@ def main() -> None:
         x2_grid,
         save_animation=args.save_animation,
     )
+    elapsed_time = time.time() - start_time
 
     if args.save_animation and frames:
-        save_gif(frames, args.objective_function, plots_dir)
+        save_gif(frames, args.test_function, plots_dir)
 
     plot_convergence(
         acquired_maxima,
@@ -482,6 +523,34 @@ def main() -> None:
         title_lines=meta["title_lines"],
         save_animation=args.save_animation,
         plots_dir=plots_dir,
+    )
+
+    # Log results
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    best_acquired = acquired_maxima[-1]
+    best_gp_mean = gp_mean_maxima[-1]
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Test Function: {args.test_function}",
+        f"Acquisition Function: {args.acquisition}",
+        f"Kernel: {args.kernel}",
+        f"Isotropic: {args.isotropic}",
+        f"Initial design: {args.init_design}",
+        f"Number of initial points: {args.n_initial}",
+        f"Number of BO iterations: {args.n_iter}",
+        f"Beta (UCB): {args.beta if args.acquisition == 'UCB' else 'N/A'}",
+        f"Global optimum value: {global_optimum_value:.5e}",
+        f"Best acquired value: {best_acquired:.5e}",
+        f"Best GP mean value: {best_gp_mean:.5e}",
+        f"Elapsed time for BO: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
+
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{args.test_function}_{args.acquisition}_bo.txt",
     )
 
 
