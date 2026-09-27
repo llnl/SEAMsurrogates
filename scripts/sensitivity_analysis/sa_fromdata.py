@@ -11,10 +11,10 @@ Usage examples:
 
 ./sa_fromdata.py --help
 ./sa_fromdata.py
-./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
+./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5 --scale-x
 ./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale-x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --scale-x
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu --scale-x
 """
 
 import argparse
