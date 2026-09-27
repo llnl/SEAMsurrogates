@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 """
-This script simulates data from a test function, fits a Gaussian process,
-and runs a sensitivity analysis with the fitted GP model.
+Perform sensitivity analysis on synthetic test functions using GP surrogates.
+
+This script trains a GP surrogate on test function data and computes Sobol
+sensitivity indices to identify important input variables. Supports variable
+exclusion and customizable test functions.
 
 Usage examples:
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-This script simulates data from a test function, fits a Gaussian process to the
-data, and saves a log message and plot of the fitted surface.
+Train GP surrogate models on synthetic test functions.
+
+This script trains Gaussian Process surrogates on 2D test functions, with options
+for kernel selection, data scaling, and hyperparameter tuning. Results are saved
+as plots and logs.
 
 Usage examples:
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Train a GP surrogate model on a chosen dataset using the BoTorch-based GPSurrogate.
+Train GP surrogate models on datasets from data/.
+
+This script trains Gaussian Process surrogates on real datasets, with options
+for kernel selection, data scaling, and hyperparameter tuning. Results are saved
+as plots and logs.
 
 Usage examples:
 

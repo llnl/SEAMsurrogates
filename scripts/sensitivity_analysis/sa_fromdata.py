@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 """
-This script performs a sensitivity analysis on a chosen dataset by training a
-Gaussian Process (GP) surrogate model. It allows for flexible kernel selection,
-length scale adjustment, and exclusion of specific input variables.
-The script evaluates model performance, computes Sobol sensitivity indices,
-and saves relevant plots.
+Perform sensitivity analysis on datasets from data/ using GP surrogates.
+
+This script trains a GP surrogate on real data and computes Sobol sensitivity
+indices to identify important input variables. Supports variable exclusion and
+customizable GP configurations.
 
 Usage examples:
 
