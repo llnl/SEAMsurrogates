@@ -19,6 +19,7 @@ Usage examples:
 """
 
 import argparse
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -32,6 +33,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
 from surmod.test_functions import load_test_function
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -497,6 +499,7 @@ def main():
     # Default: Do one train/test run and plot loss over epochs results
     else:
         # Train and test FFNN
+        start_time = time.time()
         model, train_losses, test_losses = nn.train(
             x_train,
             y_train,
@@ -508,6 +511,35 @@ def main():
             batch_size,
             seed,
             initialize_weights_normal,
+        )
+        elapsed_time = time.time() - start_time
+
+        # Log results
+        timestamp = datetime.now().strftime("%m%d_%H%M%S")
+        log_lines = [
+            f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+            f"Test Function: {test_function}",
+            f"Number of training points: {n_train}",
+            f"Number of testing points: {n_test}",
+            f"Hidden layer sizes: {hidden_sizes}",
+            f"Learning rate: {learning_rate}",
+            f"Batch size: {batch_size}",
+            f"Epochs: {epochs}",
+            f"Normalize x: {normalize_x}",
+            f"Scale x: {scale_x}",
+            f"Normalize y: {normalize_y}",
+            f"Scale y: {scale_y}",
+            f"Final train loss: {train_losses[-1]:.5e}",
+            f"Final test loss: {test_losses[-1]:.5e}",
+            f"Elapsed time for training NN: {elapsed_time:.3f} seconds\n",
+        ]
+        log_message = "\n".join(log_lines)
+        print(log_message)
+
+        results_dir = Path(__file__).parent / "results"
+        log_results(
+            log_message,
+            path_to_log=results_dir / f"{test_function}_nn.txt",
         )
 
         if verbose_plot:

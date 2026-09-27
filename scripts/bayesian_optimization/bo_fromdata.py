@@ -18,6 +18,8 @@ Usage examples:
 """
 
 import argparse
+import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +27,7 @@ import torch
 
 from surmod import bayesian_optimization as bo
 from surmod import data_processing
+from surmod.utils import log_results
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -226,6 +229,7 @@ def main() -> None:
     optimizers = {}
     max_y_histories = {}
 
+    start_time = time.time()
     for acq_func in acquisition_functions:
         kwargs = base_kwargs.copy()
         kwargs["acquisition_function"] = acq_func
@@ -237,6 +241,7 @@ def main() -> None:
 
         optimizers[acq_func] = optimizer
         max_y_histories[acq_func] = max_y_history
+    elapsed_time = time.time() - start_time
 
     bo.plot_acquisition_comparison(
         max_y_histories["EI"],
@@ -250,6 +255,34 @@ def main() -> None:
         f"{dataset}_{args.init_design}",
         beta=args.beta,
         plots_dir=plots_dir,
+    )
+
+    # Log results
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Dataset: {dataset}",
+        f"Kernel: {kernel}",
+        f"Isotropic: {args.isotropic}",
+        f"Initial design: {args.init_design}",
+        f"Number of initial points: {n_initial}",
+        f"Number of BO iterations: {n_iter}",
+        f"Beta (UCB): {args.beta}",
+        f"Fixed nugget: {fixed_noise}",
+        f"Best EI final value: {max_y_histories['EI'][-1]:.5e}",
+        f"Best PI final value: {max_y_histories['PI'][-1]:.5e}",
+        f"Best UCB final value: {max_y_histories['UCB'][-1]:.5e}",
+        f"Best PV final value: {max_y_histories['PV'][-1]:.5e}",
+        f"Best random final value: {max_y_histories['random'][-1]:.5e}",
+        f"Elapsed time for all BO runs: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
+
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{dataset}_{args.init_design}_bo_comparison.txt",
     )
 
 

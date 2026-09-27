@@ -32,6 +32,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from surmod import sensitivity_analysis as sa
 from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import get_input_spec, get_variable_names
+from surmod.utils import log_results
 
 
 def parse_arguments():
@@ -163,13 +164,6 @@ def parse_arguments():
     )
 
     return parser.parse_args()
-
-
-def log_results(log_message: str, path_to_log: Path | str) -> None:
-    path = Path(path_to_log)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(log_message + "\n")
 
 
 def main():

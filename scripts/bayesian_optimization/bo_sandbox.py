@@ -20,6 +20,7 @@ Usage examples:
 
 import argparse
 import io
+import time
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +33,7 @@ import torch
 
 from surmod import bayesian_optimization as bo
 from surmod.test_functions import load_test_function
+from surmod.utils import log_results
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -471,7 +473,7 @@ def main() -> None:
         kernel=args.kernel,
         isotropic=args.isotropic,
         acquisition_function=args.acquisition,
-        n_acquire=args.n_iteration,
+        n_acquire=args.n_iter,
         seed=args.seed,
         beta=args.beta,
     )
@@ -487,12 +489,13 @@ def main() -> None:
         test_function=args.test_function,
         kernel=args.kernel,
         n_initial=args.n_initial,
-        n_iteration=args.n_iteration,
+        n_iteration=args.n_iter,
     )
 
     if not args.save_animation:
         plt.show(block=False)
 
+    start_time = time.time()
     snapshots = run_bayesian_optimization(
         bopt,
         x_grid,
@@ -508,6 +511,7 @@ def main() -> None:
         x2_grid,
         save_animation=args.save_animation,
     )
+    elapsed_time = time.time() - start_time
 
     if args.save_animation and frames:
         save_gif(frames, args.test_function, plots_dir)
@@ -519,6 +523,34 @@ def main() -> None:
         title_lines=meta["title_lines"],
         save_animation=args.save_animation,
         plots_dir=plots_dir,
+    )
+
+    # Log results
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    best_acquired = acquired_maxima[-1]
+    best_gp_mean = gp_mean_maxima[-1]
+    log_lines = [
+        f"Run timestamp (%m%d_%H%M%S): {timestamp}",
+        f"Test Function: {args.test_function}",
+        f"Acquisition Function: {args.acquisition}",
+        f"Kernel: {args.kernel}",
+        f"Isotropic: {args.isotropic}",
+        f"Initial design: {args.init_design}",
+        f"Number of initial points: {args.n_initial}",
+        f"Number of BO iterations: {args.n_iter}",
+        f"Beta (UCB): {args.beta if args.acquisition == 'UCB' else 'N/A'}",
+        f"Global optimum value: {global_optimum_value:.5e}",
+        f"Best acquired value: {best_acquired:.5e}",
+        f"Best GP mean value: {best_gp_mean:.5e}",
+        f"Elapsed time for BO: {elapsed_time:.3f} seconds\n",
+    ]
+    log_message = "\n".join(log_lines)
+    print(log_message)
+
+    results_dir = Path(__file__).parent / "results"
+    log_results(
+        log_message,
+        path_to_log=results_dir / f"{args.test_function}_{args.acquisition}_bo.txt",
     )
 
 
