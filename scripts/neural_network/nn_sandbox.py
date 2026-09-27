@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 """
-This script trains a feedforward neural network (FFNN) surrogate model on
-synthetic test functions (Ackley, SixHumpCamel, or Griewank). It provides
-options for customizing the network architecture, learning rate, batch size,
-and for running multiple training configurations. Results are plotted and saved
-within working directory.
+Train neural network surrogate models on synthetic test functions.
+
+This script trains feedforward neural networks on 2D test functions, with options
+for customizing network architecture, learning rate, batch size, and data scaling.
+Supports single-run and multi-configuration training modes. Results are saved as
+plots and loss histories.
 
 Usage examples:
 

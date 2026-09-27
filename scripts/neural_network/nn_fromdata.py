@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 """
-This script trains a neural network on a chosen dataset. It provides options
-for specifying the number of epochs, batch size, sizes of hidden layers, and
-learning rate. It saves loss and prediction plots to the directory containing
-this script.
+Train neural network surrogate models on datasets from data/.
+
+This script trains feedforward neural networks on real datasets, with options
+for customizing network architecture, learning rate, batch size, and data scaling.
+Results are saved as plots and loss histories.
 
 Usage examples:
 
