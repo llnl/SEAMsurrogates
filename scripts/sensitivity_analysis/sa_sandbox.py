@@ -283,10 +283,10 @@ def main():
         f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
-        f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
-        f"Test Max abs err:   {test_max_abserr:.3e} | Location: {test_max_input}\n"
+        f"Train Max abs err: {train_max_abserr:.3e} | Location: {train_max_input}\n"
+        f"Test Max abs err: {test_max_abserr:.3e} | Location: {test_max_input}\n"
         f"Train MAE: {train_mae:.3e}\n"
-        f"Test MAE:  {test_mae:.3e}\n"
+        f"Test MAE: {test_mae:.3e}\n"
         f"Elapsed time for training GP: {elapsed_time:.3f} seconds\n"
     )
 

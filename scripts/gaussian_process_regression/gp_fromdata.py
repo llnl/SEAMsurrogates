@@ -239,10 +239,10 @@ def main():
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
-        f"Train Max abs err:  {train_max_abserr:.5e} | Location: {train_max_input}",
-        f"Test Max abs err:   {test_max_abserr:.5e} | Location: {test_max_input}",
+        f"Train Max abs err: {train_max_abserr:.5e} | Location: {train_max_input}",
+        f"Test Max abs err: {test_max_abserr:.5e} | Location: {test_max_input}",
         f"Train Mean abs err: {train_mae:.5e}",
-        f"Test Mean abs err:  {test_mae:.5e}",
+        f"Test Mean abs err: {test_mae:.5e}",
         f"Training time: {elapsed_time:.3f} seconds",
     ]
     log_message = "\n".join(log_lines) + "\n"
