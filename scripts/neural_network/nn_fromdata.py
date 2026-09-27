@@ -189,8 +189,7 @@ def main() -> None:
     )
 
     if verbose_plot:
-        # Plot train and test loss over epochs with (hyper)parameters included
-        #   scaling for JAG data (not currently implemented; not needed)
+        # Plot train and test loss over epochs with hyperparameters included
         nn.plot_losses_verbose(
             train_losses,
             test_losses,
