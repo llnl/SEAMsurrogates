@@ -71,7 +71,7 @@ def simulate_data(
     """
     # Set-up simulation
     n_total = n_train + n_test
-    out_dim, test_function, bounds_list = get_input_spec(test_function)
+    out_dim, test_function_callable, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)
     bounds_low = bounds[:, 0]
     bounds_high = bounds[:, 1]
@@ -80,9 +80,9 @@ def simulate_data(
     rng = np.random.default_rng(seed)
     x_data = rng.uniform(bounds_low, bounds_high, size=(n_total, out_dim))
     if test_function == "parabola":
-        y_data = test_function(x_data, b1, b2, b12)
+        y_data = test_function_callable(x_data, b1, b2, b12)
     else:
-        y_data = test_function(x_data)
+        y_data = test_function_callable(x_data)
 
     # Split data into training and testing sets
     x_train = x_data.copy()[:n_train]
