@@ -11,9 +11,9 @@ Usage examples:
 
 ./nn_sandbox.py --help
 ./nn_sandbox.py
-./nn_sandbox.py --test-function=griewank --epochs 200 --learning-rate 0.001
+./nn_sandbox.py --test-function griewank --epochs 200 --learning-rate 0.001
 ./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
-./nn_sandbox.py --test-function=branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --test-function branin --hidden-sizes 64 32 16 --n-test 500
 ./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 

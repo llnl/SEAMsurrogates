@@ -7,10 +7,10 @@ Usage examples:
 
 ./gp_sandbox.py --help
 ./gp_sandbox.py
-./gp_sandbox.py --test-function=parabola --kernel=matern --isotropic
-./gp_sandbox.py --test-function=parabola --kernel=matern
-./gp_sandbox.py --test-function=branin --kernel=rbf --seed 1
-./gp_sandbox.py --test-function=ackley -k rbf -tr 200
+./gp_sandbox.py --test-function parabola --kernel matern --isotropic
+./gp_sandbox.py --test-function parabola --kernel matern
+./gp_sandbox.py --test-function branin --kernel rbf --seed 1
+./gp_sandbox.py --test-function ackley -k rbf -tr 200
 """
 
 import argparse
