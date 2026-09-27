@@ -83,7 +83,7 @@ def parse_arguments() -> argparse.Namespace:
         "--hidden-sizes",
         type=int,
         nargs="+",
-        default=[5, 5],
+        default=[15, 15],
         help="Sizes of hidden layers.",
     )
 
