@@ -56,7 +56,7 @@ def parse_arguments():
         "--n-train",
         type=int,
         default=50,
-        help="Number of train samples.",
+        help="Number of training samples.",
     )
 
     data_options.add_argument(

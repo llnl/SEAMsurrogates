@@ -56,7 +56,7 @@ def parse_arguments() -> argparse.Namespace:
         "--test-function",
         type=str,
         default="parabola",
-        help="Function to optimize. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+        help="Test function to use. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
     experiment.add_argument(
         "-in",

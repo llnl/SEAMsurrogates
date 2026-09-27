@@ -48,7 +48,7 @@ def parse_arguments():
         "--test-function",
         type=str,
         default="parabola",
-        help="Choose test function. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
+        help="Test function to use. Supported: parabola, ackley, branin, holder_table, griewank, six_hump_camel.",
     )
 
     experiment.add_argument(
@@ -56,7 +56,7 @@ def parse_arguments():
         "--n-train",
         type=int,
         default=100,
-        help="Number of points in training data set.",
+        help="Number of training samples.",
     )
 
     experiment.add_argument(
@@ -64,7 +64,7 @@ def parse_arguments():
         "--n-test",
         type=int,
         default=100,
-        help="Number of points in testing data set.",
+        help="Number of test samples.",
     )
 
     gp_options.add_argument(

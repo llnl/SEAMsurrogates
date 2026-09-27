@@ -63,7 +63,7 @@ def parse_arguments():
         "--n-train",
         type=int,
         default=400,
-        help="Number of train samples (default: 400).",
+        help="Number of training samples.",
     )
 
     data_options.add_argument(
@@ -71,7 +71,7 @@ def parse_arguments():
         "--n-test",
         type=int,
         default=100,
-        help="Number of test samples (default: 100).",
+        help="Number of test samples.",
     )
 
     data_options.add_argument(

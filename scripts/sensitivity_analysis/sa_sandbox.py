@@ -64,7 +64,7 @@ def parse_arguments():
         "--n-train",
         type=int,
         default=100,
-        help="Number of points to have in training data set.",
+        help="Number of training samples.",
     )
 
     experiment.add_argument(
