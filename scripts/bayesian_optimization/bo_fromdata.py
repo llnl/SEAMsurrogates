@@ -124,6 +124,24 @@ def parse_arguments() -> argparse.Namespace:
         help="Fix the likelihood noise (nugget).",
     )
 
+    bo_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    bo_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
+    )
+
     return parser.parse_args()
 
 

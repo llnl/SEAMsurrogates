@@ -127,6 +127,15 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    gp_options.add_argument(
         "--noise-bounds",
         type=float,
         nargs=2,
@@ -158,6 +167,7 @@ def main():
     n_test = args.n_test
     exclude = args.exclude
     fixed_nugget = args.fixed_nugget
+    lengthscale_bounds = tuple(args.lengthscale_bounds)
     noise_bounds = tuple(args.noise_bounds)
     seed = args.seed
 
@@ -209,6 +219,7 @@ def main():
         scale_inputs=scale_x,
         scale_outputs=normalize_y,
         fixed_noise=fixed_noise,
+        lengthscale_bounds=lengthscale_bounds,
         noise_bounds=noise_bounds_to_use,
         seed=seed,
     )
@@ -261,6 +272,7 @@ def main():
         f"Scale x: {scale_x}\n"
         f"Normalize y: {normalize_y}\n"
         f"Fixed nugget: {fixed_nugget}\n"
+        f"Lengthscale bounds: {lengthscale_bounds}\n"
         f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"

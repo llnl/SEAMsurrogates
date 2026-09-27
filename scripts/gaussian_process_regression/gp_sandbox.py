@@ -106,6 +106,24 @@ def parse_arguments():
         help="Fix the likelihood noise (nugget).",
     )
 
+    gp_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    gp_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
+    )
+
     return parser.parse_args()
 
 
@@ -126,6 +144,8 @@ def main():
     normalize_y = args.normalize_y
     fixed_nugget = args.fixed_nugget
     isotropic = args.isotropic
+    lengthscale_bounds = tuple(args.lengthscale_bounds)
+    noise_bounds = tuple(args.noise_bounds)
     seed = args.seed
 
     # Define script-relative directories
@@ -139,13 +159,9 @@ def main():
         seed=seed,
     )
 
-    if fixed_nugget is not None:
-        fixed_noise = float(fixed_nugget)
-        eps = max(1e-8, abs(fixed_noise) * 1e-6)
-        noise_bounds = (fixed_noise - eps, fixed_noise + eps)
-    else:
-        fixed_noise = None
-        noise_bounds = (1e-8, 1e-1)
+    # Handle fixed nugget
+    fixed_noise = float(fixed_nugget) if fixed_nugget is not None else None
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
 
     gp = GPSurrogate(
         x_train=x_train,
@@ -157,7 +173,8 @@ def main():
         scale_inputs=scale_x,
         scale_outputs=normalize_y,
         fixed_noise=fixed_noise,
-        noise_bounds=noise_bounds,
+        lengthscale_bounds=lengthscale_bounds,
+        noise_bounds=noise_bounds_to_use,
         seed=seed,
     )
 
@@ -199,7 +216,8 @@ def main():
         f"Scale x values: {scale_x}",
         f"Standardize outputs (normalize_y): {normalize_y}",
         f"Fixed nugget: {fixed_nugget}",
-        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-8, 1e-1)}",
+        f"Lengthscale bounds: {lengthscale_bounds}",
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",

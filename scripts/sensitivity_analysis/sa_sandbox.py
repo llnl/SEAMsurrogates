@@ -27,7 +27,7 @@ from SALib.sample import saltelli
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 from surmod import sensitivity_analysis as sa
-from surmod.gaussian_process import GPSurrogate, nugget_to_bounds
+from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import get_input_spec, get_variable_names
 
 
@@ -122,6 +122,24 @@ def parse_arguments():
         help="Fix the likelihood noise (nugget).",
     )
 
+    gp_options.add_argument(
+        "--lengthscale-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-2, 100.0),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for kernel lengthscale constraint.",
+    )
+
+    gp_options.add_argument(
+        "--noise-bounds",
+        type=float,
+        nargs=2,
+        default=(1e-8, 1e-1),
+        metavar=("LOW", "HIGH"),
+        help="Bounds for likelihood noise constraint.",
+    )
+
     parabola.add_argument(
         "--b1",
         type=float,
@@ -167,6 +185,8 @@ def main():
     exclude = args.exclude
     kernel = args.kernel
     isotropic = args.isotropic
+    lengthscale_bounds = tuple(args.lengthscale_bounds)
+    noise_bounds_arg = tuple(args.noise_bounds)
     seed = args.seed
 
     # Set output directories relative to this script
@@ -201,13 +221,9 @@ def main():
 
     dim = x_train.shape[1]
 
-    noise_bounds = None
-    if args.fixed_nugget is not None:
-        noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
-
     # Handle fixed nugget
     fixed_noise = args.fixed_nugget
-    noise_bounds_to_use = noise_bounds if fixed_noise is None else None
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds_arg
 
     gp_model = GPSurrogate(
         x_train=x_train,
@@ -219,9 +235,8 @@ def main():
         scale_inputs=args.scale_x,
         scale_outputs=args.normalize_y,
         fixed_noise=fixed_noise,
-        noise_bounds=(
-            noise_bounds_to_use if noise_bounds_to_use is not None else (1e-16, 1e-1)
-        ),
+        lengthscale_bounds=lengthscale_bounds,
+        noise_bounds=noise_bounds_to_use,
         seed=seed,
     )
 
@@ -267,7 +282,8 @@ def main():
         f"Kernel: {kernel}\n"
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
-        f"Noise bounds: {noise_bounds if noise_bounds is not None else (1e-16, 1e-1)}\n"
+        f"Lengthscale bounds: {lengthscale_bounds}\n"
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"
