@@ -232,7 +232,7 @@ def main():
         f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
-        f"Scale x values: {scale_x}",
+        f"Scale x: {scale_x}",
         f"Normalize y: {normalize_y}",
         f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",

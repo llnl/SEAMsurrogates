@@ -12,10 +12,10 @@ Usage examples:
 ./bo_sandbox.py --help
 ./bo_sandbox.py
 ./bo_sandbox.py --test-function parabola --acquisition EI --init-design lhd --save-animation
-./bo_sandbox.py --test-function parabola --acquisition EI --n-iteration 15
-./bo_sandbox.py --test-function parabola --acquisition random --n-iteration 15 --n-initial 10
-./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iteration 20 --beta 2.0
-./bo_sandbox.py --test-function branin --acquisition UCB --n-iteration 20 --n-initial 3 --seed 2
+./bo_sandbox.py --test-function parabola --acquisition EI --n-iter 15
+./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-initial 10
+./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iter 20 --beta 2.0
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --seed 2
 """
 
 import argparse
@@ -67,7 +67,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     experiment.add_argument(
         "-it",
-        "--n-iteration",
+        "--n-iter",
         type=int,
         default=10,
         help="Number of Bayesian optimization acquisitions.",
