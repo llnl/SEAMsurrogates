@@ -100,10 +100,26 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+
+    gp_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix likelihood noise by setting noise_bounds to nugget +/- nugget/10000.",
+        help="Fix the likelihood noise (nugget).",
     )
 
     parabola.add_argument(
@@ -189,6 +205,10 @@ def main():
     if args.fixed_nugget is not None:
         noise_bounds = nugget_to_bounds(float(args.fixed_nugget))
 
+    # Handle fixed nugget
+    fixed_noise = args.fixed_nugget
+    noise_bounds_to_use = noise_bounds if fixed_noise is None else None
+
     gp_model = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -196,9 +216,12 @@ def main():
         y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
-        scale_inputs=True,  # SA data are now in physical units
-        scale_outputs=True,  # matches old normalize_y=True intent
-        noise_bounds=noise_bounds if noise_bounds is not None else (1e-16, 1e-1),
+        scale_inputs=args.scale_x,
+        scale_outputs=args.normalize_y,
+        fixed_noise=fixed_noise,
+        noise_bounds=(
+            noise_bounds_to_use if noise_bounds_to_use is not None else (1e-16, 1e-1)
+        ),
         seed=seed,
     )
 

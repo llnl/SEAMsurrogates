@@ -104,11 +104,11 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "--no-scale-x",
-        dest="scale_x",
-        action="store_false",
-        default=True,
-        help="Disable input normalization (default: scale inputs to unit cube).",
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
     )
 
     gp_options.add_argument(
@@ -117,6 +117,13 @@ def parse_arguments():
         action="store_true",
         default=False,
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--fixed-nugget",
+        type=float,
+        default=None,
+        help="Fix the likelihood noise (nugget).",
     )
 
     gp_options.add_argument(
@@ -150,6 +157,7 @@ def main():
     n_train = args.n_train
     n_test = args.n_test
     exclude = args.exclude
+    fixed_nugget = args.fixed_nugget
     noise_bounds = tuple(args.noise_bounds)
     seed = args.seed
 
@@ -186,6 +194,10 @@ def main():
 
     _, dim = x_train.shape
 
+    # Handle fixed nugget
+    fixed_noise = fixed_nugget
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
+
     # Train GPSurrogate
     gp_model = GPSurrogate(
         x_train=x_train,
@@ -196,7 +208,8 @@ def main():
         isotropic=args.isotropic,
         scale_inputs=scale_x,
         scale_outputs=normalize_y,
-        noise_bounds=noise_bounds,
+        fixed_noise=fixed_noise,
+        noise_bounds=noise_bounds_to_use,
         seed=seed,
     )
     gp_model.fit()
@@ -247,7 +260,8 @@ def main():
         f"Isotropic: {args.isotropic}\n"
         f"Scale x: {scale_x}\n"
         f"Normalize y: {normalize_y}\n"
-        f"Noise bounds: {noise_bounds}\n"
+        f"Fixed nugget: {fixed_nugget}\n"
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err:  {train_max_abserr:.3e} | Location: {train_max_input}\n"

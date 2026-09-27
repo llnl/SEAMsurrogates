@@ -90,11 +90,11 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "--no-scale-inputs",
-        dest="scale_inputs",
-        action="store_false",
-        default=True,
-        help="Disable input normalization (default: scale inputs to unit cube).",
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
     )
 
     gp_options.add_argument(
@@ -102,6 +102,13 @@ def parse_arguments():
         "--normalize-y",
         action="store_true",
         help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+
+    gp_options.add_argument(
+        "--fixed-nugget",
+        type=float,
+        default=None,
+        help="Fix the likelihood noise (nugget).",
     )
 
     gp_options.add_argument(
@@ -144,7 +151,8 @@ def main():
     normalize_y = args.normalize_y
     kernel = args.kernel
     isotropic = args.isotropic
-    scale_inputs = args.scale_inputs
+    scale_x = args.scale_x
+    fixed_nugget = args.fixed_nugget
     lengthscale_bounds = tuple(args.lengthscale_bounds)
     noise_bounds = tuple(args.noise_bounds)
     seed = args.seed
@@ -169,6 +177,10 @@ def main():
     )
 
     # Build and fit BoTorch GP surrogate
+    # Handle fixed nugget
+    fixed_noise = fixed_nugget
+    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
+
     gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -176,10 +188,11 @@ def main():
         y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
-        scale_inputs=scale_inputs,
+        scale_inputs=scale_x,
         scale_outputs=normalize_y,
+        fixed_noise=fixed_noise,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds,
+        noise_bounds=noise_bounds_to_use,
         seed=seed,
     )
 
@@ -219,10 +232,11 @@ def main():
         f"Number of testing points: {n_test}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
-        f"Scale inputs: {scale_inputs}",
+        f"Scale x values: {scale_x}",
         f"Normalize y: {normalize_y}",
+        f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
-        f"Noise bounds: {noise_bounds}",
+        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",

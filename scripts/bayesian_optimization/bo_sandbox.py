@@ -115,6 +115,26 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
+    bo_options.add_argument(
+        "-sx",
+        "--scale-x",
+        action="store_true",
+        default=False,
+        help="Scale the input values to [0,1] per dimension using training data.",
+    )
+    bo_options.add_argument(
+        "-ny",
+        "--normalize-y",
+        action="store_true",
+        default=False,
+        help="Standardize outputs (maps to GPSurrogate.scale_outputs).",
+    )
+    bo_options.add_argument(
+        "--fixed-nugget",
+        type=float,
+        default=None,
+        help="Fix the likelihood noise (nugget).",
+    )
 
     return parser.parse_args()
 
