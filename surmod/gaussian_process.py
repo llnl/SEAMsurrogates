@@ -603,6 +603,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_mean only supports 2D inputs.")
 
+        test_function_name = test_function
         test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
@@ -665,7 +666,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{test_function}_gp_mean_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function_name}_gp_mean_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
@@ -687,6 +688,7 @@ class GPSurrogate:
         if self.x_train.shape[1] != 2:
             raise ValueError("plot_predictive_std_dev only supports 2D inputs.")
 
+        test_function_name = test_function
         test_function = test_functions.load_test_function(test_function)
         bounds_low = [b[0] for b in test_function._bounds]
         bounds_high = [b[1] for b in test_function._bounds]
@@ -744,7 +746,7 @@ class GPSurrogate:
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
         plots_dir.mkdir(exist_ok=True)
-        path_to_plot = plots_dir / f"{test_function}_gp_std_dev_{timestamp}.png"
+        path_to_plot = plots_dir / f"{test_function_name}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
         plt.savefig(path_to_plot)
         print(f"Figure saved to {path_to_plot}")
