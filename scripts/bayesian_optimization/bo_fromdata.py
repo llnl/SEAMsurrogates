@@ -150,6 +150,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run Bayesian optimization on a dataset and compare acquisition methods."""
     args = parse_arguments()
     dataset = args.dataset
     kernel = args.kernel

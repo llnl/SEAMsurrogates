@@ -125,6 +125,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Train a neural-network surrogate on a dataset and save plots."""
     # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset

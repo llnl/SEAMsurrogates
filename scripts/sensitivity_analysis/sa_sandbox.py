@@ -168,11 +168,7 @@ def parse_arguments():
 
 
 def main():
-    """
-    Run a full workflow for surrogate-based sensitivity analysis using
-    GPSurrogate. Simulate data from test function, train GP model, predict
-    model on hold-out data, and plot or log results.
-    """
+    """Run surrogate-based sensitivity analysis on a synthetic test function."""
     args = parse_arguments()
     test_function = args.test_function
     n_train = args.n_train

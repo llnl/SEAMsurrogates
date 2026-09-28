@@ -133,7 +133,7 @@ def parse_arguments():
 
 
 def main():
-    """Simulate data, train GP model, evaluate, and plot/log results."""
+    """Train and evaluate a GP surrogate on a synthetic test function."""
     args = parse_arguments()
     test_function = args.test_function
     kernel = args.kernel

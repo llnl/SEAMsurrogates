@@ -150,10 +150,7 @@ def parse_arguments():
 
 
 def main():
-    """
-    Trains and evaluates a GP surrogate model on the chosen dataset,
-    performs Sobol sensitivity analysis, and generates plots/logs.
-    """
+    """Run surrogate-based sensitivity analysis on a dataset."""
     args = parse_arguments()
     dataset = args.dataset
     scale_x = args.scale_x

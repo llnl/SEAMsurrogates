@@ -139,10 +139,7 @@ def parse_arguments():
 
 
 def main():
-    """
-    Trains and evaluates a Gaussian Process (GP) surrogate model on a dataset
-    contained in a csv file.
-    """
+    """Train and evaluate a GP surrogate on a dataset."""
     # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset
