@@ -280,9 +280,9 @@ def setup_figure(
     ax1.set_ylabel("x2")
     ax1.set_title("\n".join(title_lines))
     contour = ax1.contourf(
-        x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", alpha=0.3
+        x1_grid, x2_grid, y_grid, levels=25, cmap="viridis_r", alpha=0.3
     )
-    plt.colorbar(contour, ax=ax1, label=f"Value of {test_function}")
+    plt.colorbar(contour, ax=ax1, label=f"{test_function} (maximizing)")
     ax1.scatter(
         x_sample[:, 0],
         x_sample[:, 1],
@@ -307,7 +307,7 @@ def setup_figure(
     acq_init = bopt.score_candidates(x_grid)
 
     acq_init = acq_init.reshape(x1_grid.shape)
-    acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis")
+    acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis_r")
     ax2.set_xlabel("x1")
     ax2.set_ylabel("x2")
     ax2.set_zlabel("Acquisition Value")
@@ -317,7 +317,9 @@ def setup_figure(
     mu_init = mu_init.reshape(x1_grid.shape)
     gp_mean_max_val = np.max(mu_init)
     gp_mean_max_loc = x_grid[np.argmax(mu_init), :]
-    gp_surface = ax3.plot_surface(x1_grid, x2_grid, mu_init, cmap="viridis", alpha=0.6)
+    gp_surface = ax3.plot_surface(
+        x1_grid, x2_grid, mu_init, cmap="viridis_r", alpha=0.6
+    )
     gp_mean_dot = ax3.scatter(
         gp_mean_max_loc[0],
         gp_mean_max_loc[1],
@@ -330,7 +332,9 @@ def setup_figure(
     ax3.set_ylabel("x2")
     ax3.set_zlabel("Value")
     ax3.set_title("Objective Function Contour and GP Mean Surface")
-    ax3.contour(x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", linestyles="solid")
+    ax3.contour(
+        x1_grid, x2_grid, y_grid, levels=25, cmap="viridis_r", linestyles="solid"
+    )
     ax3.legend()
 
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
@@ -398,7 +402,7 @@ def animate_optimization(
 
         handles["acq_surface"].remove()
         handles["acq_surface"] = ax2.plot_surface(
-            x1_grid, x2_grid, snap["acq_values"], cmap="viridis"
+            x1_grid, x2_grid, snap["acq_values"], cmap="viridis_r"
         )
 
         if save_animation:
@@ -410,7 +414,7 @@ def animate_optimization(
         handles["gp_surface"].remove()
         handles["gp_mean_dot"].remove()
         handles["gp_surface"] = ax3.plot_surface(
-            x1_grid, x2_grid, snap["mu"], cmap="viridis", alpha=0.6
+            x1_grid, x2_grid, snap["mu"], cmap="viridis_r", alpha=0.6
         )
         loc = snap["gp_mean_max_location"]
         val = snap["gp_mean_max_value"]
