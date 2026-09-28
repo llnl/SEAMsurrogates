@@ -16,6 +16,7 @@ Usage examples:
 ./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-initial 10
 ./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iter 20 --beta 2.0
 ./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --seed 2
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --no-scale-x
 """
 
 import argparse
@@ -118,10 +119,9 @@ def parse_arguments() -> argparse.Namespace:
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
     bo_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
     bo_options.add_argument(

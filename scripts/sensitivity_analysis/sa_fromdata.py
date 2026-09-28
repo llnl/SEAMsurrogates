@@ -11,10 +11,11 @@ Usage examples:
 
 ./sa_fromdata.py --help
 ./sa_fromdata.py
-./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5 --scale-x
-./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale-x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --scale-x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu --scale-x
+./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5
+./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu
+./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --no-scale-x
 """
 
 import argparse
@@ -105,10 +106,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 

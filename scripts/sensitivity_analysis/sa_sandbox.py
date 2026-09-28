@@ -16,6 +16,7 @@ Usage examples:
 ./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
+./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f --no-scale-x
 """
 
 import argparse
@@ -104,10 +105,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 

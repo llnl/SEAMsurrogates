@@ -12,9 +12,10 @@ Usage examples:
 ./gp_fromdata.py
 ./gp_fromdata.py -d JAG --n-train 200 --kernel rbf --isotropic
 ./gp_fromdata.py -d JAG --n-train 300 --kernel matern
-./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --scale-x --normalize-y
-./gp_fromdata.py -d borehole --n-train 200 --kernel matern --scale-x
-./gp_fromdata.py -d hst_H --n-train 200 --kernel matern --scale-x --normalize-y
+./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
+./gp_fromdata.py -d borehole --n-train 200 --kernel matern
+./gp_fromdata.py -d hst_H --n-train 200 --kernel matern --normalize-y
+./gp_fromdata.py -d JAG --n-train 200 --kernel matern --no-scale-x
 """
 
 import argparse
@@ -95,10 +96,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 
