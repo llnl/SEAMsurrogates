@@ -3,6 +3,7 @@ Functions for neural network surrogates.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -12,6 +13,19 @@ import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
+
+
+@dataclass(frozen=True)
+class TrainingRunHistory:
+    """
+    Per-run loss history for a specific hyperparameter combination.
+    """
+
+    train_losses: list[float]
+    test_losses: list[float]
+
+
+LossSweepResults = dict[tuple[int, float], TrainingRunHistory]
 
 
 class NeuralNet(nn.Module):
@@ -296,8 +310,7 @@ def plot_losses_verbose(
 
 
 def plot_losses_multiplot(
-    train_losses_grid: list[list[list[float]]],
-    test_losses_grid: list[list[list[float]]],
+    results: LossSweepResults,
     learning_rates: list[float],
     hid_dims: list[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
@@ -314,11 +327,8 @@ def plot_losses_multiplot(
     that includes the dataset name and a timestamp.
 
     Args:
-        train_losses_grid: 2D grid where each element is a list of training
-            losses per epoch for a specific ``(hidden_dim, learning_rate)``
-            pair.
-        test_losses_grid: 2D grid where each element is a list of test losses
-            per epoch for a specific ``(hidden_dim, learning_rate)`` pair.
+        results: Mapping from ``(hidden_dim, learning_rate)`` to per-epoch
+            training and test losses for that run.
         learning_rates: Learning rates corresponding to the subplot columns.
         hid_dims: Hidden dimensions corresponding to the subplot rows.
         axs: 2D grid of Matplotlib axes used for plotting.
@@ -328,8 +338,9 @@ def plot_losses_multiplot(
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
             ax = axs[i][j]
-            train_losses = train_losses_grid[i][j]
-            test_losses = test_losses_grid[i][j]
+            history = results[(hid_sz, lr)]
+            train_losses = history.train_losses
+            test_losses = history.test_losses
             n_epochs = len(train_losses)
 
             # Calculate final test RMSE

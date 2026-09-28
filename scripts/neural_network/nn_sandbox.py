@@ -448,13 +448,10 @@ def main():
         fig.suptitle(f"Training and Testing Losses - {test_function}", fontsize=16)
 
         # Train and test FFNN
-        n = len(multi_hidden_sizes)
-        m = len(multi_learning_rates)
-        train_losses_grid = [[[] for _ in range(m)] for _ in range(n)]
-        test_losses_grid = [[[] for _ in range(m)] for _ in range(n)]
+        results: nn.LossSweepResults = {}
 
-        for i, hid_sz in enumerate(multi_hidden_sizes):
-            for j, lr in enumerate(multi_learning_rates):
+        for hid_sz in multi_hidden_sizes:
+            for lr in multi_learning_rates:
                 hidden_sizes = [hid_sz, hid_sz]
                 model, train_losses, test_losses = nn.train(
                     x_train,
@@ -469,16 +466,17 @@ def main():
                     initialize_weights_normal,
                 )
 
-                # Store train and test loss results over epochs
-                train_losses_grid[i][j] = train_losses
-                test_losses_grid[i][j] = test_losses
+                # Store losses by the actual hyperparameter values.
+                results[(hid_sz, lr)] = nn.TrainingRunHistory(
+                    train_losses=train_losses,
+                    test_losses=test_losses,
+                )
 
         print("All training finished!\n")
 
         # Plot train and test loss over epochs
         nn.plot_losses_multiplot(
-            train_losses_grid,
-            test_losses_grid,
+            results,
             multi_learning_rates,
             multi_hidden_sizes,
             axs,
