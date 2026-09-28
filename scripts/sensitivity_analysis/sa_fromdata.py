@@ -124,7 +124,8 @@ def parse_arguments():
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     gp_options.add_argument(
