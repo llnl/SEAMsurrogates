@@ -320,7 +320,6 @@ def main():
     """
     Train neural-network surrogates on synthetic test functions and save plots.
     """
-    # Parse command line arguments
     args = parse_arguments()
     test_function = args.test_function
     normalize_x = args.normalize_x

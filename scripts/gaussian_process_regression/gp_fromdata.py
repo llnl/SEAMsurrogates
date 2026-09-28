@@ -140,7 +140,6 @@ def parse_arguments():
 
 def main():
     """Train and evaluate a GP surrogate on a dataset."""
-    # Parse command line arguments
     args = parse_arguments()
     dataset = args.dataset
     n_train = args.n_train
