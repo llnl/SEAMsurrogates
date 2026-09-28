@@ -22,16 +22,12 @@ def load_test_settings(
     Load the test function and its input dimension for simulating data.
 
     Args:
-        test_function (str): Name of the test function to load.
+        test_function: Name of the test function to load.
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
 
     Returns:
-        tuple[int, Callable[[np.ndarray, float, float, float], np.ndarray]]:
-            A tuple containing:
-                - out_dim (int): The number of input dimensions for the selected
-                    test function.
-                - test_function (Callable): The test function to simulate data
-                    from.
+        A tuple containing the input dimension and the function used to
+        simulate data.
 
     Raises:
         ValueError: If the provided test_function is not recognized.
@@ -53,21 +49,18 @@ def simulate_data(
     Simulate training and testing data from a selected test function.
 
     Args:
-        test_function (str): Name of the test function to use.
+        test_function: Name of the test function to use.
             Must be one of 'parabola', 'otlcircuit', 'wingweight', or 'piston'.
-        n_train (int): Number of training samples to generate.
-        n_test (int): Number of testing samples to generate.
-        b1 (float): First coefficient parameter for the test function.
-        b2 (float): Second coefficient parameter for the test function.
-        b12 (float): Interaction coefficient parameter for the test function.
-        seed (int): Random seed for reproducibility. Defaults to 1.
+        n_train: Number of training samples to generate.
+        n_test: Number of testing samples to generate.
+        b1: First coefficient parameter for the test function.
+        b2: Second coefficient parameter for the test function.
+        b12: Interaction coefficient parameter for the test function.
+        seed: Random seed for reproducibility.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-            - x_train (np.ndarray): Training input data of shape (n_train, input_dim).
-            - x_test (np.ndarray): Testing input data of shape (n_test, input_dim).
-            - y_train (np.ndarray): Training output data.
-            - y_test (np.ndarray): Testing output data.
+        A tuple ``(x_train, x_test, y_train, y_test)`` containing the training
+        and testing inputs and outputs.
     """
     # Set-up simulation
     n_total = n_train + n_test
@@ -106,8 +99,7 @@ def plot_test_predictions(x_test, y_test, gp_model, test_function: str) -> None:
         y_test: Observed test target values.
         gp_model: Fitted Gaussian process model providing ``predict()``, which
             returns the predictive mean and standard deviation.
-        objective_function: Objective-function name used in the output
-            filename.
+        test_function: Test-function name used in the output filename.
 
     Returns:
         None. The plot is saved to the sensitivity-analysis plots directory.
@@ -173,20 +165,19 @@ def sobol_plot(
     test_function: str,
 ):
     """
-    Plots first and total order Sobol sensitivity indices with confidence
+    Plot first- and total-order Sobol sensitivity indices with confidence
     intervals and saves the figure.
 
     Args:
-        S1 (Sequence[float]): First order sensitivity indices for each variable.
-        ST (Sequence[float]): Total order sensitivity indices for each variable.
-        variables (list[str]): List of variable names.
-        S1_conf (Sequence[float]): Confidence intervals for first order indices.
-        ST_conf (Sequence[float]): Confidence intervals for total order indices.
-        test_function (str): Name of the test function, used in the
-            saved plot filename.
+        S1: First-order sensitivity indices for each variable.
+        ST: Total-order sensitivity indices for each variable.
+        variables: Variable names.
+        S1_conf: Confidence intervals for first-order indices.
+        ST_conf: Confidence intervals for total-order indices.
+        test_function: Test-function name used in the saved plot filename.
 
     Returns:
-        None, for visualization purposes only.
+        None. This function saves the visualization to disk.
     """
     # Define colors for each variable
     colors = sns.color_palette("husl", len(variables))

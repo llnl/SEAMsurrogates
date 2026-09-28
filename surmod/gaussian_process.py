@@ -244,10 +244,15 @@ class GPSurrogate:
             isotropic: Whether to use isotropic lengthscales.
             scale_inputs: Whether to normalize inputs.
             scale_outputs: Whether to standardize outputs.
-            lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1].  Defaults to [1e-2,10]
-            outputscale_bounds: Bounds on the variance scale parameter, current option is for output scaled to mean 0, variance1. Defaults to [1e-3,1e3]
-            noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-8,1e-1]
-            optimization_restarts: Number of times to randomly initialize the hyperparameter optimization. Defaults to 5
+            lengthscale_bounds: Bounds on the lengthscale parameter(s). These
+                defaults assume inputs scaled to ``[0, 1]``.
+            noise_bounds: Bounds on the nugget parameter. These defaults assume
+                outputs scaled to mean 0 and variance 1.
+            outputscale_bounds: Bounds on the variance scale parameter. These
+                defaults assume outputs scaled to mean 0 and variance 1.
+            optimization_restarts: Number of random hyperparameter
+                optimization restarts.
+            fixed_noise: Optional fixed likelihood noise value.
             seed: Random seed for reproducible hyperparameter optimization.
         """
         self.x_train: torch.Tensor = torch.as_tensor(x_train, dtype=torch.float64)
@@ -381,6 +386,15 @@ class GPSurrogate:
     ) -> tuple[NDArray, NDArray]:
         """
         Predict posterior mean and standard deviation for input points.
+
+        Args:
+            x: Optional input points. If omitted, stored ``x_test`` values are
+                used.
+            include_nugget: If ``True``, include observation noise in the
+                predictive uncertainty.
+
+        Returns:
+            A tuple ``(mean, std)`` of NumPy arrays.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -537,6 +551,10 @@ class GPSurrogate:
     ) -> None:
         """
         Plot observed versus predicted test values with 95 percent intervals.
+
+        Args:
+            dataset: Dataset name used in the plot title and filename.
+            plots_dir: Directory where plots are saved.
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -595,7 +613,14 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP mean surface. Uses learned likelihood noise as the alpha analog.
+        Plot the GP predictive mean surface for 2D inputs.
+
+        Args:
+            test_rmse: Test-set RMSE displayed in the figure title.
+            test_function: Name of the underlying test function.
+            scale_x: Whether input scaling was applied.
+            normalize_y: Whether output normalization was applied.
+            plots_dir: Directory where plots are saved.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -680,7 +705,14 @@ class GPSurrogate:
         plots_dir: Path = Path("plots"),
     ) -> None:
         """
-        Plot GP standard deviation.
+        Plot the GP predictive standard deviation for 2D inputs.
+
+        Args:
+            test_rmse: Test-set RMSE displayed in the figure title.
+            test_function: Name of the underlying test function.
+            scale_x: Whether input scaling was applied.
+            normalize_y: Whether output normalization was applied.
+            plots_dir: Directory where plots are saved.
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -803,10 +835,11 @@ class GPSurrogate:
         return params
 
     def get_fitted_kernel_label(self) -> str:
-        """Helper function for plotting
+        """
+        Return a short label summarizing the fitted kernel parameters.
 
         Returns:
-            str: Summary of fitted model parameters
+            Summary string describing the fitted model parameters.
         """
         params = self.get_fitted_parameters()
 

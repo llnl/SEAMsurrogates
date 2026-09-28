@@ -165,6 +165,18 @@ def run_bayesian_optimization(
     x_grid: np.ndarray,
     x1_grid: np.ndarray,
 ) -> Generator[dict, None, None]:
+    """
+    Run Bayesian optimization and yield per-iteration diagnostics.
+
+    Args:
+        bopt: Configured Bayesian optimizer.
+        x_grid: Candidate evaluation grid used for visualization.
+        x1_grid: Meshgrid array used only for reshaping diagnostics.
+
+    Yields:
+        Snapshot dictionaries returned by ``bopt.step(...)`` for each
+        acquisition iteration.
+    """
     bopt.y_max_history = np.array([np.max(bopt.y_all_data)], dtype=float)
 
     for i in range(bopt.n_acquire):
@@ -197,6 +209,13 @@ def run_bayesian_optimization(
 
 
 def _capture_frame(fig: matplotlib.figure.Figure, frames: list) -> None:
+    """
+    Capture the current Matplotlib figure and append it to a frame list.
+
+    Args:
+        fig: Figure to serialize to an image frame.
+        frames: Mutable list collecting rendered frames.
+    """
     buf = io.BytesIO()
     fig.savefig(buf, format="png")
     buf.seek(0)
@@ -217,6 +236,26 @@ def setup_figure(
     n_initial: int,
     n_iteration: int,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
+    """
+    Create the initial Bayesian-optimization visualization layout.
+
+    Args:
+        bopt: Configured Bayesian optimizer.
+        x1_grid: Meshgrid array for the first input dimension.
+        x2_grid: Meshgrid array for the second input dimension.
+        y_grid: Objective values evaluated on the plotting grid.
+        x_sample: Initial sampled design points.
+        synth_function: Synthetic objective function used for plotting bounds.
+        global_optima: Known global optima locations for the test function.
+        test_function: Test-function name used in figure titles.
+        kernel: Kernel name used in figure titles.
+        n_initial: Number of initial design points.
+        n_iteration: Number of Bayesian optimization iterations.
+
+    Returns:
+        A tuple containing the figure, axes mapping, mutable plot handles, and
+        metadata used by downstream animation helpers.
+    """
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
         f"Bayesian Optimization of {test_function} w/ {kernel} kernel\n",
@@ -317,6 +356,23 @@ def animate_optimization(
     x2_grid: np.ndarray,
     save_animation: bool,
 ) -> tuple[list, np.ndarray, np.ndarray]:
+    """
+    Animate or step through Bayesian-optimization snapshots.
+
+    Args:
+        snapshots: Generator of per-iteration optimization snapshots.
+        fig: Figure being updated.
+        axes: Mapping of subplot names to axes.
+        handles: Mutable mapping of plot artists that are updated in-place.
+        x1_grid: Meshgrid array for the first input dimension.
+        x2_grid: Meshgrid array for the second input dimension.
+        save_animation: If ``True``, capture frames instead of pausing
+            interactively.
+
+    Returns:
+        A tuple containing captured frames, maxima of acquired observations, and
+        maxima of the GP posterior mean over time.
+    """
     ax1, ax2, ax3 = axes["ax1"], axes["ax2"], axes["ax3"]
     frames = []
     acquired_maxima = []
@@ -383,6 +439,17 @@ def plot_convergence(
     save_animation: bool,
     plots_dir: Path,
 ) -> None:
+    """
+    Plot convergence histories for acquired values and GP-mean maxima.
+
+    Args:
+        acquired_maxima: Best acquired objective value at each iteration.
+        gp_mean_maxima: Best GP posterior mean value at each iteration.
+        global_optimum_value: Known optimum value of the test function.
+        title_lines: Title lines displayed on the figure.
+        save_animation: If ``True``, save the figure instead of showing it.
+        plots_dir: Directory where the convergence plot is saved.
+    """
     _fig, ax = plt.subplots(figsize=(18, 6))
     ax.plot(
         acquired_maxima,
@@ -423,6 +490,14 @@ def plot_convergence(
 
 
 def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
+    """
+    Save captured animation frames as a GIF.
+
+    Args:
+        frames: Rendered animation frames.
+        test_function: Test-function name used in the output filename.
+        plots_dir: Directory where the GIF is saved.
+    """
     plots_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
     path = plots_dir / f"bayes_opt_animation_{test_function}_{ts}.gif"
@@ -431,6 +506,7 @@ def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
 
 
 def main() -> None:
+    """Run Bayesian optimization on a synthetic test function and visualize it."""
     args = parse_arguments()
 
     # Set random seeds for reproducibility

@@ -205,32 +205,25 @@ def plot_surface_3d(
     output_scaler=None,
 ):
     """
-    Plots the true surface of a synthetic function and the
-    predictions of a model in 3D.
+    Plot the true surface of a synthetic function and model predictions in 3D.
 
-    This function generates a grid of input points within the bounds
-    of the synthetic function, computes the true values and model
-    predictions (optionally applying input/output scalers), and
-    visualizes both surfaces in a 3D plot. The plot is saved to the
-    'plots' directory.
+    This function generates a grid of input points within the bounds of the
+    synthetic function, computes the true values and model predictions, and
+    visualizes both surfaces in a 3D plot.
 
     Args:
-        synthetic_function (Any): A callable object representing the
-            test function. Must have a 'bounds'
-            attribute(tuple of (low, high) for each input dimension)
-            and be callable on a torch.Tensor.
+        synthetic_function: Callable synthetic test function. It must expose
+            bounds through ``_bounds`` and accept a ``torch.Tensor`` input.
         model: The PyTorch neural net model to make predictions from.
-        title (str): Title for the plot and output file, usually
-            the test data/function name.
-        resolution (int, optional): Number of points per dimension
-            for the surface grid. Default is 50.
-        angle (tuple[float, float], optional):
-            The (elevation, azimuth) viewing angles for the 3D plot.
-            Default is (30, 120).
-        input_scaler: Optional sklearn.preprocessing scaler with a
-            .transform method to apply to input grid points.
-        output_scaler: Optional sklearn.preprocessing scaler with an
-            .inverse_transform method to apply to model predictions.
+        title: Title for the plot and output file, usually the test-function
+            name.
+        plots_dir: Directory where the plot is saved.
+        resolution: Number of points per dimension in the surface grid.
+        angle: ``(elevation, azimuth)`` viewing angles for the 3D plot.
+        input_scaler: Optional scaler with a ``transform`` method applied to
+            the input grid before prediction.
+        output_scaler: Optional scaler with an ``inverse_transform`` method
+            applied to model predictions.
     """
     # Generate a grid of points within the bounds of the test function
     bounds_low = [b[0] for b in synthetic_function._bounds]
@@ -325,9 +318,7 @@ def plot_surface_3d(
 
 def main():
     """
-    Parses command-line arguments, generates synthetic data, trains a
-    neural network surrogate model, and plots training/testing loss curves.
-    Supports single or multiple training runs with varying hyperparameters.
+    Train neural-network surrogates on synthetic test functions and save plots.
     """
     # Parse command line arguments
     args = parse_arguments()

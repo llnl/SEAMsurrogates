@@ -30,11 +30,11 @@ class NeuralNet(nn.Module):
         Initialize the NeuralNet.
 
         Args:
-            input_size (int): Number of input features.
-            hidden_sizes (list of int): Sizes of hidden layers.
-            output_size (int): Number of output features.
-            initialize_weights_normal (bool): Whether to initialize weights
-            with a normal distribution.
+            input_size: Number of input features.
+            hidden_sizes: Sizes of hidden layers.
+            output_size: Number of output features.
+            initialize_weights_normal: Whether to initialize weights with a
+                normal distribution.
         """
         super().__init__()
         self.layers = nn.ModuleList()
@@ -72,10 +72,10 @@ class NeuralNet(nn.Module):
         Forward pass through the neural network.
 
         Args:
-            x (torch.Tensor): Input tensor.
+            x: Input tensor.
 
         Returns:
-            torch.Tensor: Output tensor after passing through the network.
+            Output tensor after passing through the network.
         """
         for layer in self.layers:
             x = layer(x)
@@ -98,18 +98,23 @@ def train(
     Train a feedforward neural network and evaluate its performance.
 
     Args:
-        x_train (torch.Tensor): Training input features of shape (n_samples, n_features).
-        y_train (torch.Tensor): Training target values of shape (n_samples,) or (n_samples, 1).
-        x_test (torch.Tensor): Test input features of shape (n_test_samples, n_features).
-        y_test (torch.Tensor): Test target values of shape (n_test_samples,) or (n_test_samples, 1).
-        hidden_sizes (list[int]): List specifying the number of units in each hidden layer.
-        n_epochs (int): Number of epochs to train the network.
-        learning_rate (float): Learning rate for the optimizer.
-        batch_size (int): Number of samples per training batch.
-        seed (int): Random seed for reproducibility.
-        initialize_weights_normal (bool): If True, initialize weights with a normal distribution.
+        x_train: Training input features of shape ``(n_samples, n_features)``.
+        y_train: Training target values of shape ``(n_samples,)`` or
+            ``(n_samples, 1)``.
+        x_test: Test input features of shape ``(n_test_samples, n_features)``.
+        y_test: Test target values of shape ``(n_test_samples,)`` or
+            ``(n_test_samples, 1)``.
+        hidden_sizes: Number of units in each hidden layer.
+        n_epochs: Number of epochs to train the network.
+        learning_rate: Learning rate for the optimizer.
+        batch_size: Number of samples per training batch.
+        seed: Random seed for reproducibility.
+        initialize_weights_normal: If ``True``, initialize weights with a
+            normal distribution.
+
     Returns:
-        tuple[nn.Module, list[float], list[float]]: Trained neural network model, list of training losses per epoch, and list of test losses per epoch.
+        A tuple containing the trained model, training losses per epoch, and
+        test losses per epoch.
     """
     # Specify fixed output and input sizes
     input_size = x_train.shape[1]
@@ -192,12 +197,10 @@ def plot_losses(
     Plot and save the training and testing loss curves across epochs.
 
     Args:
-        train_losses (list[float]): List of training loss values (MSE) for each
-            epoch.
-        test_losses (list[float]): List of testing loss values (MSE) for each
-            epoch.
-        dataset (str): Name of the dataset. Used in the plot title and filename.
-        plots_dir (Path): Directory where plots will be saved.
+        train_losses: Training loss values for each epoch.
+        test_losses: Testing loss values for each epoch.
+        dataset: Dataset name used in the plot title and filename.
+        plots_dir: Directory where plots are saved.
     """
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
@@ -242,21 +245,19 @@ def plot_losses_verbose(
     hyperparameter values in the plot title.
 
     Args:
-        train_losses (list[float]): List of training loss values (MSE) for each
-            epoch.
-        test_losses (list[float]): List of testing loss values (MSE) for each
-            epoch.
-        learning_rate (float): Learning rate used during training.
-        batch_size (int): Batch size used during training.
-        hidden_sizes (list[int]): List of hidden layer sizes in the model.
-        normalize_x (bool): Whether input features (x) were normalized.
-        scale_x (bool): Whether input features (x) were scaled.
-        normalize_y (bool): Whether target values (y) were normalized.
-        scale_y (bool): Whether target values (y) were scaled.
-        train_data_size (int): Number of samples in the training set.
-        test_data_size (int): Number of samples in the testing set.
-        dataset (str): Name of the dataset. Used in the plot title and filename.
-        plots_dir (Path): Directory where plots will be saved.
+        train_losses: Training loss values for each epoch.
+        test_losses: Testing loss values for each epoch.
+        learning_rate: Learning rate used during training.
+        batch_size: Batch size used during training.
+        hidden_sizes: Hidden layer sizes in the model.
+        normalize_x: Whether input features were normalized.
+        scale_x: Whether input features were scaled.
+        normalize_y: Whether target values were normalized.
+        scale_y: Whether target values were scaled.
+        train_data_size: Number of samples in the training set.
+        test_data_size: Number of samples in the testing set.
+        dataset: Dataset name used in the plot title and filename.
+        plots_dir: Directory where plots are saved.
     """
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
@@ -313,24 +314,16 @@ def plot_losses_multiplot(
     that includes the dataset name and a timestamp.
 
     Args:
-        train_losses_grid (Sequence[Sequence[list[float]]]):
-            2D grid where each element is a list of training losses per epoch
-            for a specific (hidden_dim, learning_rate) pair.
-        test_losses_grid (Sequence[Sequence[list[float]]]):
-            2D grid where each element is a list of test losses per epoch for a
-            specific (hidden_dim, learning_rate) pair.
-        learning_rates (list[float]):
-            List of learning rates corresponding to the columns of the subplot
-            grid.
-        hid_dims (list[int]):
-            List of hidden dimensions corresponding to the rows of the subplot
-            grid.
-        axs (Sequence[Sequence[matplotlib.axes.Axes]]):
-            2D grid of matplotlib Axes objects for plotting.
-        dataset (str):
-            Name of the dataset, used in the saved filename.
-        plots_dir (Path):
-            Directory where plots will be saved.
+        train_losses_grid: 2D grid where each element is a list of training
+            losses per epoch for a specific ``(hidden_dim, learning_rate)``
+            pair.
+        test_losses_grid: 2D grid where each element is a list of test losses
+            per epoch for a specific ``(hidden_dim, learning_rate)`` pair.
+        learning_rates: Learning rates corresponding to the subplot columns.
+        hid_dims: Hidden dimensions corresponding to the subplot rows.
+        axs: 2D grid of Matplotlib axes used for plotting.
+        dataset: Dataset name used in the saved filename.
+        plots_dir: Directory where plots are saved.
     """
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
@@ -380,16 +373,11 @@ def plot_predictions(
     name and a timestamp.
 
     Args:
-        y_test (torch.Tensor):
-            The true target values for the test set.
-        predictions (torch.Tensor):
-            The predicted values from the model for the test set.
-        final_test_mse (float):
-            The final mean squared error on the test set.
-        dataset (str):
-            Name of the dataset, used in the filename.
-        plots_dir (Path):
-            Directory where plots will be saved.
+        y_test: True target values for the test set.
+        predictions: Predicted values for the test set.
+        final_test_mse: Final mean squared error on the test set.
+        dataset: Dataset name used in the filename.
+        plots_dir: Directory where plots are saved.
     """
     plt.figure(figsize=(10, 5))
     plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
