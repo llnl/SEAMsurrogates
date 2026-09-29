@@ -19,20 +19,11 @@ from sklearn.preprocessing import StandardScaler
 _MODULE_DIR = Path(__file__).parent
 _DATA_DIR = _MODULE_DIR.parent / "data"
 
-# Dataset configuration
+# Dataset paths (all datasets assume single output in last column)
 DATASET_CONFIG = {
-    "JAG": {
-        "path": _DATA_DIR / "JAG_10k.csv",
-        "n_outputs": 1,
-    },
-    "borehole": {
-        "path": _DATA_DIR / "borehole_10k.csv",
-        "n_outputs": 1,
-    },
-    "hst_H": {
-        "path": _DATA_DIR / "hst_H_10k.csv",
-        "n_outputs": 1,
-    },
+    "JAG": _DATA_DIR / "JAG_10k.csv",
+    "borehole": _DATA_DIR / "borehole_10k.csv",
+    "hst_H": _DATA_DIR / "hst_H_10k.csv",
 }
 
 
@@ -45,8 +36,8 @@ def load_data(
     """
     Load a subset of a dataset from CSV.
 
-    Column names are read from the CSV header. The number of output columns
-    for each dataset is specified in DATASET_CONFIG.
+    Column names are read from the CSV header. All datasets assume a single
+    output in the last column.
 
     Args:
         dataset: Dataset name (see DATASET_CONFIG for supported options).
@@ -62,8 +53,7 @@ def load_data(
             f"Unsupported dataset '{dataset}'. Supported: {list(DATASET_CONFIG.keys())}"
         )
 
-    cfg = DATASET_CONFIG[dataset]
-    csv_path = cfg["path"]
+    csv_path = DATASET_CONFIG[dataset]
 
     if not csv_path.is_file():
         raise FileNotFoundError(f"CSV file not found at: {csv_path}")

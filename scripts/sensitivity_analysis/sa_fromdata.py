@@ -175,9 +175,8 @@ def main():
         df, n_train=n_train, seed=seed
     )
 
-    # Get variable names from the DataFrame (all columns except the last n_outputs)
-    n_outputs = data_processing.DATASET_CONFIG[dataset]["n_outputs"]
-    variable_names = list(df.columns[:-n_outputs])
+    # Get variable names from the DataFrame (all columns except the last one, which is the output)
+    variable_names = list(df.columns[:-1])
 
     # Apply exclusions consistently
     if exclude is not None:
