@@ -23,31 +23,15 @@ _DATA_DIR = _MODULE_DIR.parent / "data"
 DATASET_CONFIG = {
     "JAG": {
         "path": _DATA_DIR / "JAG_10k.csv",
-        "n_inputs": 5,
         "n_outputs": 1,
-        "columns": ["x1", "x2", "x3", "x4", "x5", "y"],
     },
     "borehole": {
         "path": _DATA_DIR / "borehole_10k.csv",
-        "n_inputs": 8,
         "n_outputs": 1,
-        "columns": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw", "y"],
     },
     "hst_H": {
         "path": _DATA_DIR / "hst_H_10k.csv",
-        "n_inputs": 8,
         "n_outputs": 1,
-        "columns": [
-            "Umag",
-            "Ts",
-            "Ta",
-            "alphan",
-            "sigmat",
-            "theta",
-            "phi",
-            "panang",
-            "Cd",
-        ],
     },
 }
 
@@ -61,9 +45,8 @@ def load_data(
     """
     Load a subset of a dataset from CSV.
 
-    Assumes:
-        - CSV has exactly n_inputs + n_outputs columns
-        - No header, or any header will be ignored and replaced
+    Column names are read from the CSV header. The number of output columns
+    for each dataset is specified in DATASET_CONFIG.
 
     Args:
         dataset: Dataset name (see DATASET_CONFIG for supported options).
@@ -86,7 +69,6 @@ def load_data(
         raise FileNotFoundError(f"CSV file not found at: {csv_path}")
 
     df = pd.read_csv(csv_path)  # type: ignore
-    df.columns = cfg["columns"]
 
     # Check and warn if n_samples is too large
     if n_samples > len(df):
