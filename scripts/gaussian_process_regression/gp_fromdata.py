@@ -14,6 +14,7 @@ Usage examples:
 ./gp_fromdata.py -d JAG --n-train 300 --kernel matern
 ./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
 ./gp_fromdata.py -d borehole --n-train 200 --kernel matern
+./gp_fromdata.py -d borehole --n-train 200 --kernel matern --log-y
 ./gp_fromdata.py -d hst_H --n-train 200 --kernel matern --normalize-y
 ./gp_fromdata.py -d JAG --n-train 200 --kernel matern --no-scale-x
 """
@@ -77,6 +78,12 @@ def parse_arguments():
         "--LHD",
         action="store_true",
         help="Use an LHD design (passed into split_data if supported).",
+    )
+
+    data_options.add_argument(
+        "--log-y",
+        action="store_true",
+        help="Apply log transform to outputs before training.",
     )
 
     gp_options.add_argument(
@@ -153,6 +160,7 @@ def main():
     noise_bounds = tuple(args.noise_bounds)
     seed = args.seed
     use_lhd = args.LHD
+    log_y = args.log_y
 
     # Set output directories relative to this script
     script_dir = Path(__file__).parent
@@ -171,6 +179,17 @@ def main():
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df=df, LHD=use_lhd, n_train=n_train, seed=seed
     )
+
+    # Apply log transform to outputs if requested
+    if log_y:
+        if np.any(y_train <= 0) or np.any(y_test <= 0):
+            raise ValueError(
+                "Cannot apply log transform: output data contains non-positive values. "
+                "Use --log-y only with strictly positive outputs."
+            )
+        y_train = np.log(y_train)
+        y_test = np.log(y_test)
+        print("Log transform applied to outputs\n")
 
     # Build and fit BoTorch GP surrogate
     # Handle fixed nugget
@@ -200,6 +219,13 @@ def main():
     pred_train_mean, _pred_train_std = gp.predict(x_train)
     pred_test_mean, pred_test_std = gp.predict(x_test)
 
+    # Back-transform predictions and actuals if log transform was applied
+    if log_y:
+        y_train = np.exp(y_train)
+        y_test = np.exp(y_test)
+        pred_train_mean = np.exp(pred_train_mean)
+        pred_test_mean = np.exp(pred_test_mean)
+
     # Metrics (match your previous ones, plus coverage from GPSurrogate.evaluate)
     train_mae = mean_absolute_error(y_train, pred_train_mean)
     test_mae = mean_absolute_error(y_test, pred_test_mean)
@@ -216,9 +242,17 @@ def main():
     )
 
     # 95% confidence interval coverage on test data
-    lower = pred_test_mean - 1.96 * pred_test_std
-    upper = pred_test_mean + 1.96 * pred_test_std
-    coverage = np.mean((y_test >= lower) & (y_test <= upper))
+    if log_y:
+        # Transform CI bounds (monotonic transform preserves coverage)
+        lower_log = pred_test_mean - 1.96 * pred_test_std
+        upper_log = pred_test_mean + 1.96 * pred_test_std
+        lower = np.exp(lower_log)
+        upper = np.exp(upper_log)
+        coverage = np.mean((y_test >= lower) & (y_test <= upper))
+    else:
+        lower = pred_test_mean - 1.96 * pred_test_std
+        upper = pred_test_mean + 1.96 * pred_test_std
+        coverage = np.mean((y_test >= lower) & (y_test <= upper))
 
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     log_lines = [
@@ -226,6 +260,7 @@ def main():
         f"Test Function: {dataset}",
         f"Number of training points: {n_train}",
         f"Number of testing points: {n_test}",
+        f"Log transform applied: {log_y}",
         f"Kernel: {kernel}",
         f"Isotropic kernel: {isotropic}",
         f"Scale x: {scale_x}",
