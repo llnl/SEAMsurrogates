@@ -14,6 +14,7 @@ Usage examples:
 ./nn_fromdata.py -d JAG --hidden-sizes 10 20
 ./nn_fromdata.py -d JAG --hidden-sizes 15 15 --batch-size 20 --epochs 400
 ./nn_fromdata.py -d borehole --hidden-sizes 60 60 --batch-size 40 --epochs 600 --learning-rate 0.02
+./nn_fromdata.py -d borehole --log-y --hidden-sizes 60 60
 """
 
 import argparse
@@ -78,6 +79,12 @@ def parse_arguments() -> argparse.Namespace:
         help="Use an LHD design.",
     )
 
+    data_options.add_argument(
+        "--log-y",
+        action="store_true",
+        help="Apply log transform to outputs before training.",
+    )
+
     nn_options.add_argument(
         "-hs",
         "--hidden-sizes",
@@ -132,6 +139,7 @@ def main() -> None:
     n_test = args.n_test
     seed = args.seed
     LHD = args.LHD
+    log_y = args.log_y
     epochs = args.epochs
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
@@ -165,6 +173,17 @@ def main() -> None:
     x_train, x_test, y_train, y_test = data_processing.split_data(
         df, LHD=LHD, n_train=n_train, seed=seed
     )
+
+    # Apply log transform to outputs if requested
+    if log_y:
+        if np.any(y_train <= 0) or np.any(y_test <= 0):
+            raise ValueError(
+                "Cannot apply log transform: output data contains non-positive values. "
+                "Use --log-y only with strictly positive outputs."
+            )
+        y_train = np.log(y_train)
+        y_test = np.log(y_test)
+        print("Log transform applied to outputs\n")
 
     # Normalize data (critical for numerical stability with different feature scales)
     x_train, x_test, y_train, y_test = data_processing.normalize_data(
@@ -201,6 +220,7 @@ def main() -> None:
         f"Dataset: {dataset}",
         f"Number of training points: {n_train}",
         f"Number of testing points: {x_test.shape[0]}",
+        f"Log transform applied: {log_y}",
         f"Hidden layer sizes: {hidden_sizes}",
         f"Learning rate: {learning_rate}",
         f"Batch size: {batch_size}",
@@ -244,7 +264,21 @@ def main() -> None:
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
         predictions = model(x_test)
-    nn.plot_predictions(y_test, predictions, test_losses[-1], dataset, plots_dir)
+
+    # Back-transform predictions and test outputs for plotting (if log transform was applied)
+    y_test_plot = y_test.numpy()
+    predictions_plot = predictions.numpy()
+    if log_y:
+        y_test_plot = np.exp(y_test_plot)
+        predictions_plot = np.exp(predictions_plot)
+
+    nn.plot_predictions(
+        torch.tensor(y_test_plot),
+        torch.tensor(predictions_plot),
+        test_losses[-1],
+        dataset,
+        plots_dir,
+    )
 
 
 if __name__ == "__main__":
