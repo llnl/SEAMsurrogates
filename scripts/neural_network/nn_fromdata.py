@@ -91,7 +91,7 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         nargs="+",
         default=[15, 15],
-        help="Sizes of hidden layers.",
+        help="Sizes of hidden layers (e.g., '-hs 5 7 5' creates three hidden layers with widths 5, 7, 5).",
     )
 
     nn_options.add_argument(
