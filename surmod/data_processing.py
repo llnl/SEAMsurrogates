@@ -2,7 +2,7 @@
 Data loading and splitting utilities.
 
 Supported datasets: JAG, borehole, hst_H
-See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
+See DATASET_CONFIG for dataset paths. Column names and dimensions are read from CSV headers.
 """
 
 import warnings
