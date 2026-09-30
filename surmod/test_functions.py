@@ -111,11 +111,14 @@ class Parabola_synth_test_func(SyntheticTestFunction):
         bounds: list[tuple[float, float]] | None = None,
     ) -> None:
         """
+        Initialize the parabola synthetic test function.
+
         Args:
             dim: Dimensionality of the parabola.
             noise_std: Standard deviation of the observation noise.
             negate: If True, negate the function.
-            bounds: Custom bounds for the function specified as (lower, upper) pairs.
+            bounds: Custom bounds for the function specified as ``(lower, upper)``
+                pairs.
         """
         self.dim = dim
         if bounds is None:
@@ -180,15 +183,14 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         Initialize the Borehole synthetic test function.
 
         Args:
-            noise_std (float or None): Standard deviation of observation noise.
-                If None, the function is noise free.
-            negate (bool): If True, returns the negative of the standard
-                Borehole output, so that the function is maximized at the
-                original minimum.
-            bounds (list[tuple[float, float]] or None): Optional custom bounds
-                as a list of (lower, upper) tuples, one per input dimension,
-                in the order documented in the class docstring. If None, uses
-                the standard SFU Borehole bounds.
+            noise_std: Standard deviation of observation noise. If ``None``,
+                the function is noise free.
+            negate: If ``True``, return the negative of the standard borehole
+                output so the function is maximized at the original minimum.
+            bounds: Optional custom bounds as a list of ``(lower, upper)``
+                tuples, one per input dimension in the order documented in the
+                class docstring. If ``None``, the standard SFU borehole bounds
+                are used.
         """
         # Borehole has fixed dimension 8
         self.dim = 8
@@ -213,18 +215,18 @@ class Borehole_synth_test_func(SyntheticTestFunction):
         Evaluate the Borehole test function at given inputs.
 
         Args:
-            X (torch.Tensor or np.ndarray): Input locations, either:
+            X: Input locations, either:
                 - 1D tensor/array of shape [8] for a single point, or
                 - 2D tensor/array of shape [n, 8] for a batch of n points.
 
         Returns:
-            torch.Tensor: 1D tensor of shape [n] with Borehole function values
-            (or shape [1] for a single 1D input). If `self.negate` is True,
-            returns the negative of the original Borehole function values.
+            A 1D tensor of shape ``[n]`` with borehole function values, or
+            shape ``[1]`` for a single 1D input. If ``self.negate`` is
+            ``True``, the returned values are negated.
 
         Raises:
-            TypeError: If `X` is not a `torch.Tensor` or `np.ndarray`.
-            ValueError: If the last dimension of `X` is not 8.
+            TypeError: If ``X`` is not a ``torch.Tensor`` or ``np.ndarray``.
+            ValueError: If the last dimension of ``X`` is not 8.
         """
         # Convert numpy to torch if needed
         if isinstance(X, np.ndarray):
@@ -260,26 +262,21 @@ def parabola(
     beta12: float,
 ) -> npt.NDArray:
     """
-    Computes a quadratic function with an interaction term for a set of 2D input points.
+    Compute a quadratic function with an interaction term for 2D input points.
 
     The function is defined as:
-        f(x1, x2) = beta1 * x1^2 + beta2 * x2^2 + beta12 * sin(6 * x1 * x2 - 3)
+        ``f(x1, x2) = beta1 * x1^2 + beta2 * x2^2 + beta12 * sin(6 * x1 * x2 - 3)``
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, 2), where each row is a 2D input point [x1, x2].
-    beta1 : float
-        Coefficient for the x1^2 term.
-    beta2 : float
-        Coefficient for the x2^2 term.
-    beta12 : float
-        Coefficient for the interaction term sin(6 * x1 * x2 - 3).
+    Args:
+        x: Array of shape ``(n_samples, 2)`` where each row is a 2D input point
+            ``[x1, x2]``.
+        beta1: Coefficient for the ``x1^2`` term.
+        beta2: Coefficient for the ``x2^2`` term.
+        beta12: Coefficient for the interaction term.
 
-    Returns
-    -------
-    np.ndarray
-        Array of shape (n_samples,) containing the computed function values for each input.
+    Returns:
+        Array of shape ``(n_samples,)`` containing the function value for each
+        input row.
     """
     return (
         beta1 * x[:, 0] ** 2
@@ -293,26 +290,21 @@ def scale_inputs(
     bounds: dict[str, tuple[float, float]],
 ) -> np.ndarray:
     """
-    Scales normalized input values to their actual ranges based on provided bounds.
+    Scale normalized input values to physical ranges.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, n_variables) with normalized values in [0, 1].
-        Each column corresponds to an input variable, scaled according to its bounds.
-    bounds : dict
-        Dictionary mapping variable names to (min, max) tuples.
-        The order of variables in x columns should match the order of keys in bounds.
+    Args:
+        x: Array of shape ``(n_samples, n_variables)`` with normalized values
+            in ``[0, 1]``.
+        bounds: Dictionary mapping variable names to ``(min, max)`` tuples. The
+            order of variables in ``x`` must match the order of keys in
+            ``bounds``.
 
-    Raises
-    ------
-    ValueError
-        If any element in x is outside the [0, 1] interval.
+    Returns:
+        Array of shape ``(n_samples, n_variables)`` with values scaled to their
+        corresponding bounds.
 
-    Returns
-    -------
-    np.ndarray
-        Array of shape (n_samples, n_variables) with values scaled to their respective bounds.
+    Raises:
+        ValueError: If any element in ``x`` is outside the ``[0, 1]`` interval.
     """
     if not ((0 <= x).all() and (x <= 1).all()):
         raise ValueError("All elements in x must be within the [0, 1] interval.")
@@ -327,11 +319,17 @@ def scale_inputs(
 
 def get_input_bounds(test_function: str) -> list[tuple[float, float]]:
     """
-    Return the physical input bounds for the provided test functions.
+    Return the physical input bounds for a test function.
 
     Args:
         test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
+
+    Returns:
+        List of ``(lower, upper)`` bounds in input order.
+
+    Raises:
+        ValueError: If the test function is not recognized.
     """
     return list(get_input_spec(test_function)[2])
 
@@ -369,6 +367,12 @@ def get_input_spec(
     Args:
         test_function: One of "parabola", "otlcircuit", "piston",
             "wingweight", or "borehole".
+
+    Returns:
+        A tuple containing the input dimension, function callable, and bounds.
+
+    Raises:
+        ValueError: If the test function is not recognized.
     """
     if test_function not in FUNCTION_SPECS:
         available = ", ".join(FUNCTION_SPECS)
@@ -388,24 +392,19 @@ def otlcircuit(
     """
     Compute midpoint voltage of an output transformerless (OTL) push-pull circuit.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, n_variables) with physical input values.
-        Columns correspond to [Rb1, Rb2, Rf, Rc1, Rc2, beta].
+    Args:
+        x: Array of shape ``(n_samples, n_variables)`` with physical input
+            values. Columns correspond to ``[Rb1, Rb2, Rf, Rc1, Rc2, beta]``.
 
-    Returns
-    -------
-    np.ndarray
-        Array of calculated midpoint voltages (in volts) for each input sample.
+    Returns:
+        Array of calculated midpoint voltages, in volts, for each input sample.
 
-    References
-    ----------
-    [1] Formula source: OTL Circuit Function, Simon Fraser University,
+    References:
+        [1] Formula source: OTL Circuit Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/otlcircuit.html (accessed July 2024).
-    [2] Ben-Ari, E. N., & Steinberg, D. M. (2007). Modeling data from computer experiments:
-        an empirical comparison of kriging with MARS and projection pursuit regression.
-        Quality Engineering, 19(4), 327-338.
+        [2] Ben-Ari, E. N., & Steinberg, D. M. (2007). Modeling data from
+        computer experiments: an empirical comparison of kriging with MARS and
+        projection pursuit regression. Quality Engineering, 19(4), 327-338.
     """
     Rb1, Rb2, Rf, Rc1, Rc2, beta = x.T
 
@@ -427,24 +426,19 @@ def piston(
     """
     Compute time it takes a piston to complete one cycle.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, n_variables) with physical input values.
-        Columns correspond to [M, S, V0, k, P0, Ta, T0].
+    Args:
+        x: Array of shape ``(n_samples, n_variables)`` with physical input
+            values. Columns correspond to ``[M, S, V0, k, P0, Ta, T0]``.
 
-    Returns
-    -------
-    np.ndarray
-        Array of calculated cycle times (in seconds) for each input sample.
+    Returns:
+        Array of calculated cycle times, in seconds, for each input sample.
 
-    References
-    ----------
-    [1] Formula source: Piston Simulation Function, Simon Fraser University,
+    References:
+        [1] Formula source: Piston Simulation Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/piston.html (accessed July 2024).
-    [2] Ben-Ari, E. N., & Steinberg, D. M. (2007). Modeling data from computer experiments:
-        an empirical comparison of kriging with MARS and projection pursuit regression.
-        Quality Engineering, 19(4), 327-338.
+        [2] Ben-Ari, E. N., & Steinberg, D. M. (2007). Modeling data from
+        computer experiments: an empirical comparison of kriging with MARS and
+        projection pursuit regression. Quality Engineering, 19(4), 327-338.
     """
     M, S, V0, k, P0, Ta, T0 = x.T
 
@@ -463,20 +457,16 @@ def wingweight(
     """
     Compute weight of a light aircraft wing.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, n_variables) with physical input values.
-        Columns correspond to [Sw, Wfw, A, Lam, q, lam, tc, Nz, Wdg, Wp].
+    Args:
+        x: Array of shape ``(n_samples, n_variables)`` with physical input
+            values. Columns correspond to ``[Sw, Wfw, A, Lam, q, lam, tc, Nz,
+            Wdg, Wp]``.
 
-    Returns
-    -------
-    np.ndarray
-        Array of wing weights (in pounds) for each input sample.
+    Returns:
+        Array of wing weights, in pounds, for each input sample.
 
-    References
-    ----------
-    [1] Formula source: Wing Weight Function, Simon Fraser University,
+    References:
+        [1] Formula source: Wing Weight Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/wingweight.html (accessed July 2024).
     """
     Sw, Wfw, A, LamCaps, q, lam, tc, Nz, Wdg, Wp = x.T
@@ -500,20 +490,16 @@ def borehole(
     """
     Compute water flow rate through a borehole.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Array of shape (n_samples, n_variables) with physical input values.
-        Columns correspond to [rw, r, Tu, Hu, Tl, Hl, L, Kw].
+    Args:
+        x: Array of shape ``(n_samples, n_variables)`` with physical input
+            values. Columns correspond to ``[rw, r, Tu, Hu, Tl, Hl, L, Kw]``.
 
-    Returns
-    -------
-    np.ndarray
-        Array of borehole water flow rates (in m^3/year) for each input sample.
+    Returns:
+        Array of borehole water flow rates, in ``m^3/year``, for each input
+        sample.
 
-    References
-    ----------
-    [1] Formula source: Borehole Function, Simon Fraser University,
+    References:
+        [1] Formula source: Borehole Function, Simon Fraser University,
         https://www.sfu.ca/~ssurjano/borehole.html (accessed Dec 2025).
     """
     rw, r, Tu, Hu, Tl, Hl, L, Kw = x.T
@@ -677,23 +663,19 @@ def simulate_data(
     seed: int = 1,
 ):
     """
-    Simulates training and testing data from a specified test function.
+    Simulate training and testing data from a specified test function.
 
     Args:
-        test_function (str): The name of the test function to simulate
-            data from. Supported values are "parabola", "ackley", "griewank",
-            "branin", "holder_table", and "six_hump_camel".
-        n_train (int): Number of training samples to generate.
-        n_test (int): Number of testing samples to generate.
-        seed (int): Random seed for reproducibility. Defaults to 1.
+        test_function: Name of the test function to simulate data from.
+            Supported values are "parabola", "ackley", "griewank", "branin",
+            "holder_table", and "six_hump_camel".
+        n_train: Number of training samples to generate.
+        n_test: Number of testing samples to generate.
+        seed: Random seed for reproducibility.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-            A tuple containing:
-                - x_train (np.ndarray): Training input data of shape (n_train, 2).
-                - x_test (np.ndarray): Testing input data of shape (n_test, 2).
-                - y_train (np.ndarray): Training target data of shape (n_train,).
-                - y_test (np.ndarray): Testing target data of shape (n_test,).
+        A tuple ``(x_train, x_test, y_train, y_test)`` containing the training
+        and testing inputs and targets.
 
     Raises:
         ValueError: If the specified test function name is not recognized.

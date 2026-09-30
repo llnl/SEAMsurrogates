@@ -1,8 +1,9 @@
 """
 Data loading and splitting utilities.
 
-Supported datasets: JAG, borehole, hst_H
-See DATASET_CONFIG for dataset specifications (paths, dimensions, column names).
+Loads datasets from data/ directory. Files are expected to be CSV format
+with the naming pattern <dataset>.csv (e.g., jag_icf.csv, borehole.csv, hst_H.csv).
+Column names and dimensions are read from CSV headers.
 """
 
 import warnings
@@ -19,41 +20,9 @@ from sklearn.preprocessing import StandardScaler
 _MODULE_DIR = Path(__file__).parent
 _DATA_DIR = _MODULE_DIR.parent / "data"
 
-# Dataset configuration
-DATASET_CONFIG = {
-    "JAG": {
-        "path": _DATA_DIR / "JAG_10k.csv",
-        "n_inputs": 5,
-        "n_outputs": 1,
-        "columns": ["x1", "x2", "x3", "x4", "x5", "y"],
-    },
-    "borehole": {
-        "path": _DATA_DIR / "borehole_10k.csv",
-        "n_inputs": 8,
-        "n_outputs": 1,
-        "columns": ["rw", "r", "Tu", "Hu", "Tl", "Hl", "L", "Kw", "y"],
-    },
-    "hst_H": {
-        "path": _DATA_DIR / "hst_H_10k.csv",
-        "n_inputs": 8,
-        "n_outputs": 1,
-        "columns": [
-            "Umag",
-            "Ts",
-            "Ta",
-            "alphan",
-            "sigmat",
-            "theta",
-            "phi",
-            "panang",
-            "Cd",
-        ],
-    },
-}
-
 
 def load_data(
-    dataset: str = "JAG",
+    dataset: str = "jag_icf",
     n_samples: int = 10000,
     random: bool = True,
     seed: int = 42,
@@ -61,12 +30,11 @@ def load_data(
     """
     Load a subset of a dataset from CSV.
 
-    Assumes:
-        - CSV has exactly n_inputs + n_outputs columns
-        - No header, or any header will be ignored and replaced
+    Column names are read from the CSV header. All datasets assume a single
+    output in the last column.
 
     Args:
-        dataset: Dataset name (see DATASET_CONFIG for supported options).
+        dataset: Dataset name (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
@@ -74,19 +42,15 @@ def load_data(
     Returns:
         pd.DataFrame with input features and output column for the selected dataset.
     """
-    if dataset not in DATASET_CONFIG:
-        raise ValueError(
-            f"Unsupported dataset '{dataset}'. Supported: {list(DATASET_CONFIG.keys())}"
-        )
-
-    cfg = DATASET_CONFIG[dataset]
-    csv_path = cfg["path"]
+    csv_path = _DATA_DIR / f"{dataset}.csv"
 
     if not csv_path.is_file():
-        raise FileNotFoundError(f"CSV file not found at: {csv_path}")
+        raise FileNotFoundError(
+            f"CSV file not found at: {csv_path}. "
+            f"Expected file naming pattern: <dataset>.csv in {_DATA_DIR}"
+        )
 
     df = pd.read_csv(csv_path)  # type: ignore
-    df.columns = cfg["columns"]
 
     # Check and warn if n_samples is too large
     if n_samples > len(df):
@@ -207,7 +171,7 @@ def split_data(
 
 
 def load_and_split(
-    dataset: str = "JAG",
+    dataset: str = "jag_icf",
     n_samples: int = 10000,
     random_rows: bool = True,
     seed: int = 42,
@@ -218,7 +182,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: Dataset name (see DATASET_CONFIG for supported options).
+        dataset: Dataset name (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.

@@ -11,10 +11,11 @@ Usage examples:
 
 ./bo_fromdata.py --help
 ./bo_fromdata.py
-./bo_fromdata.py --dataset JAG --n-iter 15 --n-initial 10
+./bo_fromdata.py --dataset jag_icf --n-iter 15 --n-initial 10
 ./bo_fromdata.py --dataset borehole --n-iter 20 --kernel rbf --seed 123
-./bo_fromdata.py --dataset JAG --kernel matern --beta 2.0 --init-design lhd
+./bo_fromdata.py --dataset jag_icf --kernel matern --beta 2.0 --init-design lhd
 ./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
+./bo_fromdata.py --dataset jag_icf --kernel matern --no-scale-x
 """
 
 import argparse
@@ -51,9 +52,8 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=list(data_processing.DATASET_CONFIG.keys()),
-        default="JAG",
-        help="Which dataset to use.",
+        default="jag_icf",
+        help="Which dataset to use (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').",
     )
 
     data_options.add_argument(
@@ -105,10 +105,9 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     bo_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 
@@ -124,7 +123,8 @@ def parse_arguments() -> argparse.Namespace:
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     bo_options.add_argument(
@@ -149,6 +149,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run Bayesian optimization on a dataset and compare acquisition methods."""
     args = parse_arguments()
     dataset = args.dataset
     kernel = args.kernel

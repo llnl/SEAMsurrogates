@@ -14,6 +14,7 @@ Usage examples:
 ./gp_sandbox.py --test-function parabola --kernel matern
 ./gp_sandbox.py --test-function branin --kernel rbf --seed 1
 ./gp_sandbox.py --test-function ackley -k rbf -tr 200
+./gp_sandbox.py --test-function ackley -k rbf -tr 200 --no-scale-x
 """
 
 import argparse
@@ -88,10 +89,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 
@@ -107,7 +107,8 @@ def parse_arguments():
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     gp_options.add_argument(
@@ -132,7 +133,7 @@ def parse_arguments():
 
 
 def main():
-    """Simulate data, train GP model, evaluate, and plot/log results."""
+    """Train and evaluate a GP surrogate on a synthetic test function."""
     args = parse_arguments()
     test_function = args.test_function
     kernel = args.kernel

@@ -15,6 +15,9 @@ Usage examples:
 ./nn_sandbox.py --test-function griewank --epochs 200 --learning-rate 0.001
 ./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
 ./nn_sandbox.py --test-function branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --test-function ackley --activation tanh --epochs 300
+./nn_sandbox.py --test-function parabola --activation sigmoid --learning-rate 0.0001
+./nn_sandbox.py --test-function branin --surface-plot
 ./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
@@ -63,6 +66,7 @@ def parse_arguments():
     )
 
     experiment.add_argument(
+        "-tr",
         "--n-train",
         type=int,
         default=90,
@@ -70,6 +74,7 @@ def parse_arguments():
     )
 
     experiment.add_argument(
+        "-te",
         "--n-test",
         type=int,
         default=10,
@@ -107,6 +112,15 @@ def parse_arguments():
         type=float,
         default=0.00001,
         help="Learning rate for SGD optimization.",
+    )
+
+    nn_options.add_argument(
+        "-a",
+        "--activation",
+        type=str,
+        choices=["relu", "sigmoid", "tanh"],
+        default="relu",
+        help="Activation function to use between layers.",
     )
 
     nn_options.add_argument(
@@ -180,15 +194,6 @@ def parse_arguments():
         "Only works when -mt is NOT flagged.",
     )
 
-    nn_options.add_argument(
-        "-vp",
-        "--verbose-plot",
-        action="store_true",
-        default=False,
-        help="If set, includes (hyper)parameter values in loss plot title "
-        "Only works when -mt is NOT flagged.",
-    )
-
     args = parser.parse_args()
 
     return args
@@ -205,32 +210,25 @@ def plot_surface_3d(
     output_scaler=None,
 ):
     """
-    Plots the true surface of a synthetic function and the
-    predictions of a model in 3D.
+    Plot the true surface of a synthetic function and model predictions in 3D.
 
-    This function generates a grid of input points within the bounds
-    of the synthetic function, computes the true values and model
-    predictions (optionally applying input/output scalers), and
-    visualizes both surfaces in a 3D plot. The plot is saved to the
-    'plots' directory.
+    This function generates a grid of input points within the bounds of the
+    synthetic function, computes the true values and model predictions, and
+    visualizes both surfaces in a 3D plot.
 
     Args:
-        synthetic_function (Any): A callable object representing the
-            test function. Must have a 'bounds'
-            attribute(tuple of (low, high) for each input dimension)
-            and be callable on a torch.Tensor.
+        synthetic_function: Callable synthetic test function. It must expose
+            bounds through ``_bounds`` and accept a ``torch.Tensor`` input.
         model: The PyTorch neural net model to make predictions from.
-        title (str): Title for the plot and output file, usually
-            the test data/function name.
-        resolution (int, optional): Number of points per dimension
-            for the surface grid. Default is 50.
-        angle (tuple[float, float], optional):
-            The (elevation, azimuth) viewing angles for the 3D plot.
-            Default is (30, 120).
-        input_scaler: Optional sklearn.preprocessing scaler with a
-            .transform method to apply to input grid points.
-        output_scaler: Optional sklearn.preprocessing scaler with an
-            .inverse_transform method to apply to model predictions.
+        title: Title for the plot and output file, usually the test-function
+            name.
+        plots_dir: Directory where the plot is saved.
+        resolution: Number of points per dimension in the surface grid.
+        angle: ``(elevation, azimuth)`` viewing angles for the 3D plot.
+        input_scaler: Optional scaler with a ``transform`` method applied to
+            the input grid before prediction.
+        output_scaler: Optional scaler with an ``inverse_transform`` method
+            applied to model predictions.
     """
     # Generate a grid of points within the bounds of the test function
     bounds_low = [b[0] for b in synthetic_function._bounds]
@@ -325,11 +323,8 @@ def plot_surface_3d(
 
 def main():
     """
-    Parses command-line arguments, generates synthetic data, trains a
-    neural network surrogate model, and plots training/testing loss curves.
-    Supports single or multiple training runs with varying hyperparameters.
+    Train neural-network surrogates on synthetic test functions and save plots.
     """
-    # Parse command line arguments
     args = parse_arguments()
     test_function = args.test_function
     normalize_x = args.normalize_x
@@ -341,11 +336,11 @@ def main():
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
+    activation = args.activation
     multi_train = args.multi_train
     multi_hidden_sizes = args.multi_hidden_sizes
     multi_learning_rates = args.multi_learning_rates
     surface_plot = args.surface_plot
-    verbose_plot = args.verbose_plot
     n_train = args.n_train
     n_test = args.n_test
 
@@ -458,13 +453,10 @@ def main():
         fig.suptitle(f"Training and Testing Losses - {test_function}", fontsize=16)
 
         # Train and test FFNN
-        n = len(multi_hidden_sizes)
-        m = len(multi_learning_rates)
-        train_losses_grid = [[[] for _ in range(m)] for _ in range(n)]
-        test_losses_grid = [[[] for _ in range(m)] for _ in range(n)]
+        results: nn.LossSweepResults = {}
 
-        for i, hid_sz in enumerate(multi_hidden_sizes):
-            for j, lr in enumerate(multi_learning_rates):
+        for hid_sz in multi_hidden_sizes:
+            for lr in multi_learning_rates:
                 hidden_sizes = [hid_sz, hid_sz]
                 model, train_losses, test_losses = nn.train(
                     x_train,
@@ -477,18 +469,20 @@ def main():
                     batch_size,
                     seed,
                     initialize_weights_normal,
+                    activation,
                 )
 
-                # Store train and test loss results over epochs
-                train_losses_grid[i][j] = train_losses
-                test_losses_grid[i][j] = test_losses
+                # Store losses by the actual hyperparameter values.
+                results[(hid_sz, lr)] = nn.TrainingRunHistory(
+                    train_losses=train_losses,
+                    test_losses=test_losses,
+                )
 
         print("All training finished!\n")
 
         # Plot train and test loss over epochs
         nn.plot_losses_multiplot(
-            train_losses_grid,
-            test_losses_grid,
+            results,
             multi_learning_rates,
             multi_hidden_sizes,
             axs,
@@ -511,6 +505,7 @@ def main():
             batch_size,
             seed,
             initialize_weights_normal,
+            activation,
         )
         elapsed_time = time.time() - start_time
 
@@ -522,6 +517,7 @@ def main():
             f"Number of training points: {n_train}",
             f"Number of testing points: {n_test}",
             f"Hidden layer sizes: {hidden_sizes}",
+            f"Activation function: {activation}",
             f"Learning rate: {learning_rate}",
             f"Batch size: {batch_size}",
             f"Epochs: {epochs}",
@@ -539,31 +535,11 @@ def main():
         results_dir = Path(__file__).parent / "results"
         log_results(
             log_message,
-            path_to_log=results_dir / f"{test_function}_nn.txt",
+            path_to_log=results_dir / f"{test_function}.txt",
         )
 
-        if verbose_plot:
-            # Plot train and test loss over epochs with (hyper)parameters
-            #   included
-            nn.plot_losses_verbose(
-                train_losses,
-                test_losses,
-                learning_rate,
-                batch_size,
-                hidden_sizes,
-                normalize_x,
-                scale_x,
-                normalize_y,
-                scale_y,
-                n_train,
-                n_test,
-                test_function,
-                plots_dir,
-            )
-
-        else:
-            # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
+        # Plot train and test loss over epochs
+        nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(
@@ -576,6 +552,31 @@ def main():
                 input_scaler=scaler_x_train,
                 output_scaler=scaler_y_train,
             )
+
+        # Get neural network predictions
+        model.eval()
+        with torch.no_grad():
+            predictions = model(x_test)
+
+        # Back-transform predictions and test outputs for plotting (if scaling was applied)
+        y_test_plot = y_test
+        predictions_plot = predictions
+        if scaler_y_train is not None:
+            # Convert to numpy and inverse transform
+            y_test_np = y_test.numpy().reshape(-1, 1)
+            predictions_np = predictions.numpy().reshape(-1, 1)
+            y_test_plot = torch.tensor(scaler_y_train.inverse_transform(y_test_np))
+            predictions_plot = torch.tensor(
+                scaler_y_train.inverse_transform(predictions_np)
+            )
+
+        nn.plot_predictions(
+            y_test_plot,
+            predictions_plot,
+            test_losses[-1],
+            test_function,
+            plots_dir,
+        )
 
 
 if __name__ == "__main__":

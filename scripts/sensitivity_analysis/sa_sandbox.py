@@ -16,6 +16,7 @@ Usage examples:
 ./sa_sandbox.py -f parabola --b1 2 --b2 1 --b12 0.5
 ./sa_sandbox.py -f wingweight -tr 150 -e S_w A
 ./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f
+./sa_sandbox.py -f otlcircuit -tr 200 -e R_b1 R_f --no-scale-x
 """
 
 import argparse
@@ -104,10 +105,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 
@@ -123,7 +123,8 @@ def parse_arguments():
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     gp_options.add_argument(
@@ -167,11 +168,7 @@ def parse_arguments():
 
 
 def main():
-    """
-    Run a full workflow for surrogate-based sensitivity analysis using
-    GPSurrogate. Simulate data from test function, train GP model, predict
-    model on hold-out data, and plot or log results.
-    """
+    """Run surrogate-based sensitivity analysis on a synthetic test function."""
     args = parse_arguments()
     test_function = args.test_function
     n_train = args.n_train

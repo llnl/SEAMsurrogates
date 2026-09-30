@@ -16,6 +16,7 @@ Usage examples:
 ./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-initial 10
 ./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iter 20 --beta 2.0
 ./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --seed 2
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --no-scale-x
 """
 
 import argparse
@@ -118,10 +119,9 @@ def parse_arguments() -> argparse.Namespace:
         help="Use isotropic kernel (single lengthscale for all inputs).",
     )
     bo_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
     bo_options.add_argument(
@@ -135,7 +135,8 @@ def parse_arguments() -> argparse.Namespace:
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     bo_options.add_argument(
@@ -164,6 +165,18 @@ def run_bayesian_optimization(
     x_grid: np.ndarray,
     x1_grid: np.ndarray,
 ) -> Generator[dict, None, None]:
+    """
+    Run Bayesian optimization and yield per-iteration diagnostics.
+
+    Args:
+        bopt: Configured Bayesian optimizer.
+        x_grid: Candidate evaluation grid used for visualization.
+        x1_grid: Meshgrid array used only for reshaping diagnostics.
+
+    Yields:
+        Snapshot dictionaries returned by ``bopt.step(...)`` for each
+        acquisition iteration.
+    """
     bopt.y_max_history = np.array([np.max(bopt.y_all_data)], dtype=float)
 
     for i in range(bopt.n_acquire):
@@ -196,6 +209,13 @@ def run_bayesian_optimization(
 
 
 def _capture_frame(fig: matplotlib.figure.Figure, frames: list) -> None:
+    """
+    Capture the current Matplotlib figure and append it to a frame list.
+
+    Args:
+        fig: Figure to serialize to an image frame.
+        frames: Mutable list collecting rendered frames.
+    """
     buf = io.BytesIO()
     fig.savefig(buf, format="png")
     buf.seek(0)
@@ -216,6 +236,26 @@ def setup_figure(
     n_initial: int,
     n_iteration: int,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
+    """
+    Create the initial Bayesian-optimization visualization layout.
+
+    Args:
+        bopt: Configured Bayesian optimizer.
+        x1_grid: Meshgrid array for the first input dimension.
+        x2_grid: Meshgrid array for the second input dimension.
+        y_grid: Objective values evaluated on the plotting grid.
+        x_sample: Initial sampled design points.
+        synth_function: Synthetic objective function used for plotting bounds.
+        global_optima: Known global optima locations for the test function.
+        test_function: Test-function name used in figure titles.
+        kernel: Kernel name used in figure titles.
+        n_initial: Number of initial design points.
+        n_iteration: Number of Bayesian optimization iterations.
+
+    Returns:
+        A tuple containing the figure, axes mapping, mutable plot handles, and
+        metadata used by downstream animation helpers.
+    """
     fig = plt.figure(figsize=(18, 6))
     fig.suptitle(
         f"Bayesian Optimization of {test_function} w/ {kernel} kernel\n",
@@ -240,9 +280,9 @@ def setup_figure(
     ax1.set_ylabel("x2")
     ax1.set_title("\n".join(title_lines))
     contour = ax1.contourf(
-        x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", alpha=0.3
+        x1_grid, x2_grid, y_grid, levels=25, cmap="viridis_r", alpha=0.3
     )
-    plt.colorbar(contour, ax=ax1, label=f"Value of {test_function}")
+    plt.colorbar(contour, ax=ax1, label=f"{test_function} (maximizing)")
     ax1.scatter(
         x_sample[:, 0],
         x_sample[:, 1],
@@ -267,7 +307,7 @@ def setup_figure(
     acq_init = bopt.score_candidates(x_grid)
 
     acq_init = acq_init.reshape(x1_grid.shape)
-    acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis")
+    acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis_r")
     ax2.set_xlabel("x1")
     ax2.set_ylabel("x2")
     ax2.set_zlabel("Acquisition Value")
@@ -277,7 +317,9 @@ def setup_figure(
     mu_init = mu_init.reshape(x1_grid.shape)
     gp_mean_max_val = np.max(mu_init)
     gp_mean_max_loc = x_grid[np.argmax(mu_init), :]
-    gp_surface = ax3.plot_surface(x1_grid, x2_grid, mu_init, cmap="viridis", alpha=0.6)
+    gp_surface = ax3.plot_surface(
+        x1_grid, x2_grid, mu_init, cmap="viridis_r", alpha=0.6
+    )
     gp_mean_dot = ax3.scatter(
         gp_mean_max_loc[0],
         gp_mean_max_loc[1],
@@ -290,7 +332,9 @@ def setup_figure(
     ax3.set_ylabel("x2")
     ax3.set_zlabel("Value")
     ax3.set_title("Objective Function Contour and GP Mean Surface")
-    ax3.contour(x1_grid, x2_grid, y_grid, levels=25, cmap="inferno", linestyles="solid")
+    ax3.contour(
+        x1_grid, x2_grid, y_grid, levels=25, cmap="viridis_r", linestyles="solid"
+    )
     ax3.legend()
 
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.4)
@@ -316,6 +360,23 @@ def animate_optimization(
     x2_grid: np.ndarray,
     save_animation: bool,
 ) -> tuple[list, np.ndarray, np.ndarray]:
+    """
+    Animate or step through Bayesian-optimization snapshots.
+
+    Args:
+        snapshots: Generator of per-iteration optimization snapshots.
+        fig: Figure being updated.
+        axes: Mapping of subplot names to axes.
+        handles: Mutable mapping of plot artists that are updated in-place.
+        x1_grid: Meshgrid array for the first input dimension.
+        x2_grid: Meshgrid array for the second input dimension.
+        save_animation: If ``True``, capture frames instead of pausing
+            interactively.
+
+    Returns:
+        A tuple containing captured frames, maxima of acquired observations, and
+        maxima of the GP posterior mean over time.
+    """
     ax1, ax2, ax3 = axes["ax1"], axes["ax2"], axes["ax3"]
     frames = []
     acquired_maxima = []
@@ -341,7 +402,7 @@ def animate_optimization(
 
         handles["acq_surface"].remove()
         handles["acq_surface"] = ax2.plot_surface(
-            x1_grid, x2_grid, snap["acq_values"], cmap="viridis"
+            x1_grid, x2_grid, snap["acq_values"], cmap="viridis_r"
         )
 
         if save_animation:
@@ -353,7 +414,7 @@ def animate_optimization(
         handles["gp_surface"].remove()
         handles["gp_mean_dot"].remove()
         handles["gp_surface"] = ax3.plot_surface(
-            x1_grid, x2_grid, snap["mu"], cmap="viridis", alpha=0.6
+            x1_grid, x2_grid, snap["mu"], cmap="viridis_r", alpha=0.6
         )
         loc = snap["gp_mean_max_location"]
         val = snap["gp_mean_max_value"]
@@ -382,6 +443,17 @@ def plot_convergence(
     save_animation: bool,
     plots_dir: Path,
 ) -> None:
+    """
+    Plot convergence histories for acquired values and GP-mean maxima.
+
+    Args:
+        acquired_maxima: Best acquired objective value at each iteration.
+        gp_mean_maxima: Best GP posterior mean value at each iteration.
+        global_optimum_value: Known optimum value of the test function.
+        title_lines: Title lines displayed on the figure.
+        save_animation: If ``True``, save the figure instead of showing it.
+        plots_dir: Directory where the convergence plot is saved.
+    """
     _fig, ax = plt.subplots(figsize=(18, 6))
     ax.plot(
         acquired_maxima,
@@ -422,6 +494,14 @@ def plot_convergence(
 
 
 def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
+    """
+    Save captured animation frames as a GIF.
+
+    Args:
+        frames: Rendered animation frames.
+        test_function: Test-function name used in the output filename.
+        plots_dir: Directory where the GIF is saved.
+    """
     plots_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
     path = plots_dir / f"bayes_opt_animation_{test_function}_{ts}.gif"
@@ -430,6 +510,7 @@ def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
 
 
 def main() -> None:
+    """Run Bayesian optimization on a synthetic test function and visualize it."""
     args = parse_arguments()
 
     # Set random seeds for reproducibility

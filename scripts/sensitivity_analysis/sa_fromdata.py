@@ -11,10 +11,11 @@ Usage examples:
 
 ./sa_fromdata.py --help
 ./sa_fromdata.py
-./sa_fromdata.py -d JAG -tr 200 -te 150 --exclude x4 x5 --scale-x
-./sa_fromdata.py -d JAG -tr 200 -te 100 --kernel periodic --scale-x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --scale-x
-./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu --scale-x
+./sa_fromdata.py -d jag_icf -tr 200 -te 150 --exclude x4 x5
+./sa_fromdata.py -d jag_icf -tr 200 -te 100 --kernel periodic
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
+./sa_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y --exclude r Tu
+./sa_fromdata.py -d jag_icf -tr 200 -te 100 --kernel periodic --no-scale-x
 """
 
 import argparse
@@ -54,9 +55,8 @@ def parse_arguments():
         "-d",
         "--dataset",
         type=str,
-        choices=list(data_processing.DATASET_CONFIG.keys()),
-        default="JAG",
-        help="Which dataset to use (default: JAG).",
+        default="jag_icf",
+        help="Which dataset to use (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').",
     )
 
     data_options.add_argument(
@@ -105,10 +105,9 @@ def parse_arguments():
     )
 
     gp_options.add_argument(
-        "-sx",
         "--scale-x",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Scale the input values to [0,1] per dimension using training data.",
     )
 
@@ -124,7 +123,8 @@ def parse_arguments():
         "--fixed-nugget",
         type=float,
         default=None,
-        help="Fix the likelihood noise (nugget).",
+        metavar="VALUE",
+        help="Set the white-noise variance (nugget) to VALUE instead of learning it.",
     )
 
     gp_options.add_argument(
@@ -149,10 +149,7 @@ def parse_arguments():
 
 
 def main():
-    """
-    Trains and evaluates a GP surrogate model on the chosen dataset,
-    performs Sobol sensitivity analysis, and generates plots/logs.
-    """
+    """Run surrogate-based sensitivity analysis on a dataset."""
     args = parse_arguments()
     dataset = args.dataset
     scale_x = args.scale_x
@@ -177,8 +174,8 @@ def main():
         df, n_train=n_train, seed=seed
     )
 
-    # Get variable names from dataset config (all columns except the last one which is 'y')
-    variable_names = data_processing.DATASET_CONFIG[dataset]["columns"][:-1]
+    # Get variable names from the DataFrame (all columns except the last one, which is the output)
+    variable_names = list(df.columns[:-1])
 
     # Apply exclusions consistently
     if exclude is not None:
