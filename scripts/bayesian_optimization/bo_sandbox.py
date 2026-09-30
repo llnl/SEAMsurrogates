@@ -63,7 +63,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     experiment.add_argument(
         "-in",
-        "--n-initial",
+        "--n-init",
         type=int,
         default=10,
         help="Number of initial samples before Bayesian optimization.",
@@ -233,8 +233,8 @@ def setup_figure(
     global_optima: list,
     test_function: str,
     kernel: str,
-    n_initial: int,
-    n_iteration: int,
+    n_init: int,
+    n_iter: int,
 ) -> tuple[matplotlib.figure.Figure, dict, dict, dict]:
     """
     Create the initial Bayesian-optimization visualization layout.
@@ -249,8 +249,8 @@ def setup_figure(
         global_optima: Known global optima locations for the test function.
         test_function: Test-function name used in figure titles.
         kernel: Kernel name used in figure titles.
-        n_initial: Number of initial design points.
-        n_iteration: Number of Bayesian optimization iterations.
+        n_init: Number of initial design points.
+        n_iter: Number of Bayesian optimization iterations.
 
     Returns:
         A tuple containing the figure, axes mapping, mutable plot handles, and
@@ -268,7 +268,7 @@ def setup_figure(
 
     title_lines = [
         f"{test_function} with {kernel} kernel",
-        f"Initial Samples: {n_initial} | Acquired Samples: {n_iteration}",
+        f"Initial Samples: {n_init} | Acquired Samples: {n_iter}",
     ]
 
     bounds_low = [b[0] for b in synth_function._bounds]
@@ -541,7 +541,7 @@ def main() -> None:
         args.test_function,
         bounds_low,
         bounds_high,
-        args.n_initial,
+        args.n_init,
         input_size=2,
         init_design=args.init_design,
         seed=args.seed,
@@ -569,8 +569,8 @@ def main() -> None:
         global_optima=global_optima,
         test_function=args.test_function,
         kernel=args.kernel,
-        n_initial=args.n_initial,
-        n_iteration=args.n_iter,
+        n_init=args.n_init,
+        n_iter=args.n_iter,
     )
 
     if not args.save_animation:
@@ -617,7 +617,7 @@ def main() -> None:
         f"Kernel: {args.kernel}",
         f"Isotropic: {args.isotropic}",
         f"Initial design: {args.init_design}",
-        f"Number of initial points: {args.n_initial}",
+        f"Number of initial points: {args.n_init}",
         f"Number of BO iterations: {args.n_iter}",
         f"Beta (UCB): {args.beta if args.acquisition == 'UCB' else 'N/A'}",
         f"Global optimum value: {global_optimum_value:.5e}",

@@ -11,7 +11,7 @@ Usage examples:
 
 ./bo_fromdata.py --help
 ./bo_fromdata.py
-./bo_fromdata.py --dataset jag_icf --n-iter 15 --n-initial 10
+./bo_fromdata.py --dataset jag_icf --n-iter 15 --n-init 10
 ./bo_fromdata.py --dataset borehole --n-iter 20 --kernel rbf --seed 123
 ./bo_fromdata.py --dataset jag_icf --kernel matern --beta 2.0 --init-design lhd
 ./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
@@ -58,7 +58,7 @@ def parse_arguments() -> argparse.Namespace:
 
     data_options.add_argument(
         "-in",
-        "--n-initial",
+        "--n-init",
         type=int,
         default=5,
         help="Number of initial sample points.",
@@ -153,7 +153,7 @@ def main() -> None:
     args = parse_arguments()
     dataset = args.dataset
     kernel = args.kernel
-    n_initial = args.n_initial
+    n_init = args.n_init
     n_iter = args.n_iter
     seed = args.seed
 
@@ -164,7 +164,7 @@ def main() -> None:
     # Set plots directory relative to this script
     plots_dir = Path(__file__).parent / "plots"
 
-    n_samples = n_initial + n_iter
+    n_samples = n_init + n_iter
     if n_samples > 10000:
         raise ValueError(
             f"Total samples ({n_samples}) exceed existing dataset size limit (10000)."
@@ -172,14 +172,12 @@ def main() -> None:
 
     df = data_processing.load_data(dataset=dataset, n_samples=10000, random=False)
 
-    if n_initial > len(df):
-        raise ValueError(
-            f"n_initial ({n_initial}) cannot exceed dataset size ({len(df)})."
-        )
+    if n_init > len(df):
+        raise ValueError(f"n_init ({n_init}) cannot exceed dataset size ({len(df)}).")
 
-    if n_initial + n_iter > len(df):
+    if n_init + n_iter > len(df):
         raise ValueError(
-            f"n_initial + n_iter ({n_initial + n_iter}) exceeds dataset size ({len(df)})."
+            f"n_init + n_iter ({n_init + n_iter}) exceeds dataset size ({len(df)})."
         )
 
     data = df.to_numpy()
@@ -238,7 +236,7 @@ def main() -> None:
             kwargs["beta"] = args.beta
 
         optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
-        max_y_history = optimizer.bayes_opt(df, n_initial)[2]
+        max_y_history = optimizer.bayes_opt(df, n_init)[2]
 
         optimizers[acq_func] = optimizer
         max_y_histories[acq_func] = max_y_history
@@ -252,7 +250,7 @@ def main() -> None:
         max_y_histories["random"],
         kernel,
         n_iter,
-        n_initial,
+        n_init,
         f"{dataset}_{args.init_design}",
         beta=args.beta,
         plots_dir=plots_dir,
@@ -266,7 +264,7 @@ def main() -> None:
         f"Kernel: {kernel}",
         f"Isotropic: {args.isotropic}",
         f"Initial design: {args.init_design}",
-        f"Number of initial points: {n_initial}",
+        f"Number of initial points: {n_init}",
         f"Number of BO iterations: {n_iter}",
         f"Beta (UCB): {args.beta}",
         f"Fixed nugget: {fixed_noise}",
