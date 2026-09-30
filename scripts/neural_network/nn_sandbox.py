@@ -194,15 +194,6 @@ def parse_arguments():
         "Only works when -mt is NOT flagged.",
     )
 
-    nn_options.add_argument(
-        "-vp",
-        "--verbose-plot",
-        action="store_true",
-        default=False,
-        help="If set, includes (hyper)parameter values in loss plot title "
-        "Only works when -mt is NOT flagged.",
-    )
-
     args = parser.parse_args()
 
     return args
@@ -350,7 +341,6 @@ def main():
     multi_hidden_sizes = args.multi_hidden_sizes
     multi_learning_rates = args.multi_learning_rates
     surface_plot = args.surface_plot
-    verbose_plot = args.verbose_plot
     n_train = args.n_train
     n_test = args.n_test
 
@@ -548,28 +538,8 @@ def main():
             path_to_log=results_dir / f"{test_function}_nn.txt",
         )
 
-        if verbose_plot:
-            # Plot train and test loss over epochs with (hyper)parameters
-            #   included
-            nn.plot_losses_verbose(
-                train_losses,
-                test_losses,
-                learning_rate,
-                batch_size,
-                hidden_sizes,
-                normalize_x,
-                scale_x,
-                normalize_y,
-                scale_y,
-                n_train,
-                n_test,
-                test_function,
-                plots_dir,
-            )
-
-        else:
-            # Plot train and test loss over epochs
-            nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
+        # Plot train and test loss over epochs
+        nn.plot_losses(train_losses, test_losses, test_function, plots_dir)
 
         if surface_plot:
             plot_surface_3d(

@@ -128,14 +128,6 @@ def parse_arguments() -> argparse.Namespace:
         help="Activation function to use between layers.",
     )
 
-    nn_options.add_argument(
-        "-vp",
-        "--verbose-plot",
-        action="store_true",
-        default=False,
-        help="If set, includes (hyper)parameter values in loss plot title.",
-    )
-
     args = parser.parse_args()
 
     return args
@@ -155,7 +147,6 @@ def main() -> None:
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
     activation = args.activation
-    verbose_plot = args.verbose_plot
 
     # Set output directory relative to this script
     script_dir = Path(__file__).parent
@@ -251,27 +242,8 @@ def main() -> None:
         path_to_log=results_dir / f"{dataset}_nn.txt",
     )
 
-    if verbose_plot:
-        # Plot train and test loss over epochs with hyperparameters included
-        nn.plot_losses_verbose(
-            train_losses,
-            test_losses,
-            learning_rate,
-            batch_size,
-            hidden_sizes,
-            normalize_x=False,
-            scale_x=False,
-            normalize_y=False,
-            scale_y=False,
-            train_data_size=n_train,
-            test_data_size=x_test.shape[0],
-            dataset=dataset,
-            plots_dir=plots_dir,
-        )
-
-    else:
-        # Plot train and test loss over epochs
-        nn.plot_losses(train_losses, test_losses, dataset, plots_dir)
+    # Plot train and test loss over epochs
+    nn.plot_losses(train_losses, test_losses, dataset, plots_dir)
 
     # Get neural network predictions
     model.eval()  # Set the model to evaluation mode
