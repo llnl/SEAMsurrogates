@@ -66,6 +66,7 @@ def parse_arguments():
     )
 
     experiment.add_argument(
+        "-tr",
         "--n-train",
         type=int,
         default=90,
@@ -73,6 +74,7 @@ def parse_arguments():
     )
 
     experiment.add_argument(
+        "-te",
         "--n-test",
         type=int,
         default=10,
