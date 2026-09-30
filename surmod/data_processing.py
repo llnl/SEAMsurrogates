@@ -2,7 +2,7 @@
 Data loading and splitting utilities.
 
 Loads datasets from data/ directory. Files are expected to be CSV format
-with the naming pattern <dataset>.csv (e.g., jag.csv, borehole.csv, hst_H.csv).
+with the naming pattern <dataset>.csv (e.g., jag_icf.csv, borehole.csv, hst_H.csv).
 Column names and dimensions are read from CSV headers.
 """
 
@@ -22,7 +22,7 @@ _DATA_DIR = _MODULE_DIR.parent / "data"
 
 
 def load_data(
-    dataset: str = "jag",
+    dataset: str = "jag_icf",
     n_samples: int = 10000,
     random: bool = True,
     seed: int = 42,
@@ -34,7 +34,7 @@ def load_data(
     output in the last column.
 
     Args:
-        dataset: Dataset name (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').
+        dataset: Dataset name (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
@@ -171,7 +171,7 @@ def split_data(
 
 
 def load_and_split(
-    dataset: str = "jag",
+    dataset: str = "jag_icf",
     n_samples: int = 10000,
     random_rows: bool = True,
     seed: int = 42,
@@ -182,7 +182,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: Dataset name (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').
+        dataset: Dataset name (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.

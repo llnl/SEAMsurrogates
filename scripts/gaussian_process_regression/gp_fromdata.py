@@ -10,13 +10,13 @@ Usage examples:
 
 ./gp_fromdata.py --help
 ./gp_fromdata.py
-./gp_fromdata.py -d jag --n-train 200 --kernel rbf --isotropic
-./gp_fromdata.py -d jag --n-train 300 --kernel matern
+./gp_fromdata.py -d jag_icf --n-train 200 --kernel rbf --isotropic
+./gp_fromdata.py -d jag_icf --n-train 300 --kernel matern
 ./gp_fromdata.py -d borehole -tr 400 -te 100 -k matern --normalize-y
 ./gp_fromdata.py -d borehole --n-train 200 --kernel matern
 ./gp_fromdata.py -d borehole --n-train 200 --kernel matern --log-y
 ./gp_fromdata.py -d hst_H --n-train 200 --kernel matern --normalize-y
-./gp_fromdata.py -d jag --n-train 200 --kernel matern --no-scale-x
+./gp_fromdata.py -d jag_icf --n-train 200 --kernel matern --no-scale-x
 """
 
 import argparse
@@ -53,8 +53,8 @@ def parse_arguments():
         "-d",
         "--dataset",
         type=str,
-        default="jag",
-        help="Which dataset to use (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').",
+        default="jag_icf",
+        help="Which dataset to use (CSV file stem, e.g., 'jag_icf', 'borehole', 'hst_H').",
     )
 
     data_options.add_argument(
