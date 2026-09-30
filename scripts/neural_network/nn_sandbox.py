@@ -580,6 +580,31 @@ def main():
                 output_scaler=scaler_y_train,
             )
 
+        # Get neural network predictions
+        model.eval()
+        with torch.no_grad():
+            predictions = model(x_test)
+
+        # Back-transform predictions and test outputs for plotting (if scaling was applied)
+        y_test_plot = y_test
+        predictions_plot = predictions
+        if scaler_y_train is not None:
+            # Convert to numpy and inverse transform
+            y_test_np = y_test.numpy().reshape(-1, 1)
+            predictions_np = predictions.numpy().reshape(-1, 1)
+            y_test_plot = torch.tensor(scaler_y_train.inverse_transform(y_test_np))
+            predictions_plot = torch.tensor(
+                scaler_y_train.inverse_transform(predictions_np)
+            )
+
+        nn.plot_predictions(
+            y_test_plot,
+            predictions_plot,
+            test_losses[-1],
+            test_function,
+            plots_dir,
+        )
+
 
 if __name__ == "__main__":
     main()
