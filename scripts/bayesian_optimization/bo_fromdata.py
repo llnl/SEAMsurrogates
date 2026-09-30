@@ -213,6 +213,7 @@ def main() -> None:
                 max(high, fixed_noise + margin),
             )
 
+    # Note: "random" is not an acquisition function but a uniform sampling baseline
     acquisition_functions = ["EI", "PI", "UCB", "PV", "random"]
 
     base_kwargs = {

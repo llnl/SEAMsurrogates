@@ -95,7 +95,7 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=["EI", "PI", "UCB", "PV", "random"],
         default="EI",
-        help="Choice of acquisition function.",
+        help="Acquisition function or 'random' for uniform sampling baseline.",
     )
     bo_options.add_argument(
         "-beta",

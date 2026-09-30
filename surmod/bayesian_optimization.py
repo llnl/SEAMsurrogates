@@ -205,8 +205,8 @@ class BayesianOptimizer:
                 ``"matern"``.
             isotropic: Whether to use an isotropic kernel. Defaults to ``False``.
             acquisition_function: Acquisition strategy, such as ``"EI"``,
-                ``"PI"``, ``"UCB"``, ``"PV"``, or ``"random"``. Defaults to
-                ``"EI"``.
+                ``"PI"``, ``"UCB"``, ``"PV"``, or ``"random"`` (uniform sampling
+                baseline, does not use the surrogate). Defaults to ``"EI"``.
             n_acquire: Number of observations to acquire. Defaults to 10.
             seed: Random seed used for reproducible sampling. Defaults to 42.
             scale_inputs: Whether to normalize GP inputs to [0, 1].
@@ -335,6 +335,7 @@ class BayesianOptimizer:
         bounds = bounds_t.cpu().numpy()
 
         if self.acquisition.lower() == "random":
+            # Uniform random sampling baseline (does not use surrogate model)
             x_next = self._rng.uniform(bounds[0], bounds[1])
             return np.clip(
                 np.asarray(x_next, dtype=np.float64).reshape(-1), bounds[0], bounds[1]
@@ -360,6 +361,7 @@ class BayesianOptimizer:
     ) -> np.ndarray:
         """Score candidate points using the configured acquisition strategy."""
         if self.acquisition.lower() == "random":
+            # Random baseline: uniform scores (does not use surrogate model)
             return self._rng.uniform(size=x_candidates.shape[0])
 
         acq_func = self._build_analytic_acquisition()
