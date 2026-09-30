@@ -567,7 +567,7 @@ class GPSurrogate:
         observed = self.y_test.squeeze(-1).cpu().numpy()
 
         plt.style.use("seaborn-v0_8-whitegrid")
-        plt.figure()
+        plt.figure(figsize=(8, 8))
 
         plt.errorbar(
             observed,
@@ -585,16 +585,19 @@ class GPSurrogate:
         min_value = min(observed.min(), lower_bounds.min())
 
         plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
+        plt.axis("equal")
         plt.ylabel("Predicted", fontsize=14)
         plt.xlabel("Observed", fontsize=14)
-        plt.title(f"{dataset} \n {self.get_fitted_kernel_label()}")
+        plt.title(dataset.replace("_", " ").capitalize())
         plt.text(
-            0.3,
+            0.05,
             0.95,
-            f"RMSE: {rmse:.5f}, Coverage: {coverage:.2%}",
-            ha="center",
-            fontsize=14,
+            f"RMSE: {rmse:.5f}\nCoverage: {coverage:.2%}",
+            ha="left",
+            va="top",
+            fontsize=12,
             transform=plt.gca().transAxes,
+            bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.8},
         )
         plt.tight_layout()
 

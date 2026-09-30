@@ -267,6 +267,7 @@ def main():
         f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
         f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
+        f"Fitted kernel: {gp.get_fitted_kernel_label()}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
