@@ -25,7 +25,7 @@ class TrainingRunHistory:
     test_losses: list[float]
 
 
-LossSweepResults = dict[tuple[int, float], TrainingRunHistory]
+LossSweepResult = dict[tuple[int, float], TrainingRunHistory]
 
 
 class NeuralNet(nn.Module):
@@ -151,8 +151,6 @@ def train(
     input_size = x_train.shape[1]
     output_size = 1
 
-    accumulation_steps = 4
-
     # Create a TensorDataset and DataLoader
     dataset = TensorDataset(x_train, y_train)
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -178,21 +176,17 @@ def train(
         model.train()  # Set the model to training mode
         epoch_loss = 0.0
 
-        for i, (inputs, targets) in enumerate(train_loader):
+        for inputs, targets in train_loader:
             # Forward pass
             outputs = model(inputs)
 
             # Compute the loss
             loss = criterion(outputs, targets.view(-1, 1))
 
-            # Backward pass
+            # Backward pass and optimization
+            optimizer.zero_grad()
             loss.backward()
-
-            # Accumulate gradients and update parameters only after
-            #   accumulation_steps batches
-            if (i + 1) % accumulation_steps == 0 or (i + 1) == len(train_loader):
-                optimizer.step()  # Update model parameters
-                optimizer.zero_grad()  # Reset gradients for the next cycle
+            optimizer.step()
 
             epoch_loss += loss.item()
 
@@ -259,7 +253,7 @@ def plot_losses(
 
 
 def plot_losses_multiplot(
-    results: LossSweepResults,
+    results: LossSweepResult,
     learning_rates: list[float],
     hid_dims: list[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
