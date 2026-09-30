@@ -147,6 +147,9 @@ def train(
         A tuple containing the trained model, training losses per epoch, and
         test losses per epoch.
     """
+    # Set a random number generator seed for reproducibility
+    torch.manual_seed(seed)
+
     # Specify fixed output and input sizes
     input_size = x_train.shape[1]
     output_size = 1
@@ -167,9 +170,6 @@ def train(
     # Lists to store losses
     train_losses = []
     test_losses = []
-
-    # Set a random number generator seed for reproducibility
-    torch.manual_seed(seed)
 
     # Training loop
     for epoch in range(n_epochs):
