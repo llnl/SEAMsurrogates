@@ -535,7 +535,7 @@ def main():
         results_dir = Path(__file__).parent / "results"
         log_results(
             log_message,
-            path_to_log=results_dir / f"{test_function}_nn.txt",
+            path_to_log=results_dir / f"{test_function}.txt",
         )
 
         # Plot train and test loss over epochs

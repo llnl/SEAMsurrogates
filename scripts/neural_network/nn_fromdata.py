@@ -239,7 +239,7 @@ def main() -> None:
     results_dir = Path(__file__).parent / "results"
     log_results(
         log_message,
-        path_to_log=results_dir / f"{dataset}_nn.txt",
+        path_to_log=results_dir / f"{dataset}.txt",
     )
 
     # Plot train and test loss over epochs
