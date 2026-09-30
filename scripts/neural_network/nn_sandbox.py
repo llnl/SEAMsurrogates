@@ -17,6 +17,7 @@ Usage examples:
 ./nn_sandbox.py --test-function branin --hidden-sizes 64 32 16 --n-test 500
 ./nn_sandbox.py --test-function ackley --activation tanh --epochs 300
 ./nn_sandbox.py --test-function parabola --activation sigmoid --learning-rate 0.0001
+./nn_sandbox.py --test-function branin --surface-plot
 ./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
