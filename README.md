@@ -53,20 +53,20 @@ The datasets in the `data` directory are from different sources:
 
 ## Course Outline
 
-| Week | Topic                                                    | Driver Scripts                                                                                                                 |
-| ---- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | Intro to Deep Learning, PyTorch, and Surrogate Modeling  |                                                                                                                                |
-| 2    | Intro to Neural Networks (NNs) as Surrogates             | [`nn_sandbox.py`](scripts/neural_network/nn_sandbox.py)                                                                        |
-| 3    | Exploring NN Surrogates for Example Data                 | [`nn_fromdata.py`](scripts/neural_network/nn_fromdata.py)                                                                      |
-| 4    | Intro to Gaussian Processes (GPs) as Surrogates          | [`gp_sandbox.py`](scripts/gaussian_process_regression/gp_sandbox.py)                                                           |
-| 5    | Exploring GP Surrogates for Example Data                 | [`gp_fromdata.py`](scripts/gaussian_process_regression/gp_fromdata.py)                                                         |
-| 6    | Basic Bayesian Optimization (BO) for Design Optimization | [`bo_sandbox.py`](scripts/bayesian_optimization/bo_sandbox.py)                                                                 |
-| 7    | Exploring BO for Design Optimization on Example Data     | [`bo_fromdata.py`](scripts/bayesian_optimization/bo_fromdata.py)                                                               |
-| 8    | Intro to Sensitivity Analysis (SA)                       | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_fromdata.py`](scripts/sensitivity_analysis/sa_fromdata.py) |
-| 9    | Discuss Problem Statement Ideas for Final Project        |                                                                                                                                |
-| 10   | Work on Final Project                                    |                                                                                                                                |
-| 11   | Work on Final Project                                    |                                                                                                                                |
-| 12   | Final Project Review & Presentation                      |                                                                                                                                |
+| Week | Topic                                            | Driver Scripts                                                                                                                 |
+| ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Deep Learning, PyTorch, and Surrogate Modeling   |                                                                                                                                |
+| 2    | Neural Network (NN) Surrogate Models             | [`nn_sandbox.py`](scripts/neural_network/nn_sandbox.py)                                                                        |
+| 3    | NN Surrogates with Example Data                  | [`nn_fromdata.py`](scripts/neural_network/nn_fromdata.py)                                                                      |
+| 4    | Gaussian Process (GP) Surrogate Models           | [`gp_sandbox.py`](scripts/gaussian_process_regression/gp_sandbox.py)                                                           |
+| 5    | GP Surrogates with Example Data                  | [`gp_fromdata.py`](scripts/gaussian_process_regression/gp_fromdata.py)                                                         |
+| 6    | Bayesian Optimization (BO) for Design            | [`bo_sandbox.py`](scripts/bayesian_optimization/bo_sandbox.py)                                                                 |
+| 7    | BO with Example Data                             | [`bo_fromdata.py`](scripts/bayesian_optimization/bo_fromdata.py)                                                               |
+| 8    | Sensitivity Analysis (SA)                        | [`sa_sandbox.py`](scripts/sensitivity_analysis/sa_sandbox.py), [`sa_fromdata.py`](scripts/sensitivity_analysis/sa_fromdata.py) |
+| 9    | Final Project Problem Formulation                |                                                                                                                                |
+| 10   | Final Project Development                        |                                                                                                                                |
+| 11   | Final Project Development                        |                                                                                                                                |
+| 12   | Final Project Presentations                      |                                                                                                                                |
 
 ## Contributors and Contact Information
 
