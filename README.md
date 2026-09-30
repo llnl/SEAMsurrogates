@@ -68,7 +68,7 @@ The datasets in the `data` directory are from different sources:
 | 11   | Final Project Development                        |                                                                                                                                |
 | 12   | Final Project Presentations                      |                                                                                                                                |
 
-## Contributors and Contact Information
+## Contributors
 
 - Jason Bernstein ([bernstein8@llnl.gov](mailto:bernstein8@llnl.gov))
 - Emily Bogle ([bogle4@llnl.gov](mailto:bogle4@llnl.gov))
