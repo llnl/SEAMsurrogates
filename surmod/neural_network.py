@@ -39,6 +39,7 @@ class NeuralNet(nn.Module):
         hidden_sizes: list[int],
         output_size: int,
         initialize_weights_normal: bool,
+        activation: str = "relu",
     ):
         """
         Initialize the NeuralNet.
@@ -49,20 +50,34 @@ class NeuralNet(nn.Module):
             output_size: Number of output features.
             initialize_weights_normal: Whether to initialize weights with a
                 normal distribution.
+            activation: Activation function to use. Supported: 'relu', 'sigmoid', 'tanh'.
         """
         super().__init__()
         self.layers = nn.ModuleList()
+
+        # Map activation string to PyTorch activation class
+        activation_map = {
+            "relu": nn.ReLU,
+            "sigmoid": nn.Sigmoid,
+            "tanh": nn.Tanh,
+        }
+        if activation not in activation_map:
+            raise ValueError(
+                f"Unsupported activation '{activation}'. "
+                f"Supported: {list(activation_map.keys())}"
+            )
+        activation_fn = activation_map[activation]
 
         # Create the first hidden layer
         self.layers.append(nn.Linear(input_size, hidden_sizes[0]))
 
         # Create hidden layers based on the hidden_sizes list
         for i in range(len(hidden_sizes) - 1):
-            self.layers.append(nn.ReLU())
+            self.layers.append(activation_fn())
             self.layers.append(nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]))
 
         # Add the final output layer
-        self.layers.append(nn.ReLU())
+        self.layers.append(activation_fn())
         self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
 
         # Initialize weights
@@ -107,6 +122,7 @@ def train(
     batch_size: int,
     seed: int,
     initialize_weights_normal: bool,
+    activation: str = "relu",
 ) -> tuple[nn.Module, list[float], list[float]]:
     """
     Train a feedforward neural network and evaluate its performance.
@@ -125,6 +141,7 @@ def train(
         seed: Random seed for reproducibility.
         initialize_weights_normal: If ``True``, initialize weights with a
             normal distribution.
+        activation: Activation function to use. Supported: 'relu', 'sigmoid', 'tanh'.
 
     Returns:
         A tuple containing the trained model, training losses per epoch, and
@@ -141,7 +158,9 @@ def train(
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # Initialize the neural network
-    model = NeuralNet(input_size, hidden_sizes, output_size, initialize_weights_normal)
+    model = NeuralNet(
+        input_size, hidden_sizes, output_size, initialize_weights_normal, activation
+    )
 
     # Define the loss function and optimizer
     criterion = nn.MSELoss()

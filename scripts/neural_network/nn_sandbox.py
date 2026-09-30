@@ -15,6 +15,8 @@ Usage examples:
 ./nn_sandbox.py --test-function griewank --epochs 200 --learning-rate 0.001
 ./nn_sandbox.py --hidden-sizes 16 8 --batch-size 20 --epochs 250
 ./nn_sandbox.py --test-function branin --hidden-sizes 64 32 16 --n-test 500
+./nn_sandbox.py --test-function ackley --activation tanh --epochs 300
+./nn_sandbox.py --test-function parabola --activation sigmoid --learning-rate 0.0001
 ./nn_sandbox.py --multi-train --multi-hidden-sizes 8 16 --multi-learning-rates 0.001 0.0001
 """
 
@@ -107,6 +109,15 @@ def parse_arguments():
         type=float,
         default=0.00001,
         help="Learning rate for SGD optimization.",
+    )
+
+    nn_options.add_argument(
+        "-a",
+        "--activation",
+        type=str,
+        choices=["relu", "sigmoid", "tanh"],
+        default="relu",
+        help="Activation function to use between layers.",
     )
 
     nn_options.add_argument(
@@ -331,6 +342,7 @@ def main():
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
+    activation = args.activation
     multi_train = args.multi_train
     multi_hidden_sizes = args.multi_hidden_sizes
     multi_learning_rates = args.multi_learning_rates
@@ -464,6 +476,7 @@ def main():
                     batch_size,
                     seed,
                     initialize_weights_normal,
+                    activation,
                 )
 
                 # Store losses by the actual hyperparameter values.
@@ -499,6 +512,7 @@ def main():
             batch_size,
             seed,
             initialize_weights_normal,
+            activation,
         )
         elapsed_time = time.time() - start_time
 
@@ -510,6 +524,7 @@ def main():
             f"Number of training points: {n_train}",
             f"Number of testing points: {n_test}",
             f"Hidden layer sizes: {hidden_sizes}",
+            f"Activation function: {activation}",
             f"Learning rate: {learning_rate}",
             f"Batch size: {batch_size}",
             f"Epochs: {epochs}",

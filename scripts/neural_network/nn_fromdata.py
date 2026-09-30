@@ -15,6 +15,8 @@ Usage examples:
 ./nn_fromdata.py -d JAG --hidden-sizes 15 15 --batch-size 20 --epochs 400
 ./nn_fromdata.py -d borehole --hidden-sizes 60 60 --batch-size 40 --epochs 600 --learning-rate 0.02
 ./nn_fromdata.py -d borehole --log-y --hidden-sizes 60 60
+./nn_fromdata.py -d JAG --activation tanh --epochs 500
+./nn_fromdata.py -d borehole --activation sigmoid --learning-rate 0.001 --epochs 400
 """
 
 import argparse
@@ -119,6 +121,15 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     nn_options.add_argument(
+        "-a",
+        "--activation",
+        type=str,
+        choices=["relu", "sigmoid", "tanh"],
+        default="relu",
+        help="Activation function to use between layers.",
+    )
+
+    nn_options.add_argument(
         "-vp",
         "--verbose-plot",
         action="store_true",
@@ -144,6 +155,7 @@ def main() -> None:
     batch_size = args.batch_size
     hidden_sizes = args.hidden_sizes
     learning_rate = args.learning_rate
+    activation = args.activation
     verbose_plot = args.verbose_plot
 
     # Set output directory relative to this script
@@ -210,6 +222,7 @@ def main() -> None:
         batch_size,
         seed,
         initialize_weights_normal,
+        activation,
     )
     elapsed_time = time.time() - start_time
 
@@ -222,6 +235,7 @@ def main() -> None:
         f"Number of testing points: {x_test.shape[0]}",
         f"Log transform applied: {log_y}",
         f"Hidden layer sizes: {hidden_sizes}",
+        f"Activation function: {activation}",
         f"Learning rate: {learning_rate}",
         f"Batch size: {batch_size}",
         f"Epochs: {epochs}",
