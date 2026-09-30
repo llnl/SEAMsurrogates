@@ -11,11 +11,11 @@ Usage examples:
 
 ./bo_fromdata.py --help
 ./bo_fromdata.py
-./bo_fromdata.py --dataset JAG --n-iter 15 --n-initial 10
+./bo_fromdata.py --dataset jag --n-iter 15 --n-initial 10
 ./bo_fromdata.py --dataset borehole --n-iter 20 --kernel rbf --seed 123
-./bo_fromdata.py --dataset JAG --kernel matern --beta 2.0 --init-design lhd
+./bo_fromdata.py --dataset jag --kernel matern --beta 2.0 --init-design lhd
 ./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
-./bo_fromdata.py --dataset JAG --kernel matern --no-scale-x
+./bo_fromdata.py --dataset jag --kernel matern --no-scale-x
 """
 
 import argparse
@@ -52,9 +52,8 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=list(data_processing.DATASET_CONFIG.keys()),
-        default="JAG",
-        help="Which dataset to use.",
+        default="jag",
+        help="Which dataset to use (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').",
     )
 
     data_options.add_argument(

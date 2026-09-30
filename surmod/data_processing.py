@@ -1,8 +1,9 @@
 """
 Data loading and splitting utilities.
 
-Supported datasets: JAG, borehole, hst_H
-See DATASET_CONFIG for dataset paths. Column names and dimensions are read from CSV headers.
+Loads datasets from data/ directory. Files are expected to be CSV format
+with the naming pattern <dataset>.csv (e.g., jag.csv, borehole.csv, hst_H.csv).
+Column names and dimensions are read from CSV headers.
 """
 
 import warnings
@@ -19,16 +20,9 @@ from sklearn.preprocessing import StandardScaler
 _MODULE_DIR = Path(__file__).parent
 _DATA_DIR = _MODULE_DIR.parent / "data"
 
-# Dataset paths (all datasets assume single output in last column)
-DATASET_CONFIG = {
-    "JAG": _DATA_DIR / "JAG_10k.csv",
-    "borehole": _DATA_DIR / "borehole_10k.csv",
-    "hst_H": _DATA_DIR / "hst_H_10k.csv",
-}
-
 
 def load_data(
-    dataset: str = "JAG",
+    dataset: str = "jag",
     n_samples: int = 10000,
     random: bool = True,
     seed: int = 42,
@@ -40,7 +34,7 @@ def load_data(
     output in the last column.
 
     Args:
-        dataset: Dataset name (see DATASET_CONFIG for supported options).
+        dataset: Dataset name (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').
         n_samples: Number of rows to load.
         random: If True, select rows randomly; else select first n_samples rows.
         seed: Random seed for reproducibility (used if random is True).
@@ -48,15 +42,13 @@ def load_data(
     Returns:
         pd.DataFrame with input features and output column for the selected dataset.
     """
-    if dataset not in DATASET_CONFIG:
-        raise ValueError(
-            f"Unsupported dataset '{dataset}'. Supported: {list(DATASET_CONFIG.keys())}"
-        )
-
-    csv_path = DATASET_CONFIG[dataset]
+    csv_path = _DATA_DIR / f"{dataset}.csv"
 
     if not csv_path.is_file():
-        raise FileNotFoundError(f"CSV file not found at: {csv_path}")
+        raise FileNotFoundError(
+            f"CSV file not found at: {csv_path}. "
+            f"Expected file naming pattern: <dataset>.csv in {_DATA_DIR}"
+        )
 
     df = pd.read_csv(csv_path)  # type: ignore
 
@@ -179,7 +171,7 @@ def split_data(
 
 
 def load_and_split(
-    dataset: str = "JAG",
+    dataset: str = "jag",
     n_samples: int = 10000,
     random_rows: bool = True,
     seed: int = 42,
@@ -190,7 +182,7 @@ def load_and_split(
     Convenience function: load dataset, then split into train and test.
 
     Args:
-        dataset: Dataset name (see DATASET_CONFIG for supported options).
+        dataset: Dataset name (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').
         n_samples: Number of samples to load from CSV.
         random_rows: Randomly choose rows or take first n_samples.
         seed: Random seed used for row sampling and splitting.

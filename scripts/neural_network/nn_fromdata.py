@@ -11,11 +11,11 @@ Usage examples:
 
 ./nn_fromdata.py --help
 ./nn_fromdata.py
-./nn_fromdata.py -d JAG --hidden-sizes 10 20
-./nn_fromdata.py -d JAG --hidden-sizes 15 15 --batch-size 20 --epochs 400
+./nn_fromdata.py -d jag --hidden-sizes 10 20
+./nn_fromdata.py -d jag --hidden-sizes 15 15 --batch-size 20 --epochs 400
 ./nn_fromdata.py -d borehole --hidden-sizes 60 60 --batch-size 40 --epochs 600 --learning-rate 0.02
 ./nn_fromdata.py -d borehole --log-y --hidden-sizes 60 60
-./nn_fromdata.py -d JAG --activation tanh --epochs 500
+./nn_fromdata.py -d jag --activation tanh --epochs 500
 ./nn_fromdata.py -d borehole --activation sigmoid --learning-rate 0.001 --epochs 400
 """
 
@@ -54,9 +54,8 @@ def parse_arguments() -> argparse.Namespace:
         "-d",
         "--dataset",
         type=str,
-        choices=list(data_processing.DATASET_CONFIG.keys()),
-        default="JAG",
-        help="Which dataset to use (default: JAG).",
+        default="jag",
+        help="Which dataset to use (CSV file stem, e.g., 'jag', 'borehole', 'hst_H').",
     )
 
     data_options.add_argument(
