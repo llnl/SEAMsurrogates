@@ -20,10 +20,10 @@ surmod.data\_processing module
    :undoc-members:
    :show-inheritance:
 
-surmod.gaussian\_process\_regression module
--------------------------------------------
+surmod.gaussian\_process module
+-------------------------------
 
-.. automodule:: surmod.gpytorch_gaussian_process
+.. automodule:: surmod.gaussian_process
    :members:
    :undoc-members:
    :show-inheritance:
