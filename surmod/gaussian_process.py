@@ -23,6 +23,7 @@ from numpy.typing import NDArray
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 
 from surmod import test_functions
+from surmod.utils import save_parity_plot
 
 
 def nugget_to_bounds(nugget: float) -> tuple[float, float]:
@@ -562,50 +563,17 @@ class GPSurrogate:
         results = self.evaluate(include_nugget=True)
         prediction_mean = results["mean"]
         std_dev = results["std"]
-        rmse = results["rmse"]
-        coverage = results["coverage"]
         observed = self.y_test.squeeze(-1).cpu().numpy()
 
-        plt.style.use("seaborn-v0_8-whitegrid")
-        plt.figure(figsize=(8, 8))
-
-        plt.errorbar(
-            observed,
-            prediction_mean,
-            yerr=1.96 * std_dev,
-            fmt="o",
-            capsize=5,
-            color="blue",
-        )
-
-        lower_bounds = prediction_mean.flatten() - 1.96 * std_dev.flatten()
-        upper_bounds = prediction_mean.flatten() + 1.96 * std_dev.flatten()
-
-        max_value = max(observed.max(), upper_bounds.max())
-        min_value = min(observed.min(), lower_bounds.min())
-
-        plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
-        plt.axis("equal")
-        plt.ylabel("Predicted", fontsize=14)
-        plt.xlabel("Observed", fontsize=14)
-        plt.title(dataset.replace("_", " ").capitalize())
-        plt.text(
-            0.05,
-            0.95,
-            f"RMSE: {rmse:.5f}\nCoverage: {coverage:.2%}",
-            ha="left",
-            va="top",
-            fontsize=12,
-            transform=plt.gca().transAxes,
-            bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.8},
-        )
-        plt.tight_layout()
-
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plots_dir.mkdir(exist_ok=True)
         path_to_plot = plots_dir / f"{dataset}_test_predictions_{timestamp}.png"
-        plt.savefig(path_to_plot, bbox_inches="tight")
-        print(f"Figure saved to {path_to_plot}")
+        save_parity_plot(
+            observed_values=observed,
+            predicted_values=prediction_mean,
+            uncertainty=std_dev,
+            title=dataset.replace("_", " ").capitalize(),
+            output_path=path_to_plot,
+        )
 
     def plot_predictive_mean(
         self,

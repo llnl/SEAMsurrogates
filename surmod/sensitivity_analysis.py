@@ -13,6 +13,7 @@ import seaborn as sns
 from surmod.test_functions import (
     get_input_spec,
 )
+from surmod.utils import save_parity_plot
 
 
 def load_test_settings(
@@ -106,54 +107,18 @@ def plot_test_predictions(x_test, y_test, gp_model, test_function: str) -> None:
     """
     prediction_mean, std_dev = gp_model.predict(x_test)
 
-    prediction_mean = np.asarray(prediction_mean).reshape(-1)
-    std_dev = np.asarray(std_dev).reshape(-1)
-    observed = np.asarray(y_test).reshape(-1)
-
-    Zscore = 1.96
-
-    lower_bounds = prediction_mean - Zscore * std_dev
-    upper_bounds = prediction_mean + Zscore * std_dev
-    coverage = np.mean((observed >= lower_bounds) & (observed <= upper_bounds))
-    test_rmse = np.sqrt(np.mean(np.square(observed - prediction_mean)))
-
-    plt.style.use("seaborn-v0_8-whitegrid")
-    plt.figure()
-
-    plt.errorbar(
-        observed,
-        prediction_mean,
-        yerr=Zscore * std_dev,
-        fmt="o",
-        capsize=5,
-        color="blue",
-        alpha=0.7,
-    )
-
-    max_value = max(observed.max(), upper_bounds.max()) + 0.1
-    min_value = min(observed.min(), lower_bounds.min()) - 0.1
-    plt.plot([min_value, max_value], [min_value, max_value], "k-", linewidth=2)
-
-    plt.ylabel("Predicted", fontsize=14)
-    plt.xlabel("Observed", fontsize=14)
-    plt.text(
-        0.5,
-        -0.15,
-        f"RMSE: {test_rmse:.4f}, Coverage: {coverage:.2%}",
-        ha="center",
-        fontsize=14,
-        transform=plt.gca().transAxes,
-    )
-    plt.tight_layout()
-
     plot_dir = (
         Path(__file__).parent.parent / "scripts" / "sensitivity_analysis" / "plots"
     )
-    plot_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = plot_dir / f"test_predictions_{test_function}_{timestamp}.png"
-    plt.savefig(path_to_plot, bbox_inches="tight")
-    print(f"Figure saved to {path_to_plot}")
+    save_parity_plot(
+        observed_values=y_test,
+        predicted_values=prediction_mean,
+        uncertainty=std_dev,
+        title=test_function.replace("_", " ").capitalize(),
+        output_path=path_to_plot,
+    )
 
 
 def sobol_plot(
