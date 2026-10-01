@@ -11,6 +11,7 @@ CLAUDE.md
 **/*.txt
 !NOTICE.txt
 !requirements.txt
+!docs/_static/SEAM_logo.png
 
 # C extensions
 *.so

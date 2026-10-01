@@ -607,7 +607,7 @@ def load_test_function(
 
 
 def sample_parabola(
-    n_initial: int,
+    n_init: int,
     bounds_low: float | list[float] | npt.NDArray,
     bounds_high: float | list[float] | npt.NDArray,
     input_size: int,
@@ -621,7 +621,7 @@ def sample_parabola(
     avoiding samples too close to the origin.
 
     Args:
-        n_initial: Number of samples to generate.
+        n_init: Number of samples to generate.
         bounds_low: Lower bounds for each dimension.
         bounds_high: Upper bounds for each dimension.
         input_size: Input dimension.
@@ -629,20 +629,20 @@ def sample_parabola(
         seed: Random seed (default: 1).
 
     Returns:
-        Array of shape (n_initial, input_size) with all samples having norm > radius.
+        Array of shape (n_init, input_size) with all samples having norm > radius.
 
     Raises:
-        RuntimeError: If unable to generate n_initial samples after max_attempts.
+        RuntimeError: If unable to generate n_init samples after max_attempts.
     """
     rng = np.random.default_rng(seed)
     samples = []
     attempts = 0
     max_attempts = 100000
 
-    while len(samples) < n_initial:
+    while len(samples) < n_init:
         if attempts >= max_attempts:
             raise RuntimeError(
-                f"Failed to generate {n_initial} samples with norm > {radius} "
+                f"Failed to generate {n_init} samples with norm > {radius} "
                 f"after {max_attempts} attempts. Only generated {len(samples)} samples. "
                 f"Consider reducing radius or expanding bounds."
             )

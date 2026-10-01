@@ -1,4 +1,4 @@
-# SEAM Surrogate Modeling and Design Optimization Course Material
+# SEAM Surrogate Modeling and Design Optimization Course
 
 ![](SEAM_Logo_2025-01.png)
 
