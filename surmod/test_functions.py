@@ -285,7 +285,7 @@ def parabola(
     )
 
 
-def scale_inputs(
+def scale_x(
     x: npt.NDArray,
     bounds: dict[str, tuple[float, float]],
 ) -> np.ndarray:
