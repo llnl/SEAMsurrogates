@@ -209,7 +209,7 @@ class GPSurrogate:
         y_test: Optional test target array of shape (n_test,) or (n_test, 1).
         kernel: Kernel type, one of "rbf", "matern", or "periodic".
         isotropic: If True, use a shared lengthscale. If False, use different lengthscales for each input.
-        scale_inputs: Whether to normalize inputs to the unit cube.
+        scale_x: Whether to normalize inputs to the unit cube.
         scale_outputs: Whether to standardize outputs.
         lengthscale_bounds: Bounds on the lengthscale parameter(s), current option is for inputs scaled to [0,1]. Defaults to [1e-2,10]
         noise_bounds: Bounds on the nugget parameter, default is assuming output scaled to mean 0, variance 1. Defaults to [1e-16,1e-1]
@@ -224,7 +224,7 @@ class GPSurrogate:
         y_test: NDArray | None = None,
         kernel: str = "rbf",
         isotropic: bool = False,
-        scale_inputs: bool = True,
+        scale_x: bool = True,
         scale_outputs: bool = True,
         lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
         noise_bounds: tuple[float, float] = (1e-8, 1e-1),
@@ -243,7 +243,7 @@ class GPSurrogate:
             y_test: Optional test outputs.
             kernel: Covariance kernel type.
             isotropic: Whether to use isotropic lengthscales.
-            scale_inputs: Whether to normalize inputs.
+            scale_x: Whether to normalize inputs.
             scale_outputs: Whether to standardize outputs.
             lengthscale_bounds: Bounds on the lengthscale parameter(s). These
                 defaults assume inputs scaled to ``[0, 1]``.
@@ -272,7 +272,7 @@ class GPSurrogate:
 
         self.kernel: str = kernel
         self.isotropic: bool = isotropic
-        self.scale_inputs: bool = scale_inputs
+        self.scale_x: bool = scale_x
         self.scale_outputs: bool = scale_outputs
         self.optimization_restarts: int = optimization_restarts
         self.seed: int | None = seed
@@ -335,9 +335,7 @@ class GPSurrogate:
         Returns:
             None
         """
-        input_transform = (
-            Normalize(d=self.x_train.shape[1]) if self.scale_inputs else None
-        )
+        input_transform = Normalize(d=self.x_train.shape[1]) if self.scale_x else None
         outcome_transform = Standardize(m=1) if self.scale_outputs else None
 
         self.model = SingleTaskGP(

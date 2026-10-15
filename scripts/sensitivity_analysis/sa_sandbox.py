@@ -226,7 +226,7 @@ def main():
         y_test=y_test,
         kernel=kernel,
         isotropic=isotropic,
-        scale_inputs=args.scale_x,
+        scale_x=args.scale_x,
         scale_outputs=args.normalize_y,
         fixed_noise=fixed_noise,
         lengthscale_bounds=lengthscale_bounds,

@@ -14,6 +14,8 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
+from surmod.utils import save_parity_plot
+
 
 @dataclass(frozen=True)
 class TrainingRunHistory:
@@ -333,36 +335,15 @@ def plot_predictions(
         dataset: Dataset name used in the filename.
         plots_dir: Directory where plots are saved.
     """
-    plt.figure(figsize=(10, 5))
-    plt.scatter(y_test.numpy(), predictions.numpy(), alpha=0.5)
-    plt.plot(
-        [y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--"
-    )  # Line for perfect prediction
-
-    final_test_rmse = np.sqrt(final_test_mse)
-
-    plt.title(
-        f"Test Output vs Predicted Output | Final Test Loss (RMSE): "
-        f"{final_test_rmse:.5f}"
-    )
-    plt.xlabel("Test Output")
-    plt.ylabel("Predicted Output")
-    plt.grid()
-
-    # Set equal limits for x and y axes
-    y_test_np = y_test.cpu().numpy()
-    predictions_np = predictions.cpu().numpy()
-    limits = [
-        min(y_test_np.min(), predictions_np.min()),
-        max(y_test_np.max(), predictions_np.max()),
-    ]
-    plt.xlim(limits)
-    plt.ylim(limits)
-    plt.axis("square")
-
-    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"prediction_vs_test_{dataset}_{timestamp}.png"
-    plt.tight_layout()
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+
+    final_test_rmse = np.sqrt(final_test_mse)
+    title = f"Test Output vs Predicted Output | Final Test Loss (RMSE): {final_test_rmse:.5f}"
+
+    save_parity_plot(
+        observed_values=y_test.cpu().numpy(),
+        predicted_values=predictions.cpu().numpy(),
+        output_path=filepath,
+        title=title,
+    )

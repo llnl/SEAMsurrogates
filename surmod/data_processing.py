@@ -120,7 +120,7 @@ def split_data(
 
         # Scale LHD points to the range of x
         x_min = x.min(axis=0)
-        x_range = x.ptp(axis=0)  # ptp = peak-to-peak = max - min
+        x_range = np.ptp(x, axis=0)  # ptp = peak-to-peak = max - min
         x_lhd = x_lhd * x_range + x_min
 
         # Build KDTree for nearest neighbor search

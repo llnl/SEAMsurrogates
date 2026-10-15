@@ -177,7 +177,7 @@ class BayesianOptimizer:
         acquisition_function: str = "EI",
         n_acquire: int = 10,
         seed: int = 42,
-        scale_inputs: bool = True,
+        scale_x: bool = True,
         scale_outputs: bool = True,
         lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
         noise_bounds: tuple[float, float] = (1e-8, 1e-1),
@@ -209,7 +209,7 @@ class BayesianOptimizer:
                 baseline, does not use the surrogate). Defaults to ``"EI"``.
             n_acquire: Number of observations to acquire. Defaults to 10.
             seed: Random seed used for reproducible sampling. Defaults to 42.
-            scale_inputs: Whether to normalize GP inputs to [0, 1].
+            scale_x: Whether to normalize GP inputs to [0, 1].
             scale_outputs: Whether to standardize GP outputs.
             lengthscale_bounds: Lower and upper GP lengthscale parameter bounds.
             noise_bounds: Lower and upper GP nugget parameter bounds.
@@ -235,7 +235,7 @@ class BayesianOptimizer:
         self.acquisition = acquisition_function
         self.n_acquire = n_acquire
         self.seed = seed
-        self.scale_inputs = scale_inputs
+        self.scale_x = scale_x
         self.scale_outputs = scale_outputs
         self.lengthscale_bounds = lengthscale_bounds
         self.noise_bounds = noise_bounds
@@ -280,7 +280,7 @@ class BayesianOptimizer:
             y_train=self.y_all_data,
             kernel=self.kernel,
             isotropic=self.isotropic,
-            scale_inputs=self.scale_inputs,
+            scale_x=self.scale_x,
             scale_outputs=self.scale_outputs,
             lengthscale_bounds=self.lengthscale_bounds,
             noise_bounds=self.noise_bounds,
