@@ -107,7 +107,7 @@ def sobol_plot(
         S1_conf: Confidence intervals for first-order indices.
         ST_conf: Confidence intervals for total-order indices.
         test_function: Test-function name used in the saved plot filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
 
     Returns:
         None. This function saves the visualization to disk.

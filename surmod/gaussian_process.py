@@ -553,7 +553,7 @@ class GPSurrogate:
 
         Args:
             dataset: Dataset name used in the plot title and filename.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -589,7 +589,7 @@ class GPSurrogate:
             test_function: Name of the underlying test function.
             scale_x: Whether input scaling was applied.
             normalize_y: Whether output normalization was applied.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -681,7 +681,7 @@ class GPSurrogate:
             test_function: Name of the underlying test function.
             scale_x: Whether input scaling was applied.
             normalize_y: Whether output normalization was applied.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.model is None:
             raise ValueError("Model has not been built.")

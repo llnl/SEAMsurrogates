@@ -220,7 +220,7 @@ def plot_losses(
     train_losses: list[float],
     test_losses: list[float],
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plot and save the training and testing loss curves across epochs.
@@ -229,7 +229,7 @@ def plot_losses(
         train_losses: Training loss values for each epoch.
         test_losses: Testing loss values for each epoch.
         dataset: Dataset name used in the plot title and filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
     plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
@@ -260,7 +260,7 @@ def plot_losses_multiplot(
     hid_dims: list[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plots training and test losses for multiple runs on a grid of subplots.
@@ -278,7 +278,7 @@ def plot_losses_multiplot(
         hid_dims: Hidden dimensions corresponding to the subplot rows.
         axs: 2D grid of Matplotlib axes used for plotting.
         dataset: Dataset name used in the saved filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
@@ -317,7 +317,7 @@ def plot_predictions(
     predictions: torch.Tensor,
     final_test_mse: float,
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plots the actual test values against the predicted values.
@@ -333,7 +333,7 @@ def plot_predictions(
         predictions: Predicted values for the test set.
         final_test_mse: Final mean squared error on the test set.
         dataset: Dataset name used in the filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"prediction_vs_test_{dataset}_{timestamp}.png"

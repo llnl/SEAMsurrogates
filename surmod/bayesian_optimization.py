@@ -570,8 +570,7 @@ def plot_acquisition_comparison(
         n_init: Number of initial samples. Defaults to 5.
         objective_data: Name of the objective function or dataset used.
         beta: Exploration parameter for the UCB strategy. Defaults to 2.0.
-        plots_dir: Directory where the plot will be saved. Defaults to
-            ``Path("plots")``.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
 
     Returns:
         None. The generated plot is saved as a PNG file.
