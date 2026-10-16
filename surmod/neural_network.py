@@ -167,7 +167,7 @@ def train(
 
     # Define the loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Lists to store losses
     train_losses = []
