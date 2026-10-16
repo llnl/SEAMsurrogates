@@ -294,8 +294,7 @@ def main():
         path_to_log=results_dir / f"{test_function}.txt",
     )
 
-    # Assumes sa.plot_test_predictions was updated earlier to use gp_model.predict(x)->(mean,std)
-    sa.plot_test_predictions(x_test, y_test, gp_model, test_function)
+    gp_model.plot_test_predictions(dataset=test_function, plots_dir=plots_dir)
 
     sa.sobol_plot(
         Si["S1"],
@@ -304,6 +303,7 @@ def main():
         Si["S1_conf"],
         Si["ST_conf"],
         test_function,
+        plots_dir,
     )
 
     if test_function == "parabola":

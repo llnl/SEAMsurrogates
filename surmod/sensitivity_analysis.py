@@ -13,7 +13,6 @@ import seaborn as sns
 from surmod.test_functions import (
     get_input_spec,
 )
-from surmod.utils import save_parity_plot
 
 
 def load_test_settings(
@@ -88,39 +87,6 @@ def simulate_data(
     return x_train, x_test, y_train, y_test
 
 
-def plot_test_predictions(x_test, y_test, gp_model, test_function: str) -> None:
-    """
-    Plot GP predictions against observed test values with uncertainty intervals.
-
-    The function computes 95% prediction intervals, interval coverage, and
-    test-set RMSE, then saves a predicted-versus-observed plot as a PNG file.
-
-    Args:
-        x_test: Test input features passed to the GP model.
-        y_test: Observed test target values.
-        gp_model: Fitted Gaussian process model providing ``predict()``, which
-            returns the predictive mean and standard deviation.
-        test_function: Test-function name used in the output filename.
-
-    Returns:
-        None. The plot is saved to the sensitivity-analysis plots directory.
-    """
-    prediction_mean, std_dev = gp_model.predict(x_test)
-
-    plot_dir = (
-        Path(__file__).parent.parent / "scripts" / "sensitivity_analysis" / "plots"
-    )
-    timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = plot_dir / f"test_predictions_{test_function}_{timestamp}.png"
-    save_parity_plot(
-        observed_values=y_test,
-        predicted_values=prediction_mean,
-        uncertainty=std_dev,
-        title=test_function.replace("_", " ").capitalize(),
-        output_path=path_to_plot,
-    )
-
-
 def sobol_plot(
     S1: Sequence[float],
     ST: Sequence[float],
@@ -128,6 +94,7 @@ def sobol_plot(
     S1_conf: Sequence[float],
     ST_conf: Sequence[float],
     test_function: str,
+    plots_dir: Path = Path("plots"),
 ):
     """
     Plot first- and total-order Sobol sensitivity indices with confidence
@@ -140,6 +107,7 @@ def sobol_plot(
         S1_conf: Confidence intervals for first-order indices.
         ST_conf: Confidence intervals for total-order indices.
         test_function: Test-function name used in the saved plot filename.
+        plots_dir: Directory where plots are saved.
 
     Returns:
         None. This function saves the visualization to disk.
@@ -167,11 +135,8 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    plot_dir = (
-        Path(__file__).parent.parent / "scripts" / "sensitivity_analysis" / "plots"
-    )
-    plot_dir.mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    path_to_plot = plot_dir / f"sensitivity_{test_function}_{timestamp}.png"
+    path_to_plot = plots_dir / f"sensitivity_{test_function}_{timestamp}.png"
     plt.savefig(path_to_plot, bbox_inches="tight")
     print(f"Figure saved to {path_to_plot}")

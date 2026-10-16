@@ -274,11 +274,11 @@ def main():
     )
     print(log_message)
 
+    plots_dir = Path(__file__).parent / "plots"
     results_dir = Path(__file__).parent / "results"
     log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
-    # Parity plot: assumes you updated sa.plot_test_predictions to call gp_model.predict(x) -> (mean,std)
-    sa.plot_test_predictions(x_test, y_test, gp_model, dataset)
+    gp_model.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)
 
     plt.figure()
     sa.sobol_plot(
@@ -288,6 +288,7 @@ def main():
         Si["S1_conf"],
         Si["ST_conf"],
         dataset,
+        plots_dir,
     )
 
 
