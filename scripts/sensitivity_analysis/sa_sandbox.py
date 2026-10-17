@@ -190,7 +190,7 @@ def main():
     _, _, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)
 
-    x_train, x_test, y_train, y_test = sa.simulate_data(
+    x_train, x_test, y_train, y_test = sa.simulate_sa_data(
         test_function, n_train, n_test, b1, b2, b12, seed=seed
     )
 

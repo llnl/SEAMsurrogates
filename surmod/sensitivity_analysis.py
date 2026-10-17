@@ -38,7 +38,7 @@ def load_test_settings(
     return out_dim, test_function
 
 
-def simulate_data(
+def simulate_sa_data(
     test_function: str,
     n_train: int,
     n_test: int,
@@ -48,7 +48,7 @@ def simulate_data(
     seed: int = 1,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Simulate training and testing data from a selected test function.
+    Simulate training and testing data for sensitivity analysis.
 
     Args:
         test_function: Name of the test function to use.
