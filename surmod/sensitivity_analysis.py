@@ -9,6 +9,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from sklearn.model_selection import train_test_split
 
 from surmod.test_functions import (
     get_input_spec,
@@ -79,11 +80,13 @@ def simulate_data(
         y_data = test_function_callable(x_data)
 
     # Split data into training and testing sets
-    x_train = x_data.copy()[:n_train]
-    y_train = np.asarray(y_data.copy()[:n_train]).reshape(-1)
-
-    x_test = x_data.copy()[n_train:]
-    y_test = np.asarray(y_data.copy()[n_train:]).reshape(-1)
+    y_data = np.asarray(y_data).reshape(-1)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x_data,
+        y_data,
+        train_size=n_train,
+        random_state=seed,
+    )
 
     return x_train, x_test, y_train, y_test
 

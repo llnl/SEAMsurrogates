@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from botorch.test_functions.synthetic import SyntheticTestFunction
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
@@ -362,10 +363,12 @@ def main():
     y_data = synthetic_function(x_data)
 
     # Split data into training and testing sets based on n_train parameter
-    x_train = x_data[:n_train]
-    x_test = x_data[n_train:]
-    y_train = y_data[:n_train]
-    y_test = y_data[n_train:]
+    x_train, x_test, y_train, y_test = train_test_split(
+        x_data,
+        y_data,
+        train_size=n_train,
+        random_state=seed,
+    )
 
     scaler_x_train = None
     scaler_y_train = None

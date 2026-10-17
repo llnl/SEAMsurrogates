@@ -11,6 +11,7 @@ from botorch.test_functions.synthetic import (
     SixHumpCamel,
     SyntheticTestFunction,
 )
+from sklearn.model_selection import train_test_split
 
 FUNCTION_SPECS: dict[str, dict[str, object]] = {
     "parabola": {
@@ -692,10 +693,11 @@ def simulate_data(
     y_data = np.array(test_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets
-    x_train = x_data.copy()[:n_train]
-    y_train = y_data.copy()[:n_train]
-
-    x_test = x_data.copy()[n_train:]
-    y_test = y_data.copy()[n_train:]
+    x_train, x_test, y_train, y_test = train_test_split(
+        x_data,
+        y_data,
+        train_size=n_train,
+        random_state=seed,
+    )
 
     return x_train, x_test, y_train, y_test
