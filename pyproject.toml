@@ -47,6 +47,9 @@ Issues = "https://github.com/LLNL/SEAMsurrogates/issues"
 [tool.setuptools]
 packages = ["surmod"]
 
+[tool.setuptools.package-data]
+surmod = ["data/*.csv"]
+
 [tool.ruff]
 line-length = 88
 
