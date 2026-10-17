@@ -19,7 +19,6 @@ authors = [
 
 keywords = ["surrogates", "optimization", "bayesian-optimization"]
 
-# Dependencies taken from your requirements.txt
 dependencies = [
   "matplotlib==3.10.3",
   "torch==2.9.1",
