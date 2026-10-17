@@ -19,7 +19,6 @@ authors = [
 
 keywords = ["surrogates", "optimization", "bayesian-optimization"]
 
-# Dependencies taken from your requirements.txt
 dependencies = [
   "matplotlib==3.10.3",
   "torch==2.9.1",
@@ -47,6 +46,9 @@ Issues = "https://github.com/LLNL/SEAMsurrogates/issues"
 
 [tool.setuptools]
 packages = ["surmod"]
+
+[tool.setuptools.package-data]
+surmod = ["data/*.csv"]
 
 [tool.ruff]
 line-length = 88

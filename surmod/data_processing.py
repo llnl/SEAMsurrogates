@@ -18,7 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Paths relative to this file's location
 _MODULE_DIR = Path(__file__).parent
-_DATA_DIR = _MODULE_DIR.parent / "data"
+_DATA_DIR = _MODULE_DIR / "data"
 
 
 def load_data(

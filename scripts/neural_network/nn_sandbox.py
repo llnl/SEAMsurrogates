@@ -32,11 +32,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from botorch.test_functions.synthetic import SyntheticTestFunction
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
 from surmod.test_functions import load_test_function
-from surmod.utils import log_results
+from surmod.utils import log_results, save_figure
 
 
 def parse_arguments():
@@ -313,12 +314,9 @@ def plot_surface_3d(
 
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
-    # Create plots directory if it doesn't exist and save plot
-    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"surface_plot_{title}_{timestamp}.png"
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def main():
@@ -365,10 +363,12 @@ def main():
     y_data = synthetic_function(x_data)
 
     # Split data into training and testing sets based on n_train parameter
-    x_train = x_data[:n_train]
-    x_test = x_data[n_train:]
-    y_train = y_data[:n_train]
-    y_test = y_data[n_train:]
+    x_train, x_test, y_train, y_test = train_test_split(
+        x_data,
+        y_data,
+        train_size=n_train,
+        random_state=seed,
+    )
 
     scaler_x_train = None
     scaler_y_train = None

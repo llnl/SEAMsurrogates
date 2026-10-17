@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 
 from surmod import test_functions
-from surmod.utils import save_parity_plot
+from surmod.utils import save_figure, save_parity_plot
 
 
 def nugget_to_bounds(nugget: float) -> tuple[float, float]:
@@ -553,7 +553,7 @@ class GPSurrogate:
 
         Args:
             dataset: Dataset name used in the plot title and filename.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.x_test is None or self.y_test is None:
             raise ValueError("x_test and y_test must be provided for plotting.")
@@ -589,7 +589,7 @@ class GPSurrogate:
             test_function: Name of the underlying test function.
             scale_x: Whether input scaling was applied.
             normalize_y: Whether output normalization was applied.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -659,11 +659,10 @@ class GPSurrogate:
         ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plots_dir.mkdir(exist_ok=True)
         path_to_plot = plots_dir / f"{test_function_name}_gp_mean_{timestamp}.png"
+        fig = plt.gcf()
         plt.tight_layout()
-        plt.savefig(path_to_plot)
-        print(f"Figure saved to {path_to_plot}")
+        save_figure(fig, path_to_plot)
 
     def plot_predictive_std_dev(
         self,
@@ -681,7 +680,7 @@ class GPSurrogate:
             test_function: Name of the underlying test function.
             scale_x: Whether input scaling was applied.
             normalize_y: Whether output normalization was applied.
-            plots_dir: Directory where plots are saved.
+            plots_dir: Directory where plots are saved. Defaults to "plots".
         """
         if self.model is None:
             raise ValueError("Model has not been built.")
@@ -746,11 +745,9 @@ class GPSurrogate:
         fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plots_dir.mkdir(exist_ok=True)
         path_to_plot = plots_dir / f"{test_function_name}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
-        plt.savefig(path_to_plot)
-        print(f"Figure saved to {path_to_plot}")
+        save_figure(fig, path_to_plot)
 
     def get_fitted_parameters(self) -> dict[str, Any]:
         """

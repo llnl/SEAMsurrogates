@@ -14,7 +14,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from surmod.utils import save_parity_plot
+from surmod.utils import save_figure, save_parity_plot
 
 
 @dataclass(frozen=True)
@@ -220,7 +220,7 @@ def plot_losses(
     train_losses: list[float],
     test_losses: list[float],
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plot and save the training and testing loss curves across epochs.
@@ -229,16 +229,15 @@ def plot_losses(
         train_losses: Training loss values for each epoch.
         test_losses: Testing loss values for each epoch.
         dataset: Dataset name used in the plot title and filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
-    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"loss_vs_epoch_{dataset}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
     n_epochs = len(train_losses)
-    plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(10, 5))
     plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
     plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
@@ -250,8 +249,7 @@ def plot_losses(
     plt.ylabel("Loss (log scale)")
     plt.legend()
     plt.grid()
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def plot_losses_multiplot(
@@ -260,7 +258,7 @@ def plot_losses_multiplot(
     hid_dims: list[int],
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plots training and test losses for multiple runs on a grid of subplots.
@@ -278,7 +276,7 @@ def plot_losses_multiplot(
         hid_dims: Hidden dimensions corresponding to the subplot rows.
         axs: 2D grid of Matplotlib axes used for plotting.
         dataset: Dataset name used in the saved filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
     for i, hid_sz in enumerate(hid_dims):
         for j, lr in enumerate(learning_rates):
@@ -304,12 +302,11 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"multi_loss_vs_epoch_{dataset}_{timestamp}.png"
+    fig = plt.gcf()
     plt.tight_layout()
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def plot_predictions(
@@ -317,7 +314,7 @@ def plot_predictions(
     predictions: torch.Tensor,
     final_test_mse: float,
     dataset: str,
-    plots_dir: Path,
+    plots_dir: Path = Path("plots"),
 ) -> None:
     """
     Plots the actual test values against the predicted values.
@@ -333,7 +330,7 @@ def plot_predictions(
         predictions: Predicted values for the test set.
         final_test_mse: Final mean squared error on the test set.
         dataset: Dataset name used in the filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
     """
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"prediction_vs_test_{dataset}_{timestamp}.png"

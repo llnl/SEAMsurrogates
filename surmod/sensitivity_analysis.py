@@ -9,10 +9,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from sklearn.model_selection import train_test_split
 
 from surmod.test_functions import (
     get_input_spec,
 )
+from surmod.utils import save_figure
 
 
 def load_test_settings(
@@ -36,7 +38,7 @@ def load_test_settings(
     return out_dim, test_function
 
 
-def simulate_data(
+def simulate_sa_data(
     test_function: str,
     n_train: int,
     n_test: int,
@@ -46,7 +48,7 @@ def simulate_data(
     seed: int = 1,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Simulate training and testing data from a selected test function.
+    Simulate training and testing data for sensitivity analysis.
 
     Args:
         test_function: Name of the test function to use.
@@ -78,11 +80,13 @@ def simulate_data(
         y_data = test_function_callable(x_data)
 
     # Split data into training and testing sets
-    x_train = x_data.copy()[:n_train]
-    y_train = np.asarray(y_data.copy()[:n_train]).reshape(-1)
-
-    x_test = x_data.copy()[n_train:]
-    y_test = np.asarray(y_data.copy()[n_train:]).reshape(-1)
+    y_data = np.asarray(y_data).reshape(-1)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x_data,
+        y_data,
+        train_size=n_train,
+        random_state=seed,
+    )
 
     return x_train, x_test, y_train, y_test
 
@@ -107,7 +111,7 @@ def sobol_plot(
         S1_conf: Confidence intervals for first-order indices.
         ST_conf: Confidence intervals for total-order indices.
         test_function: Test-function name used in the saved plot filename.
-        plots_dir: Directory where plots are saved.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
 
     Returns:
         None. This function saves the visualization to disk.
@@ -116,7 +120,7 @@ def sobol_plot(
     colors = sns.color_palette("husl", len(variables))
 
     # Create a figure with subplots
-    _fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
     # First Order Sensitivity Plot
     axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)
@@ -135,8 +139,6 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = plots_dir / f"sensitivity_{test_function}_{timestamp}.png"
-    plt.savefig(path_to_plot, bbox_inches="tight")
-    print(f"Figure saved to {path_to_plot}")
+    save_figure(fig, path_to_plot)

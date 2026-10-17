@@ -19,6 +19,22 @@ def log_results(log_message: str, path_to_log: Path) -> None:
         f.write(log_message + "\n")
 
 
+def save_figure(fig: plt.Figure, output_path: Path, close: bool = True) -> None:
+    """
+    Save a matplotlib figure to disk.
+
+    Args:
+        fig: Matplotlib figure to save.
+        output_path: Location where the plot image will be written.
+        close: Whether to close the figure after saving.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, bbox_inches="tight")
+    if close:
+        plt.close(fig)
+    print(f"Figure saved to {output_path}")
+
+
 def save_parity_plot(
     observed_values: np.ndarray,
     predicted_values: np.ndarray,

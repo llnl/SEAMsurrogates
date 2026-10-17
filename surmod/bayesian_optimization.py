@@ -21,6 +21,7 @@ from botorch.optim import optimize_acqf
 from surmod.gaussian_process import GPSurrogate
 from surmod.space_fill_design import generate_initial_design
 from surmod.test_functions import load_test_function, sample_parabola
+from surmod.utils import save_figure
 
 
 def sample_data(
@@ -570,8 +571,7 @@ def plot_acquisition_comparison(
         n_init: Number of initial samples. Defaults to 5.
         objective_data: Name of the objective function or dataset used.
         beta: Exploration parameter for the UCB strategy. Defaults to 2.0.
-        plots_dir: Directory where the plot will be saved. Defaults to
-            ``Path("plots")``.
+        plots_dir: Directory where plots are saved. Defaults to "plots".
 
     Returns:
         None. The generated plot is saved as a PNG file.
@@ -603,11 +603,10 @@ def plot_acquisition_comparison(
     plt.legend()
     plt.grid()
 
-    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = (
         plots_dir
         / f"bo_{test_data}_{kernel}_maxit_{n_iter}_init_{n_init}_{timestamp}.png"
     )
-    plt.savefig(filepath, bbox_inches="tight")
-    print(f"Figure saved to {filepath}")
+    fig = plt.gcf()
+    save_figure(fig, filepath)
