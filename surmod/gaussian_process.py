@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 from sklearn.metrics import mean_squared_error, root_mean_squared_error
 
 from surmod import test_functions
-from surmod.utils import save_parity_plot
+from surmod.utils import save_figure, save_parity_plot
 
 
 def nugget_to_bounds(nugget: float) -> tuple[float, float]:
@@ -659,11 +659,10 @@ class GPSurrogate:
         ax.legend()
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plots_dir.mkdir(exist_ok=True)
         path_to_plot = plots_dir / f"{test_function_name}_gp_mean_{timestamp}.png"
+        fig = plt.gcf()
         plt.tight_layout()
-        plt.savefig(path_to_plot)
-        print(f"Figure saved to {path_to_plot}")
+        save_figure(fig, path_to_plot)
 
     def plot_predictive_std_dev(
         self,
@@ -746,11 +745,9 @@ class GPSurrogate:
         fig.colorbar(c, ax=ax, label="Predictive Standard Deviation")
 
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plots_dir.mkdir(exist_ok=True)
         path_to_plot = plots_dir / f"{test_function_name}_gp_std_dev_{timestamp}.png"
         plt.tight_layout()
-        plt.savefig(path_to_plot)
-        print(f"Figure saved to {path_to_plot}")
+        save_figure(fig, path_to_plot)
 
     def get_fitted_parameters(self) -> dict[str, Any]:
         """

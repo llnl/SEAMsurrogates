@@ -13,6 +13,7 @@ import seaborn as sns
 from surmod.test_functions import (
     get_input_spec,
 )
+from surmod.utils import save_figure
 
 
 def load_test_settings(
@@ -116,7 +117,7 @@ def sobol_plot(
     colors = sns.color_palette("husl", len(variables))
 
     # Create a figure with subplots
-    _fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
     # First Order Sensitivity Plot
     axes[0].bar(variables, S1, yerr=S1_conf, color=colors, alpha=0.7)
@@ -135,8 +136,6 @@ def sobol_plot(
     # Adjust layout
     plt.tight_layout()
 
-    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     path_to_plot = plots_dir / f"sensitivity_{test_function}_{timestamp}.png"
-    plt.savefig(path_to_plot, bbox_inches="tight")
-    print(f"Figure saved to {path_to_plot}")
+    save_figure(fig, path_to_plot)

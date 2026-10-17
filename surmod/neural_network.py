@@ -14,7 +14,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from surmod.utils import save_parity_plot
+from surmod.utils import save_figure, save_parity_plot
 
 
 @dataclass(frozen=True)
@@ -231,14 +231,13 @@ def plot_losses(
         dataset: Dataset name used in the plot title and filename.
         plots_dir: Directory where plots are saved. Defaults to "plots".
     """
-    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"loss_vs_epoch_{dataset}_{timestamp}.png"
 
     final_test_rmse = np.sqrt(test_losses[-1])
 
     n_epochs = len(train_losses)
-    plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(10, 5))
     plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
     plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
     plt.yscale("log")
@@ -250,8 +249,7 @@ def plot_losses(
     plt.ylabel("Loss (log scale)")
     plt.legend()
     plt.grid()
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def plot_losses_multiplot(
@@ -304,12 +302,11 @@ def plot_losses_multiplot(
             ax.grid()
 
     # Save the multiplot figure
-    plots_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"multi_loss_vs_epoch_{dataset}_{timestamp}.png"
+    fig = plt.gcf()
     plt.tight_layout()
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def plot_predictions(

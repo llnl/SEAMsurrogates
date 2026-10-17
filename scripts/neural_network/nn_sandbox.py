@@ -36,7 +36,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from surmod import neural_network as nn
 from surmod.test_functions import load_test_function
-from surmod.utils import log_results
+from surmod.utils import log_results, save_figure
 
 
 def parse_arguments():
@@ -313,12 +313,9 @@ def plot_surface_3d(
 
     ax.legend(handles=[true_patch, model_patch], loc="upper left")
 
-    # Create plots directory if it doesn't exist and save plot
-    plots_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"surface_plot_{title}_{timestamp}.png"
-    plt.savefig(filepath)
-    print(f"Figure saved to {filepath}")
+    save_figure(fig, filepath)
 
 
 def main():

@@ -33,7 +33,7 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from surmod import sensitivity_analysis as sa
 from surmod.gaussian_process import GPSurrogate
 from surmod.test_functions import get_input_spec, get_variable_names
-from surmod.utils import log_results
+from surmod.utils import log_results, save_figure
 
 
 def parse_arguments():
@@ -314,15 +314,14 @@ def main():
 
         preds_mean, _ = gp_model.predict(x_grid)
 
-        plt.figure()
+        fig = plt.figure()
         plt.tricontourf(
             x_grid[:, 0], x_grid[:, 1], preds_mean, levels=50, cmap="viridis"
         )
         plt.title("GP Model Prediction for Parabola")
 
-        plots_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%m%d_%H%M%S")
-        plt.savefig(plots_dir / f"{b1}_{b2}_{b12}_{test_function}_{timestamp}.png")
+        save_figure(fig, plots_dir / f"{b1}_{b2}_{b12}_{test_function}_{timestamp}.png")
 
 
 if __name__ == "__main__":

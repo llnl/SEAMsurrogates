@@ -34,7 +34,7 @@ import torch
 
 from surmod import bayesian_optimization as bo
 from surmod.test_functions import load_test_function
-from surmod.utils import log_results
+from surmod.utils import log_results, save_figure
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -484,11 +484,10 @@ def plot_convergence(
     plt.tight_layout()
 
     if save_animation:
-        plots_dir.mkdir(exist_ok=True)
         ts = datetime.now().strftime("%m%d_%H%M%S")
         path = plots_dir / f"track_max_{title_lines[0].split()[0]}_{ts}.png"
-        plt.savefig(path)
-        print(f"Convergence figure saved to {path}")
+        fig = plt.gcf()
+        save_figure(fig, path, close=False)
     else:
         plt.show()
 
