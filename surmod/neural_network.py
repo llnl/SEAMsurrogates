@@ -237,18 +237,18 @@ def plot_losses(
     final_test_rmse = np.sqrt(test_losses[-1])
 
     n_epochs = len(train_losses)
-    fig = plt.figure(figsize=(10, 5))
-    plt.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
-    plt.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
-    plt.yscale("log")
-    plt.title(
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(range(1, n_epochs + 1), train_losses, label="Training Loss (MSE)")
+    ax.plot(range(1, n_epochs + 1), test_losses, label="Testing Loss (MSE)")
+    ax.set_yscale("log")
+    ax.set_title(
         f"Training and Testing Losses - {dataset}\n"
         f"Final Test Loss (RMSE): {final_test_rmse:.5f}"
     )
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss (log scale)")
-    plt.legend()
-    plt.grid()
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Loss (log scale)")
+    ax.legend()
+    ax.grid()
     save_figure(fig, filepath)
 
 
@@ -256,6 +256,7 @@ def plot_losses_multiplot(
     results: LossSweepResult,
     learning_rates: list[float],
     hid_dims: list[int],
+    fig: plt.Figure,
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
     dataset: str,
     plots_dir: Path = Path("plots"),
@@ -274,6 +275,7 @@ def plot_losses_multiplot(
             training and test losses for that run.
         learning_rates: Learning rates corresponding to the subplot columns.
         hid_dims: Hidden dimensions corresponding to the subplot rows.
+        fig: Figure containing the axes.
         axs: 2D grid of Matplotlib axes used for plotting.
         dataset: Dataset name used in the saved filename.
         plots_dir: Directory where plots are saved. Defaults to "plots".
@@ -304,8 +306,7 @@ def plot_losses_multiplot(
     # Save the multiplot figure
     timestamp = datetime.now().strftime("%m%d_%H%M%S")
     filepath = plots_dir / f"multi_loss_vs_epoch_{dataset}_{timestamp}.png"
-    fig = plt.gcf()
-    plt.tight_layout()
+    fig.tight_layout()
     save_figure(fig, filepath)
 
 

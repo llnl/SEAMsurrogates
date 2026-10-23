@@ -485,6 +485,7 @@ def main():
             results,
             multi_learning_rates,
             multi_hidden_sizes,
+            fig,
             axs,
             test_function,
             plots_dir,
