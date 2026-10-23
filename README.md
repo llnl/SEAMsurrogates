@@ -33,12 +33,12 @@ Please send correspondence about this code to seam@llnl.gov.
     source .venv/bin/activate
 ```
 
-5. **Install the `surmod` package and dependencies locally**
+4. **Install the `surmod` package and dependencies locally**
 ```bash
     pip install -e .
 ```
 
-6. **For development (optional)**: Install development dependencies for testing and linting
+5. **For development (optional)**: Install development dependencies for testing and linting
 ```bash
     pip install -e ".[dev]"
 ```
