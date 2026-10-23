@@ -149,7 +149,10 @@ def train(
         A tuple containing the trained model, training losses per epoch, and
         test losses per epoch.
     """
-    # Set a random number generator seed for reproducibility
+    # Create a seeded random number generator for reproducibility
+    generator = torch.Generator().manual_seed(seed)
+
+    # Also seed global RNG for weight initialization
     torch.manual_seed(seed)
 
     # Specify fixed output and input sizes
@@ -158,7 +161,9 @@ def train(
 
     # Create a TensorDataset and DataLoader
     dataset = TensorDataset(x_train, y_train)
-    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, generator=generator
+    )
 
     # Initialize the neural network
     model = NeuralNet(
