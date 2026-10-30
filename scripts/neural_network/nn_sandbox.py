@@ -453,7 +453,7 @@ def main():
         fig.suptitle(f"Training and Testing Losses - {test_function}", fontsize=16)
 
         # Train and test FFNN
-        results: nn.LossSweepResults = {}
+        results: nn.LossSweepResult = {}
 
         for hid_sz in multi_hidden_sizes:
             for lr in multi_learning_rates:
