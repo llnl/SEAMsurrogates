@@ -188,7 +188,7 @@ def main() -> None:
         print("Log transform applied to outputs\n")
 
     # Normalize data (critical for numerical stability with different feature scales)
-    x_train, x_test, y_train, y_test = data_processing.normalize_data(
+    x_train, x_test, y_train, y_test, y_scaler = data_processing.normalize_data(
         x_train, x_test, y_train, y_test
     )
     print("Data normalized (zero mean, unit variance)\n")
@@ -250,9 +250,13 @@ def main() -> None:
     with torch.no_grad():
         predictions = model(x_test)
 
-    # Back-transform predictions and test outputs for plotting (if log transform was applied)
-    y_test_plot = y_test.numpy()
-    predictions_plot = predictions.numpy()
+    # Back-transform predictions and test outputs for plotting
+    # First denormalize, then (if log was applied) exponentiate
+    y_test_plot = y_scaler.inverse_transform(y_test.numpy().reshape(-1, 1)).reshape(-1)
+    predictions_plot = y_scaler.inverse_transform(
+        predictions.numpy().reshape(-1, 1)
+    ).reshape(-1)
+
     if log_y:
         y_test_plot = np.exp(y_test_plot)
         predictions_plot = np.exp(predictions_plot)

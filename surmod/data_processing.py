@@ -207,7 +207,7 @@ def normalize_data(
     x_test: np.ndarray,
     y_train: np.ndarray,
     y_test: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, StandardScaler]:
     """
     Normalize features and targets using StandardScaler (zero mean, unit variance).
 
@@ -225,6 +225,7 @@ def normalize_data(
         x_test_norm: Normalized testing features.
         y_train_norm: Normalized training labels.
         y_test_norm: Normalized testing labels.
+        y_scaler: The fitted StandardScaler for y (for inverse transform).
     """
     # One scaler for all X features
     x_scaler = StandardScaler()
@@ -238,4 +239,4 @@ def normalize_data(
     y_train_norm = y_scaler.fit_transform(y_train_reshaped).reshape(-1)
     y_test_norm = y_scaler.transform(y_test_reshaped).reshape(-1)
 
-    return x_train_norm, x_test_norm, y_train_norm, y_test_norm
+    return x_train_norm, x_test_norm, y_train_norm, y_test_norm, y_scaler
