@@ -218,6 +218,11 @@ def main():
     pred_train_mean, _pred_train_std = gp.predict(x_train)
     pred_test_mean, pred_test_std = gp.predict(x_test)
 
+    # Save log-space predictions for CI calculation if needed
+    if log_y:
+        pred_test_mean_log = pred_test_mean.copy()
+        pred_test_std_log = pred_test_std.copy()
+
     # Back-transform predictions and actuals if log transform was applied
     if log_y:
         y_train = np.exp(y_train)
@@ -242,9 +247,9 @@ def main():
 
     # 95% confidence interval coverage on test data
     if log_y:
-        # Transform CI bounds (monotonic transform preserves coverage)
-        lower_log = pred_test_mean - 1.96 * pred_test_std
-        upper_log = pred_test_mean + 1.96 * pred_test_std
+        # Compute CI in log space, then transform bounds
+        lower_log = pred_test_mean_log - 1.96 * pred_test_std_log
+        upper_log = pred_test_mean_log + 1.96 * pred_test_std_log
         lower = np.exp(lower_log)
         upper = np.exp(upper_log)
         coverage = np.mean((y_test >= lower) & (y_test <= upper))
