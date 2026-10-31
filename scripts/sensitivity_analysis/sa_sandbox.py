@@ -179,8 +179,8 @@ def main():
     exclude = args.exclude
     kernel = args.kernel
     isotropic = args.isotropic
-    lengthscale_bounds = tuple(args.lengthscale_bounds)
-    noise_bounds_arg = tuple(args.noise_bounds)
+    lengthscale_bounds = args.lengthscale_bounds
+    noise_bounds = args.noise_bounds
     seed = args.seed
 
     # Set output directories relative to this script
@@ -215,10 +215,6 @@ def main():
 
     dim = x_train.shape[1]
 
-    # Handle fixed nugget
-    fixed_noise = args.fixed_nugget
-    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds_arg
-
     gp_model = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -228,9 +224,9 @@ def main():
         isotropic=isotropic,
         scale_x=args.scale_x,
         scale_outputs=args.normalize_y,
-        fixed_noise=fixed_noise,
+        fixed_noise=args.fixed_nugget,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds_to_use,
+        noise_bounds=noise_bounds,
         seed=seed,
     )
 
@@ -277,7 +273,7 @@ def main():
         f"Isotropic: {isotropic}\n"
         f"Fixed nugget: {args.fixed_nugget}\n"
         f"Lengthscale bounds: {lengthscale_bounds}\n"
-        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}\n"
+        f"Noise bounds: {noise_bounds if args.fixed_nugget is None else 'N/A (fixed)'}\n"
         f"Train RMSE: {train_rmse:.3e}\n"
         f"Test RMSE: {test_rmse:.3e}\n"
         f"Train Max abs err: {train_max_abserr:.3e} | Location: {train_max_input}\n"
