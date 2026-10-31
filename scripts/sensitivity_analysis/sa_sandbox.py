@@ -183,9 +183,10 @@ def main():
     noise_bounds = args.noise_bounds
     seed = args.seed
 
-    # Set output directories relative to this script
-    plots_dir = Path(__file__).parent / "plots"
-    results_dir = Path(__file__).parent / "results"
+    # Set output directories at repository root
+    repo_root = Path(__file__).parent.parent.parent
+    plots_dir = repo_root / "outputs" / "sensitivity_analysis" / "plots"
+    results_dir = repo_root / "outputs" / "sensitivity_analysis" / "results"
 
     _, _, bounds_list = get_input_spec(test_function)
     bounds = np.array(bounds_list, dtype=float)

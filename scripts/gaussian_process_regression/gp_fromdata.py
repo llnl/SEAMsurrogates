@@ -163,8 +163,10 @@ def main():
 
     # Set output directories relative to this script
     script_dir = Path(__file__).parent
-    results_dir = script_dir / "results"
-    plots_dir = script_dir / "plots"
+    # Set output directories at repository root
+    repo_root = script_dir.parent.parent
+    results_dir = repo_root / "outputs" / "gaussian_process_regression" / "results"
+    plots_dir = repo_root / "outputs" / "gaussian_process_regression" / "plots"
 
     # Check data availability
     n_samples = n_test + n_train

@@ -150,7 +150,9 @@ def main() -> None:
 
     # Set output directory relative to this script
     script_dir = Path(__file__).parent
-    plots_dir = script_dir / "plots"
+    # Set output directories at repository root
+    repo_root = script_dir.parent.parent
+    plots_dir = repo_root / "outputs" / "neural_network" / "plots"
 
     # Check data availability
     n_samples = n_test + n_train
@@ -236,7 +238,7 @@ def main() -> None:
     log_message = "\n".join(log_lines)
     print(log_message)
 
-    results_dir = Path(__file__).parent / "results"
+    results_dir = repo_root / "outputs" / "neural_network" / "results"
     log_results(
         log_message,
         path_to_log=results_dir / f"{dataset}.txt",

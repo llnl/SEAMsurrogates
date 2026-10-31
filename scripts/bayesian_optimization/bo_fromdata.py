@@ -162,7 +162,9 @@ def main() -> None:
     torch.manual_seed(seed)
 
     # Set plots directory relative to this script
-    plots_dir = Path(__file__).parent / "plots"
+    # Set output directories at repository root
+    repo_root = Path(__file__).parent.parent.parent
+    plots_dir = repo_root / "outputs" / "bayesian_optimization" / "plots"
 
     n_samples = n_init + n_iter
     if n_samples > 10000:
@@ -279,7 +281,7 @@ def main() -> None:
     log_message = "\n".join(log_lines)
     print(log_message)
 
-    results_dir = Path(__file__).parent / "results"
+    results_dir = repo_root / "outputs" / "bayesian_optimization" / "results"
     log_results(
         log_message,
         path_to_log=results_dir / f"{dataset}_{args.init_design}_bo_comparison.txt",

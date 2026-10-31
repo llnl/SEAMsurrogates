@@ -274,8 +274,10 @@ def main():
     )
     print(log_message)
 
-    plots_dir = Path(__file__).parent / "plots"
-    results_dir = Path(__file__).parent / "results"
+    # Set output directories at repository root
+    repo_root = Path(__file__).parent.parent.parent
+    plots_dir = repo_root / "outputs" / "sensitivity_analysis" / "plots"
+    results_dir = repo_root / "outputs" / "sensitivity_analysis" / "results"
     log_results(log_message, path_to_log=results_dir / f"{dataset}.txt")
 
     gp_model.plot_test_predictions(dataset=dataset, plots_dir=plots_dir)

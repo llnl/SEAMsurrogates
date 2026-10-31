@@ -148,7 +148,9 @@ def main():
     seed = args.seed
 
     # Define script-relative directories
-    plots_dir = Path(__file__).parent / "plots"
+    # Set output directories at repository root
+    repo_root = Path(__file__).parent.parent.parent
+    plots_dir = repo_root / "outputs" / "gaussian_process_regression" / "plots"
 
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
@@ -229,7 +231,7 @@ def main():
     log_message = "\n".join(log_lines)
     print(log_message)
 
-    results_dir = Path(__file__).parent / "results"
+    results_dir = repo_root / "outputs" / "gaussian_process_regression" / "results"
     log_results(
         log_message,
         path_to_log=results_dir
