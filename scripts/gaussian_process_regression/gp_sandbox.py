@@ -160,10 +160,6 @@ def main():
         seed=seed,
     )
 
-    # Handle fixed nugget
-    fixed_noise = float(fixed_nugget) if fixed_nugget is not None else None
-    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
-
     gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -173,9 +169,9 @@ def main():
         isotropic=isotropic,
         scale_x=scale_x,
         scale_outputs=normalize_y,
-        fixed_noise=fixed_noise,
+        fixed_noise=fixed_nugget,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds_to_use,
+        noise_bounds=noise_bounds,
         seed=seed,
     )
 
@@ -218,7 +214,7 @@ def main():
         f"Normalize y: {normalize_y}",
         f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
-        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
+        f"Noise bounds: {noise_bounds if fixed_nugget is None else 'N/A (fixed)'}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
