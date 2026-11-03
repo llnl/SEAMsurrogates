@@ -11,6 +11,7 @@ import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from matplotlib.figure import Figure
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -261,7 +262,7 @@ def plot_losses_multiplot(
     results: LossSweepResult,
     learning_rates: list[float],
     hid_dims: list[int],
-    fig: plt.Figure,
+    fig: Figure,
     axs: Sequence[Sequence[matplotlib.axes.Axes]],
     dataset: str,
     plots_dir: Path = Path("plots"),
