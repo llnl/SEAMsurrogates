@@ -4,6 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 
 
 def log_results(log_message: str, path_to_log: Path) -> None:
@@ -19,7 +20,7 @@ def log_results(log_message: str, path_to_log: Path) -> None:
         f.write(log_message + "\n")
 
 
-def save_figure(fig: plt.Figure, output_path: Path, close: bool = True) -> None:
+def save_figure(fig: Figure, output_path: Path, close: bool = True) -> None:
     """
     Save a matplotlib figure to disk.
 

@@ -163,8 +163,10 @@ def main():
 
     # Set output directories relative to this script
     script_dir = Path(__file__).parent
-    results_dir = script_dir / "results"
-    plots_dir = script_dir / "plots"
+    # Set output directories at repository root
+    repo_root = script_dir.parent.parent
+    results_dir = repo_root / "outputs" / "gaussian_process_regression" / "results"
+    plots_dir = repo_root / "outputs" / "gaussian_process_regression" / "plots"
 
     # Check data availability
     n_samples = n_test + n_train
@@ -190,11 +192,6 @@ def main():
         y_test = np.log(y_test)
         print("Log transform applied to outputs\n")
 
-    # Build and fit BoTorch GP surrogate
-    # Handle fixed nugget
-    fixed_noise = fixed_nugget
-    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
-
     gp = GPSurrogate(
         x_train=x_train,
         y_train=y_train,
@@ -204,9 +201,9 @@ def main():
         isotropic=isotropic,
         scale_x=scale_x,
         scale_outputs=normalize_y,
-        fixed_noise=fixed_noise,
+        fixed_noise=fixed_nugget,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds_to_use,
+        noise_bounds=noise_bounds,
         seed=seed,
     )
 
@@ -271,7 +268,7 @@ def main():
         f"Normalize y: {normalize_y}",
         f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
-        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
+        f"Noise bounds: {noise_bounds if fixed_nugget is None else 'N/A (fixed)'}",
         f"Fitted kernel: {gp.get_fitted_kernel_label()}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",

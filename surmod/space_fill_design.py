@@ -156,6 +156,7 @@ def maximin_sa_lhd(
     bounds_low,
     bounds_high,
     n_samples: int,
+    seed: int,
     T0: float = 10.0,
     c: float = 0.95,
     it: int = 2000,
@@ -163,7 +164,6 @@ def maximin_sa_lhd(
     profile: str = "GEOM",
     Imax: int = 100,
     jitter: bool = False,
-    seed: int | None = None,
     return_history: bool = False,
 ):
     """
@@ -178,6 +178,7 @@ def maximin_sa_lhd(
         bounds_low: Lower bounds for each design dimension.
         bounds_high: Upper bounds for each design dimension.
         n_samples: Number of design points to generate.
+        seed: Random seed for reproducibility.
         T0: Initial annealing temperature.
         c: Geometric cooling factor.
         it: Number of simulated annealing iterations.
@@ -187,7 +188,6 @@ def maximin_sa_lhd(
             stagnation adjustment.
         jitter: Whether to randomly jitter points within Latin hypercube
             intervals.
-        seed: Optional random seed.
         return_history: If ``True``, return the optimized design and
             optimization diagnostics. Otherwise, return only the design.
 
@@ -304,7 +304,7 @@ def maximin_sa_lhd(
     return best_design
 
 
-def random_design(bounds_low, bounds_high, n_samples, seed=None):
+def random_design(bounds_low, bounds_high, n_samples: int, seed: int):
     """
     Generate uniformly distributed random design points within bounds.
 
@@ -312,7 +312,7 @@ def random_design(bounds_low, bounds_high, n_samples, seed=None):
         bounds_low: Lower bound for each dimension.
         bounds_high: Upper bound for each dimension.
         n_samples: Number of design points to generate.
-        seed: Optional seed for reproducible sampling.
+        seed: Random seed for reproducibility.
 
     Returns:
         Array of shape ``(n_samples, n_dimensions)`` containing the sampled
@@ -324,7 +324,7 @@ def random_design(bounds_low, bounds_high, n_samples, seed=None):
     return rng.uniform(bounds_low, bounds_high, size=(n_samples, len(bounds_low)))
 
 
-def latin_hypercube_design(bounds_low, bounds_high, n_samples, seed=None):
+def latin_hypercube_design(bounds_low, bounds_high, n_samples: int, seed: int):
     """
     Generate a Latin hypercube design scaled to specified bounds.
 
@@ -332,7 +332,7 @@ def latin_hypercube_design(bounds_low, bounds_high, n_samples, seed=None):
         bounds_low: Lower bound for each dimension.
         bounds_high: Upper bound for each dimension.
         n_samples: Number of design points to generate.
-        seed: Optional seed for reproducible sampling.
+        seed: Random seed for reproducibility.
 
     Returns:
         Array of shape ``(n_samples, n_dimensions)`` containing the scaled
@@ -350,9 +350,9 @@ def latin_hypercube_design(bounds_low, bounds_high, n_samples, seed=None):
 def generate_initial_design(
     bounds_low,
     bounds_high,
-    n_samples,
-    method="random",
-    seed=None,
+    n_samples: int,
+    seed: int,
+    method: str = "random",
     **kwargs,
 ):
     """
@@ -366,9 +366,9 @@ def generate_initial_design(
         bounds_low: Lower bound for each dimension.
         bounds_high: Upper bound for each dimension.
         n_samples: Number of design points to generate.
+        seed: Random seed for reproducibility.
         method: Design method, one of ``"random"``, ``"lhd"``,
             ``"latin_hypercube"``, or ``"maximin_lhd"``.
-        seed: Optional seed for reproducible sampling.
         **kwargs: Additional options passed to the selected method, such as
             ``jitter`` for Latin hypercube designs or simulated annealing
             parameters for ``"maximin_lhd"``.

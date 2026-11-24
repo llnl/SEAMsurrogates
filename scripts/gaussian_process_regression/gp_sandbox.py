@@ -148,7 +148,9 @@ def main():
     seed = args.seed
 
     # Define script-relative directories
-    plots_dir = Path(__file__).parent / "plots"
+    # Set output directories at repository root
+    repo_root = Path(__file__).parent.parent.parent
+    plots_dir = repo_root / "outputs" / "gaussian_process_regression" / "plots"
 
     # Generate test and train data sets
     x_train, x_test, y_train, y_test = simulate_data(
@@ -157,10 +159,6 @@ def main():
         n_test,
         seed=seed,
     )
-
-    # Handle fixed nugget
-    fixed_noise = float(fixed_nugget) if fixed_nugget is not None else None
-    noise_bounds_to_use = None if fixed_noise is not None else noise_bounds
 
     gp = GPSurrogate(
         x_train=x_train,
@@ -171,9 +169,9 @@ def main():
         isotropic=isotropic,
         scale_x=scale_x,
         scale_outputs=normalize_y,
-        fixed_noise=fixed_noise,
+        fixed_noise=fixed_nugget,
         lengthscale_bounds=lengthscale_bounds,
-        noise_bounds=noise_bounds_to_use,
+        noise_bounds=noise_bounds,
         seed=seed,
     )
 
@@ -216,7 +214,7 @@ def main():
         f"Normalize y: {normalize_y}",
         f"Fixed nugget: {fixed_nugget}",
         f"Lengthscale bounds: {lengthscale_bounds}",
-        f"Noise bounds: {noise_bounds_to_use if fixed_noise is None else 'N/A (fixed)'}",
+        f"Noise bounds: {noise_bounds if fixed_nugget is None else 'N/A (fixed)'}",
         f"Train RMSE: {train_rmse:.5e}",
         f"Test RMSE: {test_rmse:.5e}",
         f"Test 95% interval coverage: {coverage:.2%}",
@@ -229,7 +227,7 @@ def main():
     log_message = "\n".join(log_lines)
     print(log_message)
 
-    results_dir = Path(__file__).parent / "results"
+    results_dir = repo_root / "outputs" / "gaussian_process_regression" / "results"
     log_results(
         log_message,
         path_to_log=results_dir
