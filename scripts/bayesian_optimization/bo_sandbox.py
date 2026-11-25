@@ -25,12 +25,14 @@ import time
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
 import imageio.v2 as imageio
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from mpl_toolkits.mplot3d import Axes3D
 
 from surmod import bayesian_optimization as bo
 from surmod.test_functions import load_test_function
@@ -229,7 +231,7 @@ def setup_figure(
     x2_grid: np.ndarray,
     y_grid: np.ndarray,
     x_sample: np.ndarray,
-    synth_function: object,
+    synth_function: Any,
     global_optima: list,
     test_function: str,
     kernel: str,
@@ -263,8 +265,8 @@ def setup_figure(
     )
 
     ax1 = fig.add_subplot(131, aspect="equal")
-    ax2 = fig.add_subplot(132, projection="3d")
-    ax3 = fig.add_subplot(133, projection="3d")
+    ax2 = cast(Axes3D, fig.add_subplot(132, projection="3d"))
+    ax3 = cast(Axes3D, fig.add_subplot(133, projection="3d"))
 
     title_lines = [
         f"{test_function} with {kernel} kernel",
