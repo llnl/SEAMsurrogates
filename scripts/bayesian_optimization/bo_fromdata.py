@@ -238,7 +238,12 @@ def main() -> None:
         if acq_func == "UCB":
             kwargs["beta"] = args.beta
 
-        optimizer = bo.BayesianOptimizer(data, x, y, kernel, **kwargs)
+        optimizer = bo.DatasetBayesianOptimizer(
+            x_init=x,
+            y_init=y,
+            kernel=kernel,
+            **kwargs,
+        )
         max_y_history = optimizer.bayes_opt(df, n_init)[2]
 
         optimizers[acq_func] = optimizer

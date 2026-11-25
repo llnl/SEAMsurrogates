@@ -167,10 +167,9 @@ def select_initial_dataset_indices(
     return np.array(selected, dtype=int)
 
 
-class BayesianOptimizer:
+class BaseBayesianOptimizer:
     def __init__(
         self,
-        test_function: str,
         x_init: np.ndarray,
         y_init: np.ndarray,
         kernel: str = "matern",
@@ -192,14 +191,7 @@ class BayesianOptimizer:
         """
         Perform Bayesian optimization using a Gaussian process surrogate model.
 
-        The optimizer supports analytic acquisition functions, including Expected
-        Improvement, Probability of Improvement, Upper Confidence Bound, and
-        Posterior Variance, as well as uniform random sampling. It can optimize
-        synthetic objective functions directly or select observations from a
-        provided dataset.
-
         Args:
-            test_function: Name of the test function to optimize.
             x_init: Initial input observations.
             y_init: Initial objective values corresponding to ``x_init``.
             kernel: Kernel used by the Gaussian process surrogate. Defaults to
@@ -224,7 +216,6 @@ class BayesianOptimizer:
             **acquisition_kwargs: Additional acquisition-function parameters, such
                 as ``beta`` for UCB.
         """
-        self.test_function = test_function
         self.x_init = np.asarray(x_init, dtype=float)
         self.y_init = np.asarray(y_init, dtype=float).reshape(-1)
 
@@ -254,26 +245,6 @@ class BayesianOptimizer:
         self.init_design_kwargs = init_design_kwargs or {}
         self._rng = np.random.RandomState(seed)
 
-    def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
-        """Evaluate the test function at a proposed point."""
-        synthetic_function = load_test_function(self.test_function)
-
-        bounds = self._get_objective_bounds().cpu().numpy()
-        x_next = np.asarray(x_next, dtype=np.float64).reshape(-1)
-        x_next = np.clip(x_next, bounds[0], bounds[1])
-
-        x_tensor = torch.as_tensor(x_next, dtype=torch.float64).unsqueeze(0)
-
-        try:
-            y_tensor = synthetic_function(x_tensor)
-        except ValueError:
-            print("Objective bounds low :", bounds[0])
-            print("Objective bounds high:", bounds[1])
-            print("Tried x_next        :", x_next)
-            raise
-
-        return y_tensor.detach().cpu().numpy().reshape(-1)
-
     def gp_model_fit(self) -> GPSurrogate:
         """Fit and return the Gaussian process surrogate model."""
         self.gp_model = GPSurrogate(
@@ -291,14 +262,6 @@ class BayesianOptimizer:
         )
         self.gp_model.fit()
         return self.gp_model
-
-    def _get_objective_bounds(self) -> torch.Tensor:
-        """Return the test function bounds as a two-row tensor."""
-        synthetic_function = load_test_function(self.test_function)
-        bounds_low = [b[0] for b in synthetic_function._bounds]
-        bounds_high = [b[1] for b in synthetic_function._bounds]
-
-        return torch.tensor([bounds_low, bounds_high], dtype=torch.float64)
 
     def _build_analytic_acquisition(self):
         """Build and return the configured analytic acquisition function."""
@@ -325,6 +288,116 @@ class BayesianOptimizer:
             raise ValueError(
                 "Invalid acquisition function. Choose 'EI', 'PI', 'UCB', 'PV', or 'random'."
             )
+
+    def _append_observation(
+        self,
+        x_next: np.ndarray,
+        y_next_scalar: float,
+    ) -> None:
+        """Append a newly evaluated point and value to the optimizer state."""
+        x_next = np.asarray(x_next, dtype=float).reshape(1, -1)
+
+        self.x_all_data = np.vstack((self.x_all_data, x_next))
+        self.y_all_data = np.append(self.y_all_data, y_next_scalar)
+        self.x_acquired = np.vstack((self.x_acquired, x_next))
+        self.y_acquired = np.append(self.y_acquired, y_next_scalar)
+        self.y_max_history = np.append(self.y_max_history, np.max(self.y_all_data))
+
+    def _score_candidates_discrete(
+        self,
+        x_candidates: np.ndarray,
+    ) -> np.ndarray:
+        """Score candidate points using the configured acquisition strategy."""
+        if self.acquisition.lower() == "random":
+            # Random baseline: uniform scores (does not use surrogate model)
+            return self._rng.uniform(size=x_candidates.shape[0])
+
+        acq_func = self._build_analytic_acquisition()
+        x_tensor = torch.as_tensor(x_candidates, dtype=torch.float64).unsqueeze(1)
+
+        with torch.no_grad():
+            values = acq_func(x_tensor).detach().cpu().numpy().reshape(-1)
+
+        return values
+
+    def score_candidates(
+        self,
+        x_candidates: np.ndarray,
+    ) -> np.ndarray:
+        """Return acquisition scores for a set of candidate points."""
+        return self._score_candidates_discrete(x_candidates)
+
+
+class SyntheticBayesianOptimizer(BaseBayesianOptimizer):
+    def __init__(
+        self,
+        test_function: str,
+        x_init: np.ndarray,
+        y_init: np.ndarray,
+        kernel: str = "matern",
+        isotropic: bool = False,
+        acquisition_function: str = "EI",
+        n_acquire: int = 10,
+        seed: int = 42,
+        scale_x: bool = True,
+        scale_outputs: bool = True,
+        lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
+        noise_bounds: tuple[float, float] = (1e-8, 1e-1),
+        outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
+        optimization_restarts: int = 3,
+        fixed_noise: float | None = None,
+        init_design: str = "random",
+        init_design_kwargs: dict | None = None,
+        **acquisition_kwargs,
+    ):
+        super().__init__(
+            x_init=x_init,
+            y_init=y_init,
+            kernel=kernel,
+            isotropic=isotropic,
+            acquisition_function=acquisition_function,
+            n_acquire=n_acquire,
+            seed=seed,
+            scale_x=scale_x,
+            scale_outputs=scale_outputs,
+            lengthscale_bounds=lengthscale_bounds,
+            noise_bounds=noise_bounds,
+            outputscale_bounds=outputscale_bounds,
+            optimization_restarts=optimization_restarts,
+            fixed_noise=fixed_noise,
+            init_design=init_design,
+            init_design_kwargs=init_design_kwargs,
+            **acquisition_kwargs,
+        )
+        self.test_function = test_function
+
+    def _get_objective_bounds(self) -> torch.Tensor:
+        """Return the test function bounds as a two-row tensor."""
+        synthetic_function = load_test_function(self.test_function)
+        bounds_low = [b[0] for b in synthetic_function._bounds]
+        bounds_high = [b[1] for b in synthetic_function._bounds]
+
+        return torch.tensor([bounds_low, bounds_high], dtype=torch.float64)
+
+    def evaluate_objective(self, x_next: np.ndarray) -> np.ndarray:
+        """Evaluate the test function at a proposed point."""
+        synthetic_function = load_test_function(self.test_function)
+
+        bounds = self._get_objective_bounds().cpu().numpy()
+        x_next = np.asarray(x_next, dtype=np.float64).reshape(-1)
+        x_next = np.clip(x_next, bounds[0], bounds[1])
+
+        x_tensor = torch.as_tensor(x_next, dtype=torch.float64).unsqueeze(0)
+
+        try:
+            y_tensor = synthetic_function(x_tensor)
+        except ValueError:
+            print("Objective bounds low :", bounds[0])
+            print("Objective bounds high:", bounds[1])
+            print("Tried x_next        :", x_next)
+            raise
+
+        return y_tensor.detach().cpu().numpy().reshape(-1)
 
     def propose_location(
         self,
@@ -355,44 +428,6 @@ class BayesianOptimizer:
         x_next = candidate.detach().cpu().numpy().reshape(-1)
         x_next = np.clip(np.asarray(x_next, dtype=np.float64), bounds[0], bounds[1])
         return x_next
-
-    def _score_candidates_discrete(
-        self,
-        x_candidates: np.ndarray,
-    ) -> np.ndarray:
-        """Score candidate points using the configured acquisition strategy."""
-        if self.acquisition.lower() == "random":
-            # Random baseline: uniform scores (does not use surrogate model)
-            return self._rng.uniform(size=x_candidates.shape[0])
-
-        acq_func = self._build_analytic_acquisition()
-        x_tensor = torch.as_tensor(x_candidates, dtype=torch.float64).unsqueeze(1)
-
-        with torch.no_grad():
-            values = acq_func(x_tensor).detach().cpu().numpy().reshape(-1)
-
-        return values
-
-    def score_candidates(
-        self,
-        x_candidates: np.ndarray,
-    ) -> np.ndarray:
-        """Return acquisition scores for a set of candidate points."""
-        return self._score_candidates_discrete(x_candidates)
-
-    def _append_observation(
-        self,
-        x_next: np.ndarray,
-        y_next_scalar: float,
-    ) -> None:
-        """Append a newly evaluated point and value to the optimizer state."""
-        x_next = np.asarray(x_next, dtype=float).reshape(1, -1)
-
-        self.x_all_data = np.vstack((self.x_all_data, x_next))
-        self.y_all_data = np.append(self.y_all_data, y_next_scalar)
-        self.x_acquired = np.vstack((self.x_acquired, x_next))
-        self.y_acquired = np.append(self.y_acquired, y_next_scalar)
-        self.y_max_history = np.append(self.y_max_history, np.max(self.y_all_data))
 
     def step(
         self,
@@ -538,6 +573,172 @@ class BayesianOptimizer:
         """Clip input points to the bounds of the objective function."""
         bounds = self._get_objective_bounds().cpu().numpy()
         return np.clip(np.asarray(x, dtype=float), bounds[0], bounds[1])
+
+
+class DatasetBayesianOptimizer(BaseBayesianOptimizer):
+    """Bayesian optimization over a fixed dataset.
+
+    This subclass exposes only the dataset-driven workflow. Synthetic objective
+    evaluation helpers are intentionally unavailable here to keep the API
+    explicit.
+    """
+
+    def __init__(
+        self,
+        x_init: np.ndarray,
+        y_init: np.ndarray,
+        kernel: str = "matern",
+        isotropic: bool = False,
+        acquisition_function: str = "EI",
+        n_acquire: int = 10,
+        seed: int = 42,
+        scale_x: bool = True,
+        scale_outputs: bool = True,
+        lengthscale_bounds: tuple[float, float] = (1e-2, 10.0),
+        noise_bounds: tuple[float, float] = (1e-8, 1e-1),
+        outputscale_bounds: tuple[float, float] = (1e-3, 1e3),
+        optimization_restarts: int = 3,
+        fixed_noise: float | None = None,
+        init_design: str = "random",
+        init_design_kwargs: dict | None = None,
+        **acquisition_kwargs,
+    ):
+        super().__init__(
+            x_init=x_init,
+            y_init=y_init,
+            kernel=kernel,
+            isotropic=isotropic,
+            acquisition_function=acquisition_function,
+            n_acquire=n_acquire,
+            seed=seed,
+            scale_x=scale_x,
+            scale_outputs=scale_outputs,
+            lengthscale_bounds=lengthscale_bounds,
+            noise_bounds=noise_bounds,
+            outputscale_bounds=outputscale_bounds,
+            optimization_restarts=optimization_restarts,
+            fixed_noise=fixed_noise,
+            init_design=init_design,
+            init_design_kwargs=init_design_kwargs,
+            **acquisition_kwargs,
+        )
+
+    def step(
+        self,
+        df: pd.DataFrame,
+        remaining_indices: set[int] | None = None,
+        x_grid: np.ndarray | None = None,
+        grid_shape: tuple[int, int] | None = None,
+        return_diagnostics: bool = False,
+    ) -> dict:
+        if df is None:
+            raise ValueError("df must be provided for dataset Bayesian optimization.")
+        self.gp_model_fit()
+        gp = self.gp_model
+        if gp is None:
+            raise ValueError("GP model failed to fit.")
+
+        snapshot: dict = {}
+
+        if return_diagnostics and x_grid is not None:
+            mu, _ = gp.predict(x_grid)
+
+            acq_values = self.score_candidates(x_grid)
+
+            if self.acquisition.upper() == "EI":
+                acq_values = np.exp(acq_values)
+
+            snapshot["gp_mean_max_value"] = float(np.max(mu))
+            snapshot["gp_mean_max_location"] = np.asarray(x_grid[np.argmax(mu), :])
+            snapshot["mu"] = mu.reshape(grid_shape) if grid_shape is not None else mu
+            snapshot["acq_values"] = (
+                acq_values.reshape(grid_shape) if grid_shape is not None else acq_values
+            )
+
+        if remaining_indices is None or len(remaining_indices) == 0:
+            raise ValueError(
+                "remaining_indices must be provided and non-empty for dataset BO."
+            )
+
+        x = df.iloc[:, :-1].to_numpy(dtype=float)
+        y = df.iloc[:, -1].to_numpy(dtype=float).reshape(-1)
+
+        remaining_list = list(remaining_indices)
+        x_remaining = x[remaining_list]
+
+        acquisition_values = self.score_candidates(x_remaining)
+        next_idx_in_remaining = int(np.argmax(acquisition_values))
+        next_index = remaining_list[next_idx_in_remaining]
+
+        x_next = x[next_index]
+        y_next_scalar = float(y[next_index])
+        snapshot["selected_index"] = next_index
+
+        self._append_observation(x_next, y_next_scalar)
+
+        x_best = self.x_all_data[np.argmax(self.y_all_data), :]
+
+        snapshot.update(
+            {
+                "x_next": np.asarray(x_next, dtype=float),
+                "y_next": y_next_scalar,
+                "y_max": float(np.max(self.y_all_data)),
+                "x_best": x_best,
+                "acquired_max": float(np.max(self.y_all_data)),
+            }
+        )
+
+        return snapshot
+
+    def bayes_opt(
+        self,
+        df: pd.DataFrame,
+        n_init: int = 10,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        df = df.copy()
+
+        x = df.iloc[:, :-1].to_numpy(dtype=float)
+        y = df.iloc[:, -1].to_numpy(dtype=float).reshape(-1)
+
+        n_total = len(df)
+        if n_init > n_total:
+            raise ValueError("n_init cannot exceed the number of rows in df.")
+
+        # Only for LHD / maximin-LHD matching, not for GP training
+        x_min = x.min(axis=0)
+        x_max = x.max(axis=0)
+        x_range = np.where(x_max > x_min, x_max - x_min, 1.0)
+        x_for_init = (x - x_min) / x_range
+
+        initial_indices = select_initial_dataset_indices(
+            x=x_for_init,
+            n_init=n_init,
+            method=self.init_design,
+            seed=self.seed,
+            **self.init_design_kwargs,
+        )
+        remaining_indices = set(range(n_total)) - set(initial_indices)
+
+        self.x_init = x[initial_indices].copy()
+        self.y_init = y[initial_indices].copy()
+        self.x_all_data = self.x_init.copy()
+        self.y_all_data = self.y_init.copy()
+        self.x_acquired = np.empty((0, self.x_init.shape[1]), dtype=float)
+        self.y_acquired = np.empty((0,), dtype=float)
+        self.y_max_history = np.array([np.max(self.y_all_data)], dtype=float)
+
+        for _ in range(self.n_acquire):
+            if len(remaining_indices) == 0:
+                break
+
+            snapshot = self.step(
+                df=df,
+                remaining_indices=remaining_indices,
+                return_diagnostics=False,
+            )
+            remaining_indices.remove(snapshot["selected_index"])
+
+        return self.x_all_data, self.y_all_data, self.y_max_history
 
 
 def plot_acquisition_comparison(

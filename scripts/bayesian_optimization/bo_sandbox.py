@@ -13,10 +13,10 @@ Usage examples:
 ./bo_sandbox.py
 ./bo_sandbox.py --test-function parabola --acquisition EI --init-design lhd --save-animation
 ./bo_sandbox.py --test-function parabola --acquisition EI --n-iter 15
-./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-initial 10
-./bo_sandbox.py --test-function ackley --acquisition UCB --n-initial 3 --n-iter 20 --beta 2.0
-./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --seed 2
-./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-initial 3 --no-scale-x
+./bo_sandbox.py --test-function parabola --acquisition random --n-iter 15 --n-init 10
+./bo_sandbox.py --test-function ackley --acquisition UCB --n-init 3 --n-iter 20 --beta 2.0
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-init 3 --seed 2
+./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-init 3 --no-scale-x
 """
 
 import argparse
@@ -161,7 +161,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def run_bayesian_optimization(
-    bopt: bo.BayesianOptimizer,
+    bopt: bo.SyntheticBayesianOptimizer,
     x_grid: np.ndarray,
     x1_grid: np.ndarray,
 ) -> Generator[dict, None, None]:
@@ -224,7 +224,7 @@ def _capture_frame(fig: matplotlib.figure.Figure, frames: list) -> None:
 
 
 def setup_figure(
-    bopt: bo.BayesianOptimizer,
+    bopt: bo.SyntheticBayesianOptimizer,
     x1_grid: np.ndarray,
     x2_grid: np.ndarray,
     y_grid: np.ndarray,
@@ -501,7 +501,7 @@ def save_gif(frames: list, test_function: str, plots_dir: Path) -> None:
         test_function: Test-function name used in the output filename.
         plots_dir: Directory where the GIF is saved.
     """
-    plots_dir.mkdir(exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%m%d_%H%M%S")
     path = plots_dir / f"bayes_opt_animation_{test_function}_{ts}.gif"
     imageio.mimsave(path, frames, fps=2)
@@ -548,7 +548,7 @@ def main() -> None:
         seed=args.seed,
     )
 
-    bopt = bo.BayesianOptimizer(
+    bopt = bo.SyntheticBayesianOptimizer(
         test_function=args.test_function,
         x_init=x_sample,
         y_init=y_sample,
