@@ -306,7 +306,7 @@ def setup_figure(
 
     # Fit initial GP for visualization
     gp_initial = bopt.gp_model_fit()
-    acq_init = bopt.score_candidates(x_grid)
+    acq_init = bopt.acquisition_surface(x_grid)
 
     acq_init = acq_init.reshape(x1_grid.shape)
     acq_surface = ax2.plot_surface(x1_grid, x2_grid, acq_init, cmap="viridis_r")

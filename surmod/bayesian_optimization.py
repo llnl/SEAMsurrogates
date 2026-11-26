@@ -327,6 +327,22 @@ class BaseBayesianOptimizer:
         """Return acquisition scores for a set of candidate points."""
         return self._score_candidates_discrete(x_candidates)
 
+    def acquisition_surface(
+        self,
+        x_candidates: np.ndarray,
+    ) -> np.ndarray:
+        """Return acquisition values on their natural scale, for visualization.
+
+        EI is computed in log space for numerical stability, so its scores are
+        exponentiated here. Other acquisition functions are returned unchanged.
+        Candidate selection should use ``score_candidates``, since the
+        exponential does not change the argmax.
+        """
+        values = self.score_candidates(x_candidates)
+        if self.acquisition.upper() == "EI":
+            values = np.exp(values)
+        return values
+
 
 class SyntheticBayesianOptimizer(BaseBayesianOptimizer):
     def __init__(
@@ -454,10 +470,7 @@ class SyntheticBayesianOptimizer(BaseBayesianOptimizer):
         if return_diagnostics and x_grid is not None:
             mu, _ = gp.predict(x_grid)
 
-            acq_values = self.score_candidates(x_grid)
-
-            if self.acquisition.upper() == "EI":
-                acq_values = np.exp(acq_values)
+            acq_values = self.acquisition_surface(x_grid)
 
             snapshot["gp_mean_max_value"] = float(np.max(mu))
             snapshot["gp_mean_max_location"] = np.asarray(x_grid[np.argmax(mu), :])
@@ -643,10 +656,7 @@ class DatasetBayesianOptimizer(BaseBayesianOptimizer):
         if return_diagnostics and x_grid is not None:
             mu, _ = gp.predict(x_grid)
 
-            acq_values = self.score_candidates(x_grid)
-
-            if self.acquisition.upper() == "EI":
-                acq_values = np.exp(acq_values)
+            acq_values = self.acquisition_surface(x_grid)
 
             snapshot["gp_mean_max_value"] = float(np.max(mu))
             snapshot["gp_mean_max_location"] = np.asarray(x_grid[np.argmax(mu), :])
