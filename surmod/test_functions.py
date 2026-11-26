@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -609,8 +609,8 @@ def load_test_function(
 
 def sample_parabola(
     n_init: int,
-    bounds_low: float | list[float] | npt.NDArray,
-    bounds_high: float | list[float] | npt.NDArray,
+    bounds_low: float | Sequence[float] | npt.NDArray,
+    bounds_high: float | Sequence[float] | npt.NDArray,
     input_size: int,
     radius: float = 7,
     seed: int = 1,
