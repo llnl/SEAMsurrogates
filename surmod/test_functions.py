@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence
+from typing import TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -13,7 +14,17 @@ from botorch.test_functions.synthetic import (
 )
 from sklearn.model_selection import train_test_split
 
-FUNCTION_SPECS: dict[str, dict[str, object]] = {
+
+class FunctionSpec(TypedDict):
+    """Configuration for a test function: dimension, name, variables, and bounds."""
+
+    dim: int
+    function_name: str
+    variable_names: list[str]
+    bounds: list[tuple[float, float]]
+
+
+FUNCTION_SPECS: dict[str, FunctionSpec] = {
     "parabola": {
         "dim": 2,
         "function_name": "parabola",
@@ -356,7 +367,7 @@ def get_variable_names(test_function: str) -> list[str]:
         )
 
     config = FUNCTION_SPECS[test_function]
-    return list(config["variable_names"])  # type: ignore[arg-type]
+    return list(config["variable_names"])
 
 
 def get_input_spec(
@@ -382,9 +393,8 @@ def get_input_spec(
         )
 
     config = FUNCTION_SPECS[test_function]
-    function_name = str(config["function_name"])
-    function = globals()[function_name]
-    return int(config["dim"]), function, list(config["bounds"])  # type: ignore[arg-type]
+    function = globals()[config["function_name"]]
+    return config["dim"], function, list(config["bounds"])
 
 
 def otlcircuit(
@@ -683,14 +693,14 @@ def simulate_data(
     """
     # Set-up simulation
     n_total = n_train + n_test
-    test_function = load_test_function(test_function)
-    bounds_low = [b[0] for b in test_function._bounds]
-    bounds_high = [b[1] for b in test_function._bounds]
+    synthetic_function = load_test_function(test_function)
+    bounds_low = [b[0] for b in synthetic_function._bounds]
+    bounds_high = [b[1] for b in synthetic_function._bounds]
 
     # Sample random data from test function
     rng = np.random.default_rng(seed)
     x_data = rng.uniform(bounds_low, bounds_high, size=(n_total, 2))
-    y_data = np.array(test_function(torch.tensor(x_data)))
+    y_data = np.array(synthetic_function(torch.tensor(x_data)))
 
     # Split data into training and testing sets
     x_train, x_test, y_train, y_test = train_test_split(
