@@ -17,6 +17,7 @@ Usage examples:
 ./bo_sandbox.py --test-function ackley --acquisition UCB --n-init 3 --n-iter 20 --beta 2.0
 ./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-init 3 --seed 2
 ./bo_sandbox.py --test-function branin --acquisition UCB --n-iter 20 --n-init 3 --no-scale-x
+./bo_sandbox.py --test-function branin --acquisition EI --normalize-y
 """
 
 import argparse
@@ -559,6 +560,11 @@ def main() -> None:
         acquisition_function=args.acquisition,
         n_acquire=args.n_iter,
         seed=args.seed,
+        scale_x=args.scale_x,
+        scale_outputs=args.normalize_y,
+        lengthscale_bounds=tuple(args.lengthscale_bounds),
+        noise_bounds=tuple(args.noise_bounds),
+        fixed_noise=args.fixed_nugget,
         beta=args.beta,
     )
 

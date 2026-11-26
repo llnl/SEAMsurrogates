@@ -16,6 +16,7 @@ Usage examples:
 ./bo_fromdata.py --dataset jag_icf --kernel matern --beta 2.0 --init-design lhd
 ./bo_fromdata.py --dataset borehole --init-design maximin_lhd --fixed-nugget 1e-7
 ./bo_fromdata.py --dataset jag_icf --kernel matern --no-scale-x
+./bo_fromdata.py --dataset borehole --kernel matern --normalize-y
 """
 
 import argparse
@@ -200,14 +201,12 @@ def main() -> None:
     else:
         init_design_kwargs = {}
 
-    # If user does not specify, keep nugget small by default
-    default_noise_bounds = (1e-8, 1e-6)
-    noise_bounds = default_noise_bounds
+    noise_bounds = tuple(args.noise_bounds)
     fixed_noise = None
 
     if args.fixed_nugget is not None:
         fixed_noise = float(args.fixed_nugget)
-        low, high = default_noise_bounds
+        low, high = noise_bounds
         if not (low <= fixed_noise <= high):
             margin = max(abs(fixed_noise) * 0.1, 1e-12)
             noise_bounds = (
@@ -222,6 +221,9 @@ def main() -> None:
         "isotropic": args.isotropic,
         "n_acquire": n_iter,
         "seed": seed,
+        "scale_x": args.scale_x,
+        "scale_outputs": args.normalize_y,
+        "lengthscale_bounds": tuple(args.lengthscale_bounds),
         "noise_bounds": noise_bounds,
         "fixed_noise": fixed_noise,
         "init_design": args.init_design,
